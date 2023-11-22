@@ -1,0 +1,20 @@
+[submodule "d4rl"]
+	path = d4rl
+	url = git@github.com:mihdalal/d4rl.git
+	branch = kitchen_iclr
+[submodule "DisentangledRep4RL"]
+	path = DisentangledRep4RL
+	url = git@github.com:mihdalal/DisentangledRep4RL.git
+	branch = iclr
+[submodule "metaworld"]
+	path = metaworld
+	url = git@github.com:tarunc20/metaworld.git
+	branch = mprl
+[submodule "mopa-rl"]
+	path = mopa-rl
+	url = git@github.com:tarunc20/mopa-rl.git
+	branch = main
+[submodule "robosuite"]
+	path = robosuite
+	url = git@github.com:mihdalal/robosuite.git
+	branch = mprl_latest_rs
