@@ -42,10 +42,9 @@ try:
     # first will have its conversions used.  Order doesn't seem to matter on Linux,
     # but on Apple, graph_tool will not be imported properly if OMPL comes first.
     import graph_tool.all as gt
-
     graphtool = True
 except ImportError:
-    print("Failed to import graph-tool.  PlannerData will not be analyzed or plotted")
+    print('Failed to import graph-tool.  PlannerData will not be analyzed or plotted')
     graphtool = False
 
 try:
@@ -54,10 +53,9 @@ try:
 except ImportError:
     # if the ompl module is not in the PYTHONPATH assume it is installed in a
     # subdirectory of the parent directory called "py-bindings."
-    import sys
     from os.path import abspath, dirname, join
-
-    sys.path.insert(0, join(dirname(dirname(abspath(__file__))), "py-bindings"))
+    import sys
+    sys.path.insert(0, join(dirname(dirname(abspath(__file__))), 'py-bindings'))
     from ompl import base as ob
     from ompl import geometric as og
 
@@ -65,14 +63,14 @@ except ImportError:
 # Create a narrow passage between y=[-3,3].  Only a 6x6x6 cube will be valid, centered at origin
 def isStateValid(state):
     if state.getY() >= -3 and state.getY() <= 3:
-        return state.getX() >= -3 and state.getX() <= 3 and state.getZ() >= -3 and state.getZ() <= 3
+        return state.getX() >= -3 and state.getX() <= 3 and \
+            state.getZ() >= -3 and state.getZ() <= 3
     return True
-
 
 def useGraphTool(pd):
     # Extract the graphml representation of the planner data
     graphml = pd.printGraphML()
-    f = open("graph.graphml", "w")
+    f = open("graph.graphml", 'w')
     f.write(graphml)
     f.close()
 
@@ -87,7 +85,7 @@ def useGraphTool(pd):
     print("---- PLANNER DATA STATISTICS ----")
     print(str(graph.num_vertices()) + " vertices and " + str(graph.num_edges()) + " edges")
     print("Average vertex degree (in+out) = " + str(avgdeg) + "  St. Dev = " + str(stddevdeg))
-    print("Average edge weight = " + str(avgwt) + "  St. Dev = " + str(stddevwt))
+    print("Average edge weight = " + str(avgwt)  + "  St. Dev = " + str(stddevwt))
 
     _, hist = gt.label_components(graph)
     print("Strongly connected components: " + str(len(hist)))
@@ -98,7 +96,7 @@ def useGraphTool(pd):
     print("Weakly connected components: " + str(len(hist)))
 
     # Plotting the graph
-    gt.remove_parallel_edges(graph)  # Removing any superfluous edges
+    gt.remove_parallel_edges(graph) # Removing any superfluous edges
 
     edgeweights = graph.edge_properties["weight"]
     colorprops = graph.new_vertex_property("string")
@@ -108,6 +106,7 @@ def useGraphTool(pd):
     goal = -1
 
     for v in range(graph.num_vertices()):
+
         # Color and size vertices by type: start, goal, other
         if pd.isStartVertex(v):
             start = v
@@ -145,16 +144,10 @@ def useGraphTool(pd):
     # Writing graph to file:
     # pos indicates the desired vertex positions, and pin=True says that we
     # really REALLY want the vertices at those positions
-    gt.graph_draw(
-        graph,
-        vertex_size=vertexsize,
-        vertex_fill_color=colorprops,
-        edge_pen_width=edgesize,
-        edge_color=edgecolor,
-        output="graph.png",
-    )
-    print("\nGraph written to graph.png")
-
+    gt.graph_draw(graph, vertex_size=vertexsize, vertex_fill_color=colorprops,
+                  edge_pen_width=edgesize, edge_color=edgecolor,
+                  output="graph.png")
+    print('\nGraph written to graph.png')
 
 def plan():
     # construct the state space we are planning in
@@ -209,7 +202,6 @@ def plan():
 
         if graphtool:
             useGraphTool(pd)
-
 
 if __name__ == "__main__":
     plan()

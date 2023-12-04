@@ -52,68 +52,9 @@ WORKDIR /mujoco_py
 
 # For atari-py
 RUN apt-get install -y zlib1g-dev swig cmake
-
-RUN pip install glfw>=1.4.0
-RUN pip install numpy>=1.11
-RUN pip install Cython>=0.27.2
-RUN pip install imageio>=2.1.2
-RUN pip install cffi>=1.10
-RUN pip install imagehash>=3.4
-RUN pip install ipdb
-RUN pip install Pillow>=4.0.0
-RUN pip install pycparser>=2.17.0
-RUN pip install pytest>=3.0.5
-RUN pip install pytest-instafail
-RUN pip install scipy>=0.18.0
-RUN pip install sphinx
-RUN pip install sphinx_rtd_theme
-RUN pip install numpydoc
-RUN pip install cloudpickle==1.3.0
-RUN pip install cached-property==1.3.1
-RUN pip install gitpython==2.1.7
-RUN pip install gtimer
-RUN pip install awscli
-RUN pip install boto3
-RUN pip install joblib
-RUN pip install sk-video
-RUN pip install torch torchvision
-RUN pip install opencv-python==4.3.0.36
-RUN pip install matplotlib
-RUN pip install stable_baselines3
-RUN pip install h5py
-RUN pip install termcolor
-RUN pip install click
-RUN pip install numba
-RUN pip install numpy-quaternion
 RUN mkdir /usr/lib/nvidia-000/
 ENV LD_LIBRARY_PATH $LD_LIBRARY_PATH:/usr/lib/nvidia-000
-
-RUN pip install numpy==1.22.4
-RUN pip install absl-py==0.13.0
-RUN pip install jupyterlab==3.0.14
-RUN pip install scikit-image==0.18.1
-RUN pip install termcolor==2.1.1
-RUN pip install tb-nightly==2.11.0a20221013
-RUN pip install imageio==2.19.3
-RUN pip install imageio-ffmpeg==0.4.4
-RUN pip install hydra-core==1.1.0
-RUN pip install hydra-submitit-launcher==1.1.5
-RUN pip install pandas==1.5.2
-RUN pip install ipdb==0.13.9
-RUN pip install yapf==0.31.0
-RUN pip install sklearn==0.0
-RUN pip install matplotlib==3.5.1
-RUN pip install opencv-python==4.6.0.66
-RUN pip install wandb==0.13.5
-RUN pip install pylint==2.15.9
-RUN pip install distracting_control==0.1.1rc3
-RUN pip install six
-RUN pip install git+https://github.com/aravindr93/mjrl@master#egg=mjrl
-RUN pip install mujoco==2.3.5
-RUN pip install gym
-RUN pip install open3d
 COPY mjkey.txt /root/.mujoco/mjkey.txt
-
 
 RUN mkdir -p /root/.mujoco \
     && wget https://github.com/google-deepmind/mujoco/archive/refs/tags/2.1.0.zip -O mujoco.zip \
@@ -125,24 +66,59 @@ ENV LD_LIBRARY_PATH /root/.mujoco/mujoco210_linux/bin:${LD_LIBRARY_PATH}
 
 # https://github.com/openai/mujoco-py/issues/773 -> mujoco py cythonization fails with cython 3.0
 RUN pip install "cython<3" 
+RUN pip install numpy==1.23.5
 RUN pip install mujoco_py==2.0.2.13
 RUN python -c 'import mujoco_py'
 
-# add /mnt/mprl/doodad to PYTHONPATH
-ENV PYTHONPATH /mnt/mprl/doodad:$PYTHONPATH
-ENV PYTHONPATH /mnt/mprl/rlkit:$PYTHONPATH
-ENV PYTHONPATH /mnt/mprl/robosuite:$PYTHONPATH
-ENV PYTHONPATH /mnt/mprl/d4rl_latest:$PYTHONPATH
-
-RUN pip uninstall -y gitdb2
-RUN pip install gitdb2==2.0.6
-RUN pip install pybullet-svl
-RUN pip install plantcv
-RUN pip install urdfpy trimesh
-RUN pip install PyOpenGL==3.1.6
-ENV PYTHONPATH /mnt/mprl/metaworld:$PYTHONPATH
-ENV PYTHONPATH /mnt/mprl/mopa-rl-1:$PYTHONPATH
-RUN pip install dm_control==1.0.5
+ENV PYTHONPATH /mnt/planseqlearn/doodad:$PYTHONPATH
+ENV PYTHONPATH /mnt/planseqlearn/rlkit:$PYTHONPATH
+ENV PYTHONPATH /mnt/planseqlearn/robosuite:$PYTHONPATH
+ENV PYTHONPATH /mnt/planseqlearn/d4rl_latest:$PYTHONPATH
+ENV PYTHONPATH /mnt/planseqlearn/metaworld:$PYTHONPATH
+ENV PYTHONPATH /mnt/planseqlearn/d4rl:$PYTHONPATH
+ENV PYTHONPATH /mnt/planseqlearn/mjrl:$PYTHONPATH
+ENV PYTHONPATH /mnt/planseqlearn/mopa-rl:$PYTHONPATH
+ENV PYTHONPATH /mnt/planseqlearn/DisentangledRep4RL:$PYTHONPATH
 
 # copying over my ompl version which definitely works
 COPY ompl-1.5.2/ /ompl
+COPY requirements.txt /requirements.txt
+RUN pip install -r /requirements.txt
+
+RUN pip install dm-env distracting-control \
+    && pip install --upgrade dm-control \
+    && pip install mujoco==2.3.5 \
+    && pip install numpy==1.23.5 \
+    && pip install --upgrade networkx
+
+RUN echo "/ompl/py-bindings" >> /usr/local/lib/python3.8/dist-packages/ompl.pth
+RUN apt-get update && apt-get install -y \
+    libgomp1 \
+    libjpeg8-dev \
+    zlib1g-dev \
+    libpython3.8 \
+    libxcursor-dev \
+    libxrandr-dev \
+    libxinerama-dev \
+    libxi-dev \
+    libegl1 \
+    libglfw3-dev \
+    libglfw3 \
+    libgl1-mesa-glx \
+    libfdk-aac-dev \
+    libass-dev \
+    libopus-dev \
+    libtheora-dev \
+    libvorbis-dev \
+    libvpx-dev \
+    libssl-dev \
+    libboost-serialization-dev \
+    libboost-filesystem-dev \
+    libboost-system-dev \
+    libboost-program-options-dev \
+    libboost-test-dev \
+    libeigen3-dev \
+    libode-dev \
+    libyaml-cpp-dev \
+    libboost-python-dev \
+    libboost-numpy-dev

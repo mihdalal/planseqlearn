@@ -36,30 +36,30 @@
 
 # Author: Caleb Voss
 
-import pickle
 import socket
+import pickle
 import sys
 
 from ompl.morse.environment import *
-
 
 ##
 # \brief Set up MyEnvironment object. Plan using sockS as the socket to the Blender
 #    communicator script and sockC as the socket to the MORSE motion controller.
 def playWithMorse(sockS, sockC):
+
     env = None
     try:
         # Create a MORSE environment representation
         env = MyEnvironment(sockS, sockC)
 
         # Read path from file for playback
-        solnSaveFile = sys.argv[sys.argv.index("--") + 1]
+        solnSaveFile = sys.argv[sys.argv.index('--') + 1]
         print("Loading path from file '" + solnSaveFile + ".")
-        with open(solnSaveFile, "rb") as f:
+        with open(solnSaveFile, 'rb') as f:
             (st, con, dur) = pickle.load(f)
-        for i, control in enumerate(con):
+        for (i, control) in enumerate(con):
             # Load state
-            env.call("submitState()", pickle.dumps(st[i]))
+            env.call('submitState()', pickle.dumps(st[i]))
             # Apply control
             print(control)
             env.applyControl(control)
@@ -67,14 +67,12 @@ def playWithMorse(sockS, sockC):
             for _ in range(round(dur[i] / (controlStepSize))):
                 env.worldStep(controlStepSize)
         # Last state
-        env.call("submitState()", pickle.dumps(st[len(con)]))
+        env.call('submitState()', pickle.dumps(st[len(con)]))
 
     except Exception as msg:
         # Ignore errors caused by MORSE or Blender shutting down
-        if (
-            str(msg) != "[Errno 104] Connection reset by peer"
-            and str(msg) != "[Errno 32] Broken pipe"
-        ):
+        if str(msg) != "[Errno 104] Connection reset by peer" \
+            and str(msg) != "[Errno 32] Broken pipe":
             raise
 
     finally:
@@ -82,12 +80,11 @@ def playWithMorse(sockS, sockC):
         if env:
             env.endSimulation()
 
-
 # Set up the state and control sockets
 sockS = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 sockC = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-sockS.connect(("localhost", 50007))
-sockC.connect(("localhost", 4000))
+sockS.connect(('localhost', 50007))
+sockC.connect(('localhost', 4000))
 
 # Play
 playWithMorse(sockS, sockC)

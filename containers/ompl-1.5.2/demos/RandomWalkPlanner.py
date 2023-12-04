@@ -42,15 +42,13 @@ try:
 except ImportError:
     # if the ompl module is not in the PYTHONPATH assume it is installed in a
     # subdirectory of the parent directory called "py-bindings."
-    import sys
     from os.path import abspath, dirname, join
-
+    import sys
     sys.path.insert(0, join(dirname(dirname(abspath(__file__))), "py-bindings"))
     from ompl import base as ob
     from ompl import geometric as og
 
 ## @cond IGNORE
-
 
 class RandomWalkPlanner(ob.Planner):
     def __init__(self, si):
@@ -103,16 +101,13 @@ class RandomWalkPlanner(ob.Planner):
         super(RandomWalkPlanner, self).clear()
         self.states_ = []
 
-
 ## @endcond
-
 
 def isStateValid(state):
     x = state[0]
     y = state[1]
     z = state[2]
-    return x * x + y * y + z * z > 0.8
-
+    return x*x + y*y + z*z > .8
 
 def plan():
     # create an R^3 state space
@@ -126,14 +121,14 @@ def plan():
     ss = og.SimpleSetup(space)
     ss.setStateValidityChecker(ob.StateValidityCheckerFn(isStateValid))
     start = ob.State(space)
-    start()[0] = -1.0
-    start()[1] = -1.0
-    start()[2] = -1.0
+    start()[0] = -1.
+    start()[1] = -1.
+    start()[2] = -1.
     goal = ob.State(space)
-    goal()[0] = 1.0
-    goal()[1] = 1.0
-    goal()[2] = 1.0
-    ss.setStartAndGoalStates(start, goal, 0.05)
+    goal()[0] = 1.
+    goal()[1] = 1.
+    goal()[2] = 1.
+    ss.setStartAndGoalStates(start, goal, .05)
     # set the planner
     planner = RandomWalkPlanner(ss.getSpaceInformation())
     ss.setPlanner(planner)

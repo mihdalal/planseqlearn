@@ -37,14 +37,12 @@
 # Author: Ryan Luna
 
 import sys
-from math import cos, sin
-
+import yaml
+from math import sin, cos
+import numpy as np
+import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 import matplotlib.patches as patches
-import matplotlib.pyplot as plt
-import numpy as np
-import yaml
-
 
 # Reads a YAML world specification from the worldFile.
 # Returns the set of obstacles and the bounds of the world.
@@ -95,7 +93,9 @@ def readPathFile(pathFile):
     for l in lines[1:]:
         entries = l.split(" ")
         if len(entries) != numLinks:
-            raise RuntimeError("Malformed path file.  Path entries must have length = # links")
+            raise RuntimeError(
+                "Malformed path file.  Path entries must have length = # links"
+            )
         config = [float(e) for e in entries]
         path.append(config)
 
@@ -120,7 +120,9 @@ def plotPolygon(axes, data, color, alpha=1.0, edgecolor=None):
     if len(points) > 0:
         arr = np.array(points)
         axes.add_patch(
-            patches.Polygon(arr, facecolor=color, alpha=alpha, fill=True, edgecolor=edgecolor)
+            patches.Polygon(
+                arr, facecolor=color, alpha=alpha, fill=True, edgecolor=edgecolor
+            )
         )
 
 

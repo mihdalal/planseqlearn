@@ -37,15 +37,14 @@
 # Author: Mark Moll
 
 from __future__ import print_function
-
 import argparse
 import math
-
 import numpy as np
 from ConstrainedPlanningCommon import *
 
 
 class SphereConstraint(ob.Constraint):
+
     def __init__(self):
         super(SphereConstraint, self).__init__(3, 1)
 
@@ -61,6 +60,7 @@ class SphereConstraint(ob.Constraint):
 
 
 class SphereProjection(ob.ProjectionEvaluator):
+
     def __init__(self, space):
         super(SphereProjection, self).__init__(space)
 
@@ -68,7 +68,7 @@ class SphereProjection(ob.ProjectionEvaluator):
         return 2
 
     def defaultCellSizes(self):
-        self.cellSizes_ = list2vec([0.1, 0.1])
+        self.cellSizes_ = list2vec([.1, .1])
 
     def project(self, state, projection):
         projection[0] = math.atan2(state[1], state[0])
@@ -144,20 +144,14 @@ def spherePlanning(options):
     else:
         spherePlanningBench(cp, planners)
 
-
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument(
-        "-o",
-        "--output",
-        action="store_true",
-        help="Dump found solution path (if one exists) in plain text and planning "
-        "graph in GraphML to `sphere_path.txt` and `sphere_graph.graphml` "
-        "respectively.",
-    )
-    parser.add_argument(
-        "--bench", action="store_true", help="Do benchmarking on provided planner list."
-    )
+    parser.add_argument("-o", "--output", action="store_true",
+                        help="Dump found solution path (if one exists) in plain text and planning "
+                        "graph in GraphML to `sphere_path.txt` and `sphere_graph.graphml` "
+                        "respectively.")
+    parser.add_argument("--bench", action="store_true",
+                        help="Do benchmarking on provided planner list.")
     addSpaceOption(parser)
     addPlannerOption(parser)
     addConstrainedOptions(parser)

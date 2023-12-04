@@ -38,49 +38,45 @@
 
 import sys
 from os.path import abspath, dirname, join
-
-sys.path.insert(0, join(dirname(dirname(dirname(abspath(__file__)))), "py-bindings"))
-import copy
-import unittest
+sys.path.insert(0, join(dirname(dirname(dirname(abspath(__file__)))), 'py-bindings'))
 from functools import partial
-from math import fabs
 from time import perf_counter
-
+from math import fabs
+import unittest
+import copy
+import ompl.util as ou
 import ompl.base as ob
 import ompl.geometric as og
-import ompl.util as ou
-from ompl.util import LogLevel, setLogLevel
+from ompl.util import setLogLevel, LogLevel
 
 SOLUTION_TIME = 10.0
 
-
 class Environment(object):
     def __init__(self, fname):
-        fp = open(fname, "r")
+        fp = open(fname, 'r')
         lines = fp.readlines()
         fp.close()
-        self.width, self.height = [int(i) for i in lines[0].split(" ")[1:3]]
+        self.width, self.height = [int(i) for i in lines[0].split(' ')[1:3]]
         self.grid = []
-        self.start = [int(i) for i in lines[1].split(" ")[1:3]]
-        self.goal = [int(i) for i in lines[2].split(" ")[1:3]]
+        self.start = [int(i) for i in lines[1].split(' ')[1:3]]
+        self.goal = [int(i) for i in lines[2].split(' ')[1:3]]
         for i in range(self.width):
-            self.grid.append([int(j) for j in lines[4 + i].split(" ")[0 : self.height]])
-        self.char_mapping = ["__", "##", "oo", "XX"]
+            self.grid.append(
+                [int(j) for j in lines[4+i].split(' ')[0:self.height]])
+        self.char_mapping = ['__', '##', 'oo', 'XX']
 
     def __str__(self):
-        result = ""
+        result = ''
         for line in self.grid:
-            result = result + "".join([self.char_mapping[c] for c in line]) + "\n"
+            result = result + ''.join([self.char_mapping[c] for c in line]) + '\n'
         return result
-
 
 def isValid(grid, state):
     # planning is done in a continuous space, but our collision space
     # representation is discrete
     x = int(state[0])
     y = int(state[1])
-    return grid[x][y] == 0  # 0 means valid state
-
+    return grid[x][y] == 0 # 0 means valid state
 
 class mySpace(ob.RealVectorStateSpace):
     def __init__(self):
@@ -91,8 +87,7 @@ class mySpace(ob.RealVectorStateSpace):
         y1 = int(state1[1])
         x2 = int(state2[0])
         y2 = int(state2[1])
-        return fabs(x1 - x2) + fabs(y1 - y2)
-
+        return fabs(x1-x2) + fabs(y1-y2)
 
 class mySpaceInformation(ob.SpaceInformation):
     def __init__(self, env):
@@ -117,8 +112,8 @@ class mySpaceInformation(ob.SpaceInformation):
         self.setStateValidityChecker(isValidFn)
         self.setup()
 
-
 class TestPlanner(object):
+
     def execute(self, env, time, pathLength, show=False):
         result = True
         # instantiate space information
@@ -149,7 +144,7 @@ class TestPlanner(object):
             elapsed = perf_counter() - startTime
             time = time + elapsed
             if show:
-                print("Found solution in %f seconds!" % elapsed)
+                print('Found solution in %f seconds!' % elapsed)
 
             path = pdef.getSolutionPath()
             sm = og.PathSimplifier(si)
@@ -158,12 +153,12 @@ class TestPlanner(object):
             elapsed = perf_counter() - startTime
             time = time + elapsed
             if show:
-                print("Simplified solution in %f seconds!" % elapsed)
+                print('Simplified solution in %f seconds!' % elapsed)
 
             path.interpolate(100)
             pathLength = pathLength + path.length()
             if show:
-                print(env, "\n")
+                print(env, '\n')
                 temp = copy.deepcopy(env)
                 for i in range(len(path.states)):
                     x = int(path.states[i][0])
@@ -172,15 +167,14 @@ class TestPlanner(object):
                         temp.grid[x][y] = 2
                     else:
                         temp.grid[x][y] = 3
-                print(temp, "\n")
+                print(temp, '\n')
         else:
             result = False
 
         return (result, time, pathLength)
 
     def newplanner(self, si):
-        raise NotImplementedError("pure virtual method")
-
+        raise NotImplementedError('pure virtual method')
 
 class RRTTest(TestPlanner):
     def newplanner(self, si):
@@ -188,20 +182,17 @@ class RRTTest(TestPlanner):
         planner.setRange(10.0)
         return planner
 
-
 class TRRTTest(TestPlanner):
     def newplanner(self, si):
         planner = og.TRRT(si)
         planner.setRange(10.0)
         return planner
 
-
 class RRTConnectTest(TestPlanner):
     def newplanner(self, si):
         planner = og.RRTConnect(si)
         planner.setRange(10.0)
         return planner
-
 
 class pRRTTest(TestPlanner):
     def newplanner(self, si):
@@ -210,13 +201,11 @@ class pRRTTest(TestPlanner):
         planner.setThreadCount(4)
         return planner
 
-
 class LazyRRTTest(TestPlanner):
     def newplanner(self, si):
         planner = og.LazyRRT(si)
         planner.setRange(10.0)
         return planner
-
 
 class SBLTest(TestPlanner):
     def newplanner(self, si):
@@ -229,7 +218,6 @@ class SBLTest(TestPlanner):
         proj = ob.RealVectorOrthogonalProjectionEvaluator(si.getStateSpace(), cdim, projection)
         planner.setProjectionEvaluator(proj)
         return planner
-
 
 class pSBLTest(TestPlanner):
     def newplanner(self, si):
@@ -244,7 +232,6 @@ class pSBLTest(TestPlanner):
         planner.setProjectionEvaluator(proj)
         return planner
 
-
 class KPIECE1Test(TestPlanner):
     def newplanner(self, si):
         planner = og.KPIECE1(si)
@@ -256,7 +243,6 @@ class KPIECE1Test(TestPlanner):
         proj = ob.RealVectorOrthogonalProjectionEvaluator(si.getStateSpace(), cdim, projection)
         planner.setProjectionEvaluator(proj)
         return planner
-
 
 class LBKPIECE1Test(TestPlanner):
     def newplanner(self, si):
@@ -270,20 +256,17 @@ class LBKPIECE1Test(TestPlanner):
         planner.setProjectionEvaluator(proj)
         return planner
 
-
 class ESTTest(TestPlanner):
     def newplanner(self, si):
         planner = og.EST(si)
         planner.setRange(10.0)
         return planner
 
-
 class BiESTTest(TestPlanner):
     def newplanner(self, si):
         planner = og.BiEST(si)
         planner.setRange(10.0)
         return planner
-
 
 class ProjESTTest(TestPlanner):
     def newplanner(self, si):
@@ -297,18 +280,16 @@ class ProjESTTest(TestPlanner):
         planner.setProjectionEvaluator(proj)
         return planner
 
-
 class PRMTest(TestPlanner):
     def newplanner(self, si):
         planner = og.PRM(si)
         return planner
 
-
 class PlanTest(unittest.TestCase):
     def setUp(self):
-        self.env = Environment(dirname(abspath(__file__)) + "/../../tests/resources/env1.txt")
+        self.env = Environment(dirname(abspath(__file__))+'/../../tests/resources/env1.txt')
         if self.env.width * self.env.height == 0:
-            self.fail("The environment has a 0 dimension. Cannot continue")
+            self.fail('The environment has a 0 dimension. Cannot continue')
         self.verbose = True
 
     def runPlanTest(self, planner):
@@ -327,9 +308,9 @@ class PlanTest(unittest.TestCase):
         avglength = length / float(N)
 
         if self.verbose:
-            print("    Success rate: %f%%" % success)
-            print("    Average runtime: %f" % avgruntime)
-            print("    Average path length: %f" % avglength)
+            print('    Success rate: %f%%' % success)
+            print('    Average runtime: %f' % avgruntime)
+            print('    Average path length: %f' % avglength)
 
         return (success, avgruntime, avglength)
 
@@ -414,12 +395,10 @@ class PlanTest(unittest.TestCase):
         self.assertTrue(avgruntime < 2.0)
         self.assertTrue(avglength < 100.0)
 
-
 def suite():
-    suites = unittest.makeSuite(PlanTest)
+    suites = (unittest.makeSuite(PlanTest))
     return unittest.TestSuite(suites)
 
-
-if __name__ == "__main__":
+if __name__ == '__main__':
     setLogLevel(LogLevel.LOG_ERROR)
     unittest.main()

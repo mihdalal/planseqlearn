@@ -36,13 +36,11 @@
 
 # Author: Mark Moll
 
-import sys
 import unittest
+import sys
 from os.path import abspath, dirname, join
-
-sys.path.insert(0, join(dirname(dirname(dirname(abspath(__file__)))), "py-bindings"))
+sys.path.insert(0, join(dirname(dirname(dirname(abspath(__file__)))), 'py-bindings'))
 from ompl.util import *
-
 
 class TestRNG(unittest.TestCase):
     def testDifferentSeeds(self):
@@ -56,7 +54,7 @@ class TestRNG(unittest.TestCase):
                 eq = eq + 1
             for j in range(4):
                 if v[j] == r[j].uniformInt(0, 100):
-                    same = same + 1
+                    same = same+1
         self.assertFalse(eq > N / 2)
         self.assertTrue(same < 2 * N)
 
@@ -64,20 +62,18 @@ class TestRNG(unittest.TestCase):
         r = RNG()
         N = 100
         V = 10000 * N
-        c = [0 for i in range(N + 1)]
+        c = [0 for i in range(N+1)]
         for _ in range(V):
             v = r.uniformInt(0, N)
             self.assertTrue(v >= 0)
             self.assertTrue(v <= N)
-            c[v] = c[v] + 1
+            c[v] = c[v]+1
         for j in c:
-            self.assertTrue(j > float(V) / float(N) / 3.0)
-
+            self.assertTrue(j > float(V) / float(N) / 3.)
 
 def suite():
-    suites = unittest.makeSuite(TestRNG, "test")
+    suites = (unittest.makeSuite(TestRNG, 'test'))
     return unittest.TestSuite(suites)
 
-
-if __name__ == "__main__":
+if __name__ == '__main__':
     unittest.main()

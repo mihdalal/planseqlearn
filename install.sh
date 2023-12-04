@@ -3,7 +3,7 @@ pip install -e mjrl/
 pip install -e metaworld/
 pip install -e robosuite/
 pip install -e doodad/
-pip install -e mopa-rl-1/
+pip install -e mopa-rl/
 pip install -e DisentangledRep4RL/
 pip install -e rlkit/
 pip install -r requirements.txt

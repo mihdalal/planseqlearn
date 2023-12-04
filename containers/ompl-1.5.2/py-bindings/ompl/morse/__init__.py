@@ -1,2 +1,3 @@
-from ompl import control, util
+from ompl import control
+from ompl import util
 from ompl.morse._morse import *

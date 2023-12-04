@@ -36,19 +36,19 @@
 
 # Author: Caleb Voss
 
-import pickle
 import socket
+import pickle
 import sys
 
 from ompl import control as oc
 from ompl.morse.environment import *
-
 
 ##
 # \brief Set up MyEnvironment, MorseSimpleSetup, and MyGoal objects.
 #    Plan using sockS as the socket to the Blender communicator script
 #    and sockC as the socket to the MORSE motion controller.
 def planWithMorse(sockS, sockC):
+
     env = None
     try:
         # Create a MORSE environment representation
@@ -81,7 +81,7 @@ def planWithMorse(sockS, sockC):
 
         # Write the solution path to file
         if ss.haveSolutionPath():
-            solnFileName = sys.argv[sys.argv.index("--") + 1]
+            solnFileName = sys.argv[sys.argv.index('--') + 1]
             print("Saving solution to '" + solnFileName + "'...")
             cpath = ss.getSolutionPath()
             # Save the states, controls, and durations
@@ -93,7 +93,7 @@ def planWithMorse(sockS, sockC):
                 con.append(tuple(cpath.getControl(i)[j] for j in range(env.cdesc[0])))
                 dur.append(cpath.getControlDuration(i))
             st.append(env.stateToList(cpath.getState(cpath.getControlCount())))
-            with open(solnFileName, "wb") as f:
+            with open(solnFileName, 'wb') as f:
                 # Pickle it all into a file
                 pickle.dump((st, con, dur), f)
             print("...done.")
@@ -102,10 +102,8 @@ def planWithMorse(sockS, sockC):
 
     except Exception as msg:
         # Ignore errors caused by MORSE or Blender shutting down
-        if (
-            str(msg) != "[Errno 104] Connection reset by peer"
-            and str(msg) != "[Errno 32] Broken pipe"
-        ):
+        if str(msg) != "[Errno 104] Connection reset by peer" \
+          and str(msg) != "[Errno 32] Broken pipe":
             raise
 
     finally:
@@ -113,12 +111,11 @@ def planWithMorse(sockS, sockC):
         if env:
             env.endSimulation()
 
-
 # Set up the state and control sockets
 sockS = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 sockC = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-sockS.connect(("localhost", 50007))
-sockC.connect(("localhost", 4000))
+sockS.connect(('localhost', 50007))
+sockC.connect(('localhost', 4000))
 
 # Plan
 planWithMorse(sockS, sockC)

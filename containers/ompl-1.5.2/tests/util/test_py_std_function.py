@@ -37,24 +37,19 @@
 # Author: Mark Moll
 
 import unittest
-
 from py_std_function import *
-
 
 def myIntFun0(i, j):
     i.value = j
     return i
 
-
 def myIntFun1(i, j):
-    i2 = i  # this copies a reference, not the contents, if type of i is T&
+    i2 = i # this copies a reference, not the contents, if type of i is T&
     i2.value = j
     return i2
 
-
 def myIntFun2(i, j):
     i.value = j
-
 
 class TestPyStdFunction(unittest.TestCase):
     def testIntClassFunObj(self):
@@ -70,7 +65,6 @@ class TestPyStdFunction(unittest.TestCase):
         # self.assertEqual((i.value,j.value), (2,2))
         intClassFun4_obj(i, 3)
         self.assertEqual(i.value, 3)
-
     def testMyIntClassFun0(self):
         i = IntClass(0)
         f = IntClassFun0_t(myIntFun0)
@@ -83,7 +77,6 @@ class TestPyStdFunction(unittest.TestCase):
         j = f(i, 2)
         # const-ness is ignored
         self.assertEqual((i.value, j.value), (2, 2))
-
     def testMyIntClassFun1(self):
         i = IntClass(0)
         f = IntClassFun0_t(myIntFun1)
@@ -95,7 +88,6 @@ class TestPyStdFunction(unittest.TestCase):
         f = IntClassFun2_t(myIntFun1)
         j = f(i, 2)
         self.assertEqual((i.value, j.value), (2, 2))
-
     def testMyIntClassFun2(self):
         i = IntClass(0)
         f = IntClassFun4_t(myIntFun2)
@@ -104,9 +96,8 @@ class TestPyStdFunction(unittest.TestCase):
 
 
 def suite():
-    suites = unittest.makeSuite(TestPyStdFunction, "test")
+    suites = (unittest.makeSuite(TestPyStdFunction, 'test'))
     return unittest.TestSuite(suites)
 
-
-if __name__ == "__main__":
+if __name__ == '__main__':
     unittest.main()
