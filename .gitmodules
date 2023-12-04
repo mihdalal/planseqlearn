@@ -1,19 +1,19 @@
 [submodule "d4rl"]
 	path = d4rl
 	url = git@github.com:mihdalal/d4rl.git
-	branch = kitchen_iclr
+	branch = psl_release
 [submodule "DisentangledRep4RL"]
 	path = DisentangledRep4RL
 	url = git@github.com:mihdalal/DisentangledRep4RL.git
 	branch = psl_release
 [submodule "metaworld"]
 	path = metaworld
-	url = git@github.com:tarunc20/metaworld.git
-	branch = mprl
+	url = git@github.com:mihdalal/metaworld.git
+	branch = psl_release
 [submodule "robosuite"]
 	path = robosuite
 	url = git@github.com:mihdalal/robosuite.git
-	branch = mprl_latest_rs
+	branch = psl_release
 [submodule "doodad"]
 	path = doodad
 	url = git@github.com:mihdalal/doodad.git
@@ -21,9 +21,10 @@
 [submodule "mjrl"]
 	path = mjrl
 	url = https://github.com/aravindr93/mjrl.git
-[submodule "mopa-rl-1"]
-	path = mopa-rl-1
-	url = https://github.com/tarunc20/mopa-rl-1.git
+[submodule "mopa-rl"]
+	path = mopa-rl
+	url = git@github.com:mihdalal/mopa-rl.git
+	branch = psl_release
 [submodule "rlkit"]
 	path = rlkit
 	url = git@github.com:mihdalal/rlkit.git
