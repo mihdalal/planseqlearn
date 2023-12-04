@@ -10,11 +10,14 @@
 	path = metaworld
 	url = git@github.com:tarunc20/metaworld.git
 	branch = mprl
-[submodule "mopa-rl"]
-	path = mopa-rl
-	url = git@github.com:tarunc20/mopa-rl.git
-	branch = main
 [submodule "robosuite"]
 	path = robosuite
 	url = git@github.com:mihdalal/robosuite.git
 	branch = mprl_latest_rs
+[submodule "doodad"]
+	path = doodad
+	url = git@github.com:mihdalal/doodad.git
+	branch = master
+[submodule "mjrl"]
+	path = mjrl
+	url = https://github.com/aravindr93/mjrl.git
