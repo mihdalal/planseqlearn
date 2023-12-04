@@ -5,7 +5,7 @@
 [submodule "DisentangledRep4RL"]
 	path = DisentangledRep4RL
 	url = git@github.com:mihdalal/DisentangledRep4RL.git
-	branch = iclr
+	branch = psl_release
 [submodule "metaworld"]
 	path = metaworld
 	url = git@github.com:tarunc20/metaworld.git
@@ -24,3 +24,7 @@
 [submodule "mopa-rl-1"]
 	path = mopa-rl-1
 	url = https://github.com/tarunc20/mopa-rl-1.git
+[submodule "rlkit"]
+	path = rlkit
+	url = git@github.com:mihdalal/rlkit.git
+	branch = mprl
