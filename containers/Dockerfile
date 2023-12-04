@@ -143,6 +143,6 @@ RUN pip install PyOpenGL==3.1.6
 ENV PYTHONPATH /mnt/mprl/metaworld:$PYTHONPATH
 ENV PYTHONPATH /mnt/mprl/mopa-rl-1:$PYTHONPATH
 RUN pip install dm_control==1.0.5
-COPY . /ompl
-# RUN /ompl/install-ompl-ubuntu.sh --python
-# RUN mv ompl-1.5.2/ /ompl/
+
+# copying over my ompl version which definitely works
+COPY ompl-1.5.2/ /ompl

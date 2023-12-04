@@ -1,0 +1,13 @@
+.registered
+.DS_Store
+*.swp
+build/
+bin/
+lib/
+*.pcd
+*.pyc
+*.so
+*.dylib
+py-bindings/ompl/app/
+py-bindings/ompl/bindings_generator.py
+!py-bindings/ompl/bindings_generator.py.in
