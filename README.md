@@ -57,7 +57,7 @@ WANDB_API_KEY=...
 ```
 
 If you would like to use a container instead to avoid dependency installation:
-Our pre-built docker image is at `mihdalal/planseqlearn` and we include a singularity container defintion file in our repo at `containers/planseqlearn.def`. The singularity image can be built using the command `sudo singularity build planseqlearn.sif planseqlearn.def`
+Our pre-built docker image is at `mihdalal/planseqlearn` and we include a singularity container defintion file in our repo at `containers/planseqlearn.def`. The singularity image can be built using the command `sudo singularity build planseqlearn.sif planseqlearn.def`.
 
 Two quick notes:
 1. The dockerfile will always re-compile mujoco_py everytime it opens. We haven't been able to avoid this unfortunately - if anyone knows the solution please feel free to make a pull request with the fix!
