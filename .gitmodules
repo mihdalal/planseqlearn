@@ -21,3 +21,6 @@
 [submodule "mjrl"]
 	path = mjrl
 	url = https://github.com/aravindr93/mjrl.git
+[submodule "mopa-rl-1"]
+	path = mopa-rl-1
+	url = https://github.com/tarunc20/mopa-rl-1.git
