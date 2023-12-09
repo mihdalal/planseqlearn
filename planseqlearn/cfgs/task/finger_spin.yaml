@@ -1,5 +1,0 @@
-defaults:
-  - easy
-  - _self_
-
-task_name: finger_spin

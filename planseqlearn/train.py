@@ -17,7 +17,6 @@ import hydra
 
 @hydra.main(config_path="cfgs", config_name="train_config")
 def main(cfg):
-    import datetime
     import os
     from collections import OrderedDict
     from pathlib import Path
@@ -32,14 +31,8 @@ def main(cfg):
     import wandb
     from dm_env import specs
     from omegaconf import OmegaConf
-    import git
-    import dateutil.tz
-    import sys
     import json
     from planseqlearn import utils
-    from planseqlearn.environments import dmc
-    from planseqlearn.environments.adroit_dm_env import make_adroit
-    from planseqlearn.environments.distracting_dmc import make_distracting_dmc
     from planseqlearn.environments.kitchen_dm_env import make_kitchen
     from planseqlearn.environments.metaworld_dm_env import make_metaworld
     from planseqlearn.environments.robosuite_dm_env import make_robosuite
@@ -106,19 +99,6 @@ def main(cfg):
                 cfg.noisy_pose_estimates,
                 cfg.hardcoded_high_level_plan,
             )
-        elif cfg.task_name.split("_", 1)[0] == "adroit":
-            env = make_adroit(
-                cfg.task_name.split("_", 1)[1],
-                cfg.frame_stack,
-                cfg.action_repeat,
-                cfg.discount,
-                cfg.seed,
-                cfg.camera_name,
-                cfg.add_segmentation_to_obs,
-                cfg.noisy_mask_drop_prob,
-                cfg.use_rgbm,
-                cfg.slim_mask_cfg,
-            )
         elif cfg.task_name.split("_", 1)[0] == "kitchen":
             env = make_kitchen(
                 cfg.task_name.split("_", 1)[1],
@@ -134,22 +114,6 @@ def main(cfg):
                 cfg.path_length,
                 cfg.mprl,
             )
-        elif cfg.task_name.split("_", 1)[0] == "distracting":
-            background_dataset_videos = "val" if is_eval else "train"
-            env = make_distracting_dmc(
-                cfg.task_name.split("_", 1)[1],
-                cfg.frame_stack,
-                cfg.action_repeat,
-                cfg.seed,
-                cfg.add_segmentation_to_obs,
-                cfg.distraction.difficulty,
-                cfg.distraction.types,
-                cfg.distraction.dataset_path,
-                background_dataset_videos,
-                cfg.noisy_mask_drop_prob,
-                cfg.use_rgbm,
-                cfg.slim_mask_cfg,
-            )
         elif cfg.task_name.split("_", 1)[0] == "mopa":
             env = make_mopa(
                 name=cfg.task_name.split("_", 1)[1],
@@ -161,8 +125,6 @@ def main(cfg):
                 mprl=cfg.mprl,
                 is_eval=is_eval,
             )
-        else:
-            env = dmc.make(cfg.task_name, cfg.frame_stack, cfg.action_repeat, cfg.seed)
         return env
 
     class Workspace:

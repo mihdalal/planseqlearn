@@ -1,5 +1,0 @@
-defaults:
-  - robosuite
-  - _self_
-
-task_name: robosuite_Stack

@@ -1,5 +1,0 @@
-defaults:
-  - adroit
-  - _self_
-
-task_name: adroit_relocate-human-v1
