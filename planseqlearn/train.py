@@ -623,7 +623,11 @@ if __name__ == "__main__":
     singularity_pre_cmds = " && ".join(SINGULARITY_PRE_CMDS)
     # check if bash or zsh, and
     slurm_cmd = wrap_command_with_sbatch_matrix(
-        "/opt/singularity/bin/singularity exec --nv /projects/rsalakhugroup/containers/psl.sif /bin/zsh -c \"" + singularity_pre_cmds + ' && source ~/.zshrc && conda activate drqv2 && ' + command + "\"",
+        '/opt/singularity/bin/singularity exec --nv /projects/rsalakhugroup/containers/psl.sif /bin/zsh -c "'
+        + singularity_pre_cmds
+        + " && source ~/.zshrc && conda activate drqv2 && "
+        + command
+        + '"',
         slurm_config,
         logdir,
     )

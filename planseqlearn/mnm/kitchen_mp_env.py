@@ -466,9 +466,9 @@ class KitchenMPEnv(MPEnv):
 
     def process_state_frames(self):
         raise NotImplementedError
-    
+
     def compute_hardcoded_orientation(self, *args, **kwargs):
-        pass 
+        pass
 
     def backtracking_search_from_goal(
         self,
@@ -653,31 +653,31 @@ class KitchenMPEnv(MPEnv):
             self.num_high_level_steps += 1
         info = {}
         if "microwave" in self.env_name:
-            info['microwave_success'] = i['microwave success']
-            info['microwave_distance_to_goal'] = i['microwave distance to goal']
+            info["microwave_success"] = i["microwave success"]
+            info["microwave_distance_to_goal"] = i["microwave distance to goal"]
         if "hinge" in self.env_name:
-            info['hinge_success'] = i['hinge cabinet success']
-            info['distance_to_goal'] = i['hinge cabinet distance to goal']
+            info["hinge_success"] = i["hinge cabinet success"]
+            info["distance_to_goal"] = i["hinge cabinet distance to goal"]
         if "tlb" in self.env_name:
-            info['tlb_success'] = i['top burner success']
-            info['tlb_distance_to_goal'] = i['top burner distance to goal']
+            info["tlb_success"] = i["top burner success"]
+            info["tlb_distance_to_goal"] = i["top burner distance to goal"]
         if "trb" in self.env_name:
-            info['trb_success'] = i['top right burner success']
-            info['trb_distance_to_goal'] = i['top right burner distance to goal']
+            info["trb_success"] = i["top right burner success"]
+            info["trb_distance_to_goal"] = i["top right burner distance to goal"]
         if "blb" in self.env_name:
-            info['blb_success'] = i['bottom left burner success']
-            info['blb_distance_to_goal'] = i['bottom left burner distance to goal']
+            info["blb_success"] = i["bottom left burner success"]
+            info["blb_distance_to_goal"] = i["bottom left burner distance to goal"]
         if "brb" in self.env_name:
-            info['brb_success'] = i['bottom right burner success']
-            info['brb_distance_to_goal'] = i['bottom right burner distance to goal']
+            info["brb_success"] = i["bottom right burner success"]
+            info["brb_distance_to_goal"] = i["bottom right burner distance to goal"]
         if "kettle" in self.env_name:
-            info['kettle_success'] = i['kettle success']
-            info['kettle_distance_to_goal'] = i['kettle distance to goal']
+            info["kettle_success"] = i["kettle success"]
+            info["kettle_distance_to_goal"] = i["kettle distance to goal"]
         if "light" in self.env_name:
-            info['light_success'] = i['light switch success']
-            info['light_distance_to_goal'] = i['light switch distance to goal']
-        if "slider" in self.env_name: 
-            info['slider_success'] = i['slide cabinet success']
-            info['slider_distance_to_goal'] = i['slide cabinet distance to goal']
-        info['score'] = i['score']
+            info["light_success"] = i["light switch success"]
+            info["light_distance_to_goal"] = i["light switch distance to goal"]
+        if "slider" in self.env_name:
+            info["slider_success"] = i["slide cabinet success"]
+            info["slider_distance_to_goal"] = i["slide cabinet distance to goal"]
+        info["score"] = i["score"]
         return o, r, d, info

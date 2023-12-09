@@ -29,12 +29,13 @@ from planseqlearn.environments.wrappers import (
 from planseqlearn.mnm.metaworld_mp_env import MetaworldMPEnv
 
 ENV_CAMERA_DICT = {
-    'assembly-v2': 'gripperPOVneg',
-    'disassemble-v2': 'gripperPOVneg',
-    'peg-insert-side-v2': 'gripperPOVneg',
-    'bin-picking-v2': 'gripperPOVpos',
-    'hammer-v2': 'gripperPOVpos',
+    "assembly-v2": "gripperPOVneg",
+    "disassemble-v2": "gripperPOVneg",
+    "peg-insert-side-v2": "gripperPOVneg",
+    "bin-picking-v2": "gripperPOVpos",
+    "hammer-v2": "gripperPOVpos",
 }
+
 
 def get_proprioceptive_spec(spec, num_proprioceptive_features):
     return specs.BoundedArray(

@@ -19,9 +19,9 @@ num_seeds = 3
 for idx, env_name in enumerate(env_names):
     valid_obj_names = ""
     if env_name == "robosuite_PickPlaceCerealMilk":
-        valid_obj_names = '\\\'[\\\"Cereal\\\", \\\"Milk\\\"]\\\''
+        valid_obj_names = '\\\'[\\"Cereal\\", \\"Milk\\"]\\\''
     if env_name == "robosuite_PickPlaceCanBread":
-        valid_obj_names = '\\\'[\\\"Can\\\", \\\"Bread\\\"]\\\''
+        valid_obj_names = '\\\'[\\"Can\\", \\"Bread\\"]\\\''
     if env_name in ["robosuite_Lift", "robosuite_Door"]:
         path_length = 25
     elif env_name in [

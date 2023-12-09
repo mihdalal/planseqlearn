@@ -53,15 +53,15 @@ class Kitchen_Wrapper(dm_env.Environment):
     ):
         self.discount = discount
         if use_eef:
-            env_kwargs=dict(
-                dense=False, # test also with dense = False
+            env_kwargs = dict(
+                dense=False,  # test also with dense = False
                 image_obs=True,
                 action_scale=1,
                 control_mode="end_effector",
                 frame_skip=40,
                 max_path_length=path_length,
             )
-            # do preprocessing 
+            # do preprocessing
             self._env = ALL_KITCHEN_ENVIRONMENTS[env_name](**env_kwargs)
         else:
             self._env = gym.make(env_name)

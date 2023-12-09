@@ -1,7 +1,7 @@
 import numpy as np
 from planseqlearn.mnm.inverse_kinematics import qpos_from_site_pose
 from planseqlearn.mnm.mp_env import MPEnv
-from planseqlearn.mnm.vision_utils import * 
+from planseqlearn.mnm.vision_utils import *
 import math
 from robosuite.utils.transform_utils import (
     euler2mat,
@@ -11,7 +11,7 @@ from robosuite.utils.transform_utils import (
     quat2mat,
     quat_conjugate,
     quat_multiply,
-    convert_quat
+    convert_quat,
 )
 
 import sys
@@ -24,7 +24,8 @@ try:
 except:
     pass
 
-import re 
+import re
+
 
 def set_robot_based_on_ee_pos(
     env,
@@ -111,13 +112,14 @@ def check_robot_string(string):
         or string.startswith("leftpad")
     )
 
+
 def check_string(string, other_string):
     if string is None:
         return False
     return string.startswith(other_string)
 
-class MetaworldMPEnv(MPEnv):
 
+class MetaworldMPEnv(MPEnv):
     def __init__(
         self,
         env,
@@ -130,29 +132,55 @@ class MetaworldMPEnv(MPEnv):
             **kwargs,
         )
         self.ROBOT_BODIES = [
-            'right_hand', 'hand', 'rightclaw', 'rightpad', 'leftclaw', 'leftpad',
+            "right_hand",
+            "hand",
+            "rightclaw",
+            "rightpad",
+            "leftclaw",
+            "leftpad",
         ]
-        self.mp_bounds_low = (-2., -2., -2.)
-        self.mp_bounds_high = (2., 2., 2.)
+        self.mp_bounds_low = (-2.0, -2.0, -2.0)
+        self.mp_bounds_high = (2.0, 2.0, 2.0)
         self.use_joint_space_mp = False
         self.geom_bodies = [
-            'base', 'controller_box', 
-            'pedestal_feet', 'torso', 
-            'pedestal', 'right_arm_base_link', 
-            'right_l0', 'head', 
-            'screen', 'head_camera', 
-            'right_torso_itb', 'right_l1', 
-            'right_l2', 'right_l3', 
-            'right_l4', 'right_arm_itb', 
-            'right_l5', 'right_hand_camera', 
-            'right_wrist', 'right_l6', 'right_hand', 
-            'hand', 'rightclaw', 'rightpad', 
-            'leftclaw', 'leftpad', 'right_l4_2', 
-            'right_l2_2', 'right_l1_2',
+            "base",
+            "controller_box",
+            "pedestal_feet",
+            "torso",
+            "pedestal",
+            "right_arm_base_link",
+            "right_l0",
+            "head",
+            "screen",
+            "head_camera",
+            "right_torso_itb",
+            "right_l1",
+            "right_l2",
+            "right_l3",
+            "right_l4",
+            "right_arm_itb",
+            "right_l5",
+            "right_hand_camera",
+            "right_wrist",
+            "right_l6",
+            "right_hand",
+            "hand",
+            "rightclaw",
+            "rightpad",
+            "leftclaw",
+            "leftpad",
+            "right_l4_2",
+            "right_l2_2",
+            "right_l1_2",
         ]
-        self.robot_body_ids, self.robot_geom_ids = self.get_body_geom_ids_from_robot_bodies()
-        self.original_colors = [env.sim.model.geom_rgba[idx].copy() for idx in self.robot_geom_ids]
-        self.max_path_length = kwargs['max_path_length']
+        (
+            self.robot_body_ids,
+            self.robot_geom_ids,
+        ) = self.get_body_geom_ids_from_robot_bodies()
+        self.original_colors = [
+            env.sim.model.geom_rgba[idx].copy() for idx in self.robot_geom_ids
+        ]
+        self.max_path_length = kwargs["max_path_length"]
         self.hardcoded_text_plan = self.get_hardcoded_text_plan()
         self.initial_object_pos = self.get_object_pose()[0].copy()
 
@@ -163,106 +191,114 @@ class MetaworldMPEnv(MPEnv):
             if body_id in body_ids:
                 geom_ids.append(geom_id)
         return body_ids, geom_ids
-    
+
     def get_hardcoded_text_plan(self):
         if self.env_name == "assembly-v2":
             return [("green wrench", "grasp"), ("small maroon peg", "place")]
         if self.env_name == "hammer-v2":
             return [("red hammer handle", "grasp"), ("gray nail", "place")]
         if self.env_name == "bin-picking-v2":
-            return [("green cube", "grasp"), ("blue bin", "place")] 
+            return [("green cube", "grasp"), ("blue bin", "place")]
         if self.env_name == "disassemble-v2":
             return [("green wrench", "grasp"), (None, None)]
         if self.env_name == "peg-insert-side-v2":
-            return [("green bar on table", "grasp"), ("hole", "insert")] # figure this out with sam 
+            return [
+                ("green bar on table", "grasp"),
+                ("hole", "insert"),
+            ]  # figure this out with sam
 
     def get_image(self):
         im = self.sim.render(
-                camera_name="corner",
-                width=960,
-                height=540,
-            )
+            camera_name="corner",
+            width=960,
+            height=540,
+        )
         return im
-    
+
     def get_object_pose_mp(self):
         if self.env_name == "assembly-v2":
-            object_pos = self._get_pos_objects().copy() + np.array([0.03, 0., 0.05])
+            object_pos = self._get_pos_objects().copy() + np.array([0.03, 0.0, 0.05])
             object_quat = self._get_quat_objects().copy()
         elif self.env_name == "disassemble-v2":
-            object_pos = self._get_pos_objects().copy() + np.array([0., 0., 0.06])
+            object_pos = self._get_pos_objects().copy() + np.array([0.0, 0.0, 0.06])
             object_quat = self._get_quat_objects().copy()
         elif self.env_name == "hammer-v2":
-            object_pos = self._get_pos_objects()[:3] + np.array([0.09, 0., 0.05])
+            object_pos = self._get_pos_objects()[:3] + np.array([0.09, 0.0, 0.05])
             object_quat = self._get_quat_objects().copy()
         elif self.env_name == "bin-picking-v2":
-            object_pos = self._get_pos_objects().copy() + np.array([0., 0., 0.02])
+            object_pos = self._get_pos_objects().copy() + np.array([0.0, 0.0, 0.02])
             object_quat = self._get_quat_objects().copy()
         elif self.env_name == "peg-insert-side-v2":
-            object_pos = self._get_pos_objects().copy() + np.array([0.05, 0., 0.03])
+            object_pos = self._get_pos_objects().copy() + np.array([0.05, 0.0, 0.03])
             object_quat = self._get_quat_objects().copy()
         elif self.env_name == "stick-pull-v2":
-            object_pos = self.get_object_pose().copy() + np.array([0., 0., 0.05])
+            object_pos = self.get_object_pose().copy() + np.array([0.0, 0.0, 0.05])
             object_quat = self._get_quat_objects()[:4].copy()
         if self.use_vision_pose_estimation:
-            object_name = self.text_plan[0][0] if self.use_llm_plan else self.hardcoded_text_plan[0][0]
+            object_name = (
+                self.text_plan[0][0]
+                if self.use_llm_plan
+                else self.hardcoded_text_plan[0][0]
+            )
             if self.env_name == "assembly-v2" or self.env_name == "disassemble-v2":
                 if not self.use_sam_segmentation:
                     object_pos = get_geom_pose_from_seg(
-                        self, 
-                        self.sim.model.geom_name2id("WrenchHandle"), 
-                        ["corner", "corner2"], 
-                        500, 
-                        500, 
-                        self.sim
+                        self,
+                        self.sim.model.geom_name2id("WrenchHandle"),
+                        ["corner", "corner2"],
+                        500,
+                        500,
+                        self.sim,
                     )
                     object_pos += np.array([0.02, 0.02, 0.03])
                 else:
-                    object_pos = get_pose_from_sam_segmentation(self, object_name, "corner")
+                    object_pos = get_pose_from_sam_segmentation(
+                        self, object_name, "corner"
+                    )
                     object_pos += np.array([0.08, 0.02, 0.07])
                 object_quat = self._get_quat_objects().copy()
             elif self.env_name == "hammer-v2":
                 if not self.use_sam_segmentation:
                     object_pos = get_geom_pose_from_seg(
-                        self, 
+                        self,
                         self.sim.model.geom_name2id("HammerHandle"),
                         ["topview", "corner2"],
                         500,
                         500,
-                        self.sim        
+                        self.sim,
                     )
-                    object_pos += np.array([0., 0., 0.05])
+                    object_pos += np.array([0.0, 0.0, 0.05])
                 else:
-                    object_pos = get_pose_from_sam_segmentation(self, object_name, "corner")
-                    object_pos += np.array([0., 0., 0.05])
+                    object_pos = get_pose_from_sam_segmentation(
+                        self, object_name, "corner"
+                    )
+                    object_pos += np.array([0.0, 0.0, 0.05])
                 object_quat = self._get_quat_objects()[:4]
             elif self.env_name == "bin-picking-v2":
                 if not self.use_sam_segmentation:
                     object_pos = get_geom_pose_from_seg(
-                        self, 
-                        36,
-                        ["topview", "corner2"],
-                        500,
-                        500,
-                        self.sim        
+                        self, 36, ["topview", "corner2"], 500, 500, self.sim
                     )
                 else:
-                    # saving image first 
-                    object_pos = get_pose_from_sam_segmentation(self, object_name, "corner3")
+                    # saving image first
+                    object_pos = get_pose_from_sam_segmentation(
+                        self, object_name, "corner3"
+                    )
                 object_pos += np.array([-0.00, 0.0, 0.02])
                 object_quat = self._get_quat_objects().copy()
             elif self.env_name == "peg-insert-side-v2":
                 if not self.use_sam_segmentation:
                     object_pos = get_geom_pose_from_seg(
-                        self, 
+                        self,
                         self.sim.model.geom_name2id("peg"),
                         ["topview", "corner2"],
                         500,
                         500,
-                        self.sim        
+                        self.sim,
                     )
                 else:
-                    raise NotImplementedError 
-                object_pos += np.array([0.09, 0., 0.03])
+                    raise NotImplementedError
+                object_pos += np.array([0.09, 0.0, 0.03])
                 object_quat = self._get_quat_objects().copy()
         return object_pos, object_quat
 
@@ -270,80 +306,72 @@ class MetaworldMPEnv(MPEnv):
         object_poses = []
         object_poses.append((self.get_object_pose_mp()))
         return object_poses
-        
+
     def get_placement_pose(self):
-        placement_quat = None 
+        placement_quat = None
         if not self.use_vision_pose_estimation:
             if self.env_name == "assembly-v2":
                 placement_pos = self.sim.data.body_xpos[
                     self.sim.model.body_name2id("peg")
-                ] + np.array([0.13, 0., 0.15])
+                ] + np.array([0.13, 0.0, 0.15])
             elif self.env_name == "bin-picking-v2":
                 placement_pos = self._target_pos + np.array([0, 0, 0.15])
             elif self.env_name == "disassemble-v2":
-                placement_pos = None 
+                placement_pos = None
             elif self.env_name == "hammer-v2":
-                placement_pos = self._wrapped_env._get_pos_objects()[3:] + np.array([-0.05, -0.20, 0.05])
+                placement_pos = self._wrapped_env._get_pos_objects()[3:] + np.array(
+                    [-0.05, -0.20, 0.05]
+                )
             elif self.env_name == "peg-insert-side-v2":
                 placement_pos = self.sim.data.body_xpos[
                     self.sim.model.body_name2id("box")
-                ] + np.array([0.3, 0., 0.12])
+                ] + np.array([0.3, 0.0, 0.12])
         else:
-            object_name = self.text_plan[1][0] if self.use_llm_plan else self.hardcoded_text_plan[1][0]
+            object_name = (
+                self.text_plan[1][0]
+                if self.use_llm_plan
+                else self.hardcoded_text_plan[1][0]
+            )
             if self.env_name == "disassemble-v2":
                 placement_pos = None
             elif self.env_name == "hammer-v2":
                 if not self.use_sam_segmentation:
                     placement_pos = get_geom_pose_from_seg(
-                        self,
-                        53,
-                        ["corner2","topview", "corner3"],
-                        500,
-                        500,
-                        self.sim
-                    ) 
+                        self, 53, ["corner2", "topview", "corner3"], 500, 500, self.sim
+                    )
                     placement_pos += np.array([-0.15, -0.15, 0.0])
                 else:
-                    placement_pos = get_pose_from_sam_segmentation(self, object_name, "corner")
+                    placement_pos = get_pose_from_sam_segmentation(
+                        self, object_name, "corner"
+                    )
                     placement_pos += np.array([-0.15, -0.15, 0.0])
             elif self.env_name == "peg-insert-side-v2":
                 placement_pos = get_geom_pose_from_seg(
-                    self,
-                    37,
-                    ["corner2","topview", "corner3"],
-                    500,
-                    500,
-                    self.sim
-                ) 
+                    self, 37, ["corner2", "topview", "corner3"], 500, 500, self.sim
+                )
                 placement_pos += np.array([0.21, 0.02, 0.08])
             elif self.env_name == "bin-picking-v2":
                 if not self.use_sam_segmentation:
                     placement_pos = get_geom_pose_from_seg(
-                        self,
-                        44,
-                        ["corner", "corner2"],
-                        500,
-                        500,
-                        self.sim
+                        self, 44, ["corner", "corner2"], 500, 500, self.sim
                     )
                 else:
-                    placement_pos = get_pose_from_sam_segmentation(self, object_name, "corner3")
+                    placement_pos = get_pose_from_sam_segmentation(
+                        self, object_name, "corner3"
+                    )
                 placement_pos += np.array([0.03, 0.03, 0.10])
             elif self.env_name == "assembly-v2":
                 if not self.use_sam_segmentation:
                     placement_pos = get_geom_pose_from_seg(
-                            self,
-                            49,
-                            ["corner", "corner2"],
-                            500,
-                            500,
-                            self.sim
-                        ) 
+                        self, 49, ["corner", "corner2"], 500, 500, self.sim
+                    )
                 else:
-                    placement_pos = get_pose_from_sam_segmentation(self, object_name, "corner")
-                placement_pos += np.array([0.13, 0.0, 0.15]) # go back to 0.12
-        return placement_pos, placement_quat 
-    
+                    placement_pos = get_pose_from_sam_segmentation(
+                        self, object_name, "corner"
+                    )
+                placement_pos += np.array([0.13, 0.0, 0.15])  # go back to 0.12
+        return placement_pos, placement_quat
+
     def get_placement_poses(self):
         return [self.get_placement_pose()]
 
@@ -360,15 +388,21 @@ class MetaworldMPEnv(MPEnv):
 
     def get_object_pose(self):
         if self.env_name == "hammer-v2" or self.env_name == "stick-pull-v2":
-            object_pos = self._get_pos_objects()[:3] + np.array([0., 0., 0.016])
+            object_pos = self._get_pos_objects()[:3] + np.array([0.0, 0.0, 0.016])
             object_quat = self._get_quat_objects()[:4]
         elif self.env_name == "assembly-v2" or self.env_name == "disassemble-v2":
-            object_pos = self._get_pos_objects().copy() - np.array([0.13, 0., 0.,])
+            object_pos = self._get_pos_objects().copy() - np.array(
+                [
+                    0.13,
+                    0.0,
+                    0.0,
+                ]
+            )
             object_quat = self._get_quat_objects().copy()
         else:
             object_pos = self._get_pos_objects().copy()
             object_quat = self._get_quat_objects().copy()
-        return object_pos, object_quat 
+        return object_pos, object_quat
 
     def set_object_pose(self, object_pos, object_quat):
         self._set_obj_pose(np.concatenate((object_pos, object_quat)))
@@ -386,7 +420,7 @@ class MetaworldMPEnv(MPEnv):
 
     def body_check_grasp(self):
         obj_name = self.get_object_string()
-        d = self.sim.data 
+        d = self.sim.data
         left_gripper_contact, right_gripper_contact = (False, False)
         for coni in range(d.ncon):
             con1 = self.sim.model.geom_id2name(d.contact[coni].geom1)
@@ -397,10 +431,20 @@ class MetaworldMPEnv(MPEnv):
             body2 = self.sim.model.body_id2name(
                 self.sim.model.geom_bodyid[d.contact[coni].geom2]
             )
-            if body1 == "leftpad" and body2 == obj_name or body2 == "leftpad"and body1 == obj_name:
-                left_gripper_contact = True 
-            if body1 == "rightpad" and body2 == obj_name or body2 == "rightpad"and body1 == obj_name:
-                right_gripper_contact = True 
+            if (
+                body1 == "leftpad"
+                and body2 == obj_name
+                or body2 == "leftpad"
+                and body1 == obj_name
+            ):
+                left_gripper_contact = True
+            if (
+                body1 == "rightpad"
+                and body2 == obj_name
+                or body2 == "rightpad"
+                and body1 == obj_name
+            ):
+                right_gripper_contact = True
         return left_gripper_contact and right_gripper_contact
 
     def check_grasp(self):
@@ -409,22 +453,25 @@ class MetaworldMPEnv(MPEnv):
         contact_grasp = self.body_check_grasp()
         if self.env_name == "hammer-v2" or self.env_name == "peg-insert-side-v2":
             return contact_grasp
-        return contact_grasp and abs(self.get_object_pose()[0][2] - self.initial_object_pos[2]) > 0.03
-        
+        return (
+            contact_grasp
+            and abs(self.get_object_pose()[0][2] - self.initial_object_pos[2]) > 0.03
+        )
+
     def set_object_pose(self, object_pos, object_quat):
         self._set_obj_pose(np.concatenate((object_pos, object_quat)))
-    
+
     def get_target_pos(self):
         if self.num_high_level_steps % 2 == 0:
-            #pos = self.object_poses[self.num_high_level_steps // 2][0]
+            # pos = self.object_poses[self.num_high_level_steps // 2][0]
             pos = self.get_object_pose_mp()[0]
         else:
             pos = self.placement_poses[(self.num_high_level_steps - 1) // 2][0]
-        return pos, self._eef_xquat 
+        return pos, self._eef_xquat
 
     def check_robot_collision(self, ignore_object_collision, obj_idx=0, verbose=False):
         obj_string = self.get_object_string()
-        d = self.sim.data 
+        d = self.sim.data
         for coni in range(d.ncon):
             con1 = self.sim.model.geom_id2name(d.contact[coni].geom1)
             con2 = self.sim.model.geom_id2name(d.contact[coni].geom2)
@@ -436,7 +483,9 @@ class MetaworldMPEnv(MPEnv):
             )
             if verbose:
                 print(f"Con1: {con1} Con2: {con2} Body1: {body1} Body2: {body2}")
-            if (check_robot_string(con1) ^ check_robot_string(con2)) or ((body1 in self.ROBOT_BODIES) ^ (body2 in self.ROBOT_BODIES)):
+            if (check_robot_string(con1) ^ check_robot_string(con2)) or (
+                (body1 in self.ROBOT_BODIES) ^ (body2 in self.ROBOT_BODIES)
+            ):
                 if (
                     check_string(con1, obj_string)
                     or check_string(con2, obj_string)
@@ -445,8 +494,11 @@ class MetaworldMPEnv(MPEnv):
                     # if the robot and the object collide, then we can ignore the collision
                     continue
                 # check using bodies
-                if ((body1 == obj_string and body2 in self.ROBOT_BODIES) or (body2 == obj_string and body1 in self.ROBOT_BODIES)) and ignore_object_collision:
-                    continue 
+                if (
+                    (body1 == obj_string and body2 in self.ROBOT_BODIES)
+                    or (body2 == obj_string and body1 in self.ROBOT_BODIES)
+                ) and ignore_object_collision:
+                    continue
                 return True
             elif ignore_object_collision:
                 if check_string(con1, obj_string) or check_string(con2, obj_string):
@@ -454,16 +506,18 @@ class MetaworldMPEnv(MPEnv):
                     # robot is "joined" to the object. so if the object collides with any non-robot
                     # object, then we should call that a collision
                     return True
-                if (body1 == obj_string and body2 not in self.ROBOT_BODIES) or (body2 == obj_string and body1 not in self.ROBOT_BODIES):
-                    return True 
+                if (body1 == obj_string and body2 not in self.ROBOT_BODIES) or (
+                    body2 == obj_string and body1 not in self.ROBOT_BODIES
+                ):
+                    return True
         return False
-    
+
     def check_object_placement(self, **kwargs):
         return False
 
     def compute_hardcoded_orientation(self, *args, **kwargs):
-        pass 
-    
+        pass
+
     def set_robot_based_on_ee_pos(
         self,
         target_pos,
@@ -471,8 +525,8 @@ class MetaworldMPEnv(MPEnv):
         qpos,
         qvel,
         is_grasped,
-        open_gripper_on_tp=False, # placeholder argument
-        obj_idx=0, # placeholder argument for robosuite 
+        open_gripper_on_tp=False,  # placeholder argument
+        obj_idx=0,  # placeholder argument for robosuite
     ):
         if target_pos is not None:
             set_robot_based_on_ee_pos(
@@ -492,7 +546,7 @@ class MetaworldMPEnv(MPEnv):
         start_quat,
         target_pos,
         target_quat,
-        qpos, 
+        qpos,
         qvel,
         is_grasped,
         movement_fraction=0.001,
@@ -500,20 +554,18 @@ class MetaworldMPEnv(MPEnv):
         obj_idx=0,
     ):
         curr_pos = target_pos.copy()
-        self.set_robot_based_on_ee_pos(
-            curr_pos, target_quat, qpos, qvel, is_grasped
-        )
+        self.set_robot_based_on_ee_pos(curr_pos, target_quat, qpos, qvel, is_grasped)
         collision = self.check_robot_collision(ignore_object_collision=is_grasped)
         iters = 0
         max_iters = int(1 / movement_fraction)
         while collision and iters < max_iters:
             curr_pos = curr_pos - movement_fraction * (target_pos - start_pos)
             self.set_robot_based_on_ee_pos(
-                curr_pos, 
-                target_quat, 
-                qpos, 
-                qvel, 
-                is_grasped, 
+                curr_pos,
+                target_quat,
+                qpos,
+                qvel,
+                is_grasped,
                 open_gripper_on_tp=open_gripper_on_tp,
             )
             collision = self.check_robot_collision(ignore_object_collision=is_grasped)
@@ -568,13 +620,13 @@ class MetaworldMPEnv(MPEnv):
         elif self.env_name == "peg-insert-side-v2":
             if "peg" in obj_name:
                 return self.get_object_pose_mp(), self.get_placement_pose()
-    
+
     def update_controllers(self, *args, **kwargs):
         pass
-    
+
     def update_mp_controllers(self, *args, **kwargs):
         pass
-    
+
     def rebuild_controller(self, *args, **kwargs):
         pass
 
@@ -589,12 +641,14 @@ class MetaworldMPEnv(MPEnv):
                 height=540,
             )
             self.reset_robot_colors()
-            segmentation_map = np.flipud(CU.get_camera_segmentation(
-                camera_name="corner",
-                camera_width=960,
-                camera_height=540,
-                sim=self.sim,
-            ))
+            segmentation_map = np.flipud(
+                CU.get_camera_segmentation(
+                    camera_name="corner",
+                    camera_width=960,
+                    camera_height=540,
+                    sim=self.sim,
+                )
+            )
             # get robot segmentation mask
             geom_ids = np.unique(segmentation_map[:, :, 1])
             robot_ids = []
@@ -603,23 +657,36 @@ class MetaworldMPEnv(MPEnv):
                     geom_name = self.sim.model.geom_id2name(geom_id)
                     if geom_name == None:
                         continue
-                    if geom_name.startswith("robot") or geom_name.startswith("left") or geom_name.startswith("right") or geom_id == 27:
+                    if (
+                        geom_name.startswith("robot")
+                        or geom_name.startswith("left")
+                        or geom_name.startswith("right")
+                        or geom_id == 27
+                    ):
                         robot_ids.append(geom_id)
             robot_ids.append(27)
             robot_ids.append(28)
-            robot_mask = np.expand_dims(np.any(
-                [segmentation_map[:, :, 1] == robot_id for robot_id in robot_ids], axis=0
-            ), -1)
+            robot_mask = np.expand_dims(
+                np.any(
+                    [segmentation_map[:, :, 1] == robot_id for robot_id in robot_ids],
+                    axis=0,
+                ),
+                -1,
+            )
             waypoint_mask = robot_mask
-            waypoint_img = robot_mask*im
+            waypoint_img = robot_mask * im
             for i in range(len(frames)):
-               frames[i] = 0.5 * (frames[i] * robot_mask) + 0.5 * (waypoint_img) + frames[i] * (1.- robot_mask)
-               frames[i] = frames[i][:, :, ::-1]
+                frames[i] = (
+                    0.5 * (frames[i] * robot_mask)
+                    + 0.5 * (waypoint_img)
+                    + frames[i] * (1.0 - robot_mask)
+                )
+                frames[i] = frames[i][:, :, ::-1]
             self.set_robot_colors(np.array([0.1, 0.3, 0.7, 1.0]))
             return frames
-        
+
     def get_mp_waypoints(self, *args, **kwargs):
-        return None, None 
+        return None, None
 
     def take_mp_step(
         self,
@@ -630,13 +697,12 @@ class MetaworldMPEnv(MPEnv):
         desired_rot = quat2mat(state[3:])
         for s in range(50):
             if np.linalg.norm(state[:3] - self._eef_xpos) < 1e-5:
-                self.break_mp = True 
+                self.break_mp = True
                 return
             self.set_xyz_action((state[:3] - self._eef_xpos))
             if is_grasped:
                 self.do_simulation([1.0, -1.0], n_frames=self.frame_skip)
             else:
                 self.do_simulation([0.0, -0.0], n_frames=self.frame_skip)
-            for site in self._target_site_config: # taken from metaworld repo
+            for site in self._target_site_config:  # taken from metaworld repo
                 self._set_pos_site(*site)
-        

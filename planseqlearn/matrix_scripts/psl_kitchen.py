@@ -17,7 +17,7 @@ env_names = [
     "kitchen_kitchen-kettle-light-burner-v0"
     "kitchen_kitchen-kettle-light-burner-slider-v0",
     "kitchen_kitchen-microwave-kettle-light-burner-slider-v0",
-    'kitchen_kitchen-hinge-microwave-kettle-light-burner-slider-v0',
+    "kitchen_kitchen-hinge-microwave-kettle-light-burner-slider-v0",
 ]
 num_seeds = 1
 for env_name in env_names:
@@ -43,7 +43,9 @@ for env_name in env_names:
             path_length = 100
         elif env_name in ["kitchen_kitchen-microwave-kettle-light-burner-slider-v0"]:
             path_length = 125
-        elif env_name in ["kitchen_kitchen-hinge-microwave-kettle-light-burner-slider-v0"]:
+        elif env_name in [
+            "kitchen_kitchen-hinge-microwave-kettle-light-burner-slider-v0"
+        ]:
             path_length = 150
         num_train_frames = 10000 * path_length
         seed = random.randint(0, 100000)

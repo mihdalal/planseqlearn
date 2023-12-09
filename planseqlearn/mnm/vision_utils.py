@@ -340,7 +340,7 @@ def compute_object_pcd(
     name = env.env_name
     object_pts = []
     if target_obj:
-        camera_names = ["agentview", "birdview"] # "frontview"]
+        camera_names = ["agentview", "birdview"]  # "frontview"]
         # need birdview to properly estimate bin position
     else:
         camera_names = ["agentview", "sideview"]

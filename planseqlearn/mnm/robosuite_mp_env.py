@@ -246,10 +246,22 @@ class RobosuiteMPEnv(MPEnv):
         self.grip_ctrl_scale = 0.0025
         self.cache = {}
         self.robot_bodies = [
-            'robot0_base', 'robot0_link0', 'robot0_link1', 'robot0_link2', 'robot0_link3', 'robot0_link4', 
-            'robot0_link5', 'robot0_link6', 'robot0_link7', 'robot0_right_hand', 'gripper0_right_gripper', 
-            'gripper0_eef', 'gripper0_leftfinger', 'gripper0_finger_joint1_tip', 'gripper0_rightfinger', 
-            'gripper0_finger_joint2_tip'
+            "robot0_base",
+            "robot0_link0",
+            "robot0_link1",
+            "robot0_link2",
+            "robot0_link3",
+            "robot0_link4",
+            "robot0_link5",
+            "robot0_link6",
+            "robot0_link7",
+            "robot0_right_hand",
+            "gripper0_right_gripper",
+            "gripper0_eef",
+            "gripper0_leftfinger",
+            "gripper0_finger_joint1_tip",
+            "gripper0_rightfinger",
+            "gripper0_finger_joint2_tip",
         ]
         (
             self.robot_body_ids,
@@ -263,7 +275,7 @@ class RobosuiteMPEnv(MPEnv):
             idx = 1
             for obj_name in ["Milk", "Bread", "Cereal", "Can"]:
                 if obj_name in self.valid_obj_names:
-                    self.pick_place_bin_names[obj_name] = idx 
+                    self.pick_place_bin_names[obj_name] = idx
                     idx += 1
         if self.text_plan is None:
             self.text_plan = self.get_hardcoded_text_plan()
@@ -273,14 +285,20 @@ class RobosuiteMPEnv(MPEnv):
             robosuite.__file__[: -len("/__init__.py")]
             + "/models/assets/bullet_data/panda_description/urdf/panda_arm_hand.urdf"
         )
-        if self.env_name.startswith("PickPlace") or self.env_name.startswith("Nut") or self.env_name.startswith("Lift"):
+        if (
+            self.env_name.startswith("PickPlace")
+            or self.env_name.startswith("Nut")
+            or self.env_name.startswith("Lift")
+        ):
             self.burn_in = True
         self.pick_place_bin_locations = np.array(
-                                                [[0.0025, 0.1575, 0.8   ],
-                                                [0.1975, 0.1575, 0.8   ],
-                                                [0.0025, 0.4025, 0.8   ],
-                                                [0.1975, 0.4025, 0.8   ]]
-                                            )
+            [
+                [0.0025, 0.1575, 0.8],
+                [0.1975, 0.1575, 0.8],
+                [0.0025, 0.4025, 0.8],
+                [0.1975, 0.4025, 0.8],
+            ]
+        )
         self.retry = False
 
     def get_body_geom_ids_from_robot_bodies(self):
@@ -290,17 +308,17 @@ class RobosuiteMPEnv(MPEnv):
             if body_id in body_ids:
                 geom_ids.append(geom_id)
         return body_ids, geom_ids
-    
+
     def get_hardcoded_text_plan(self):
         plan = []
         if self.env_name == "PickPlaceCan":
-            return [("red can", "grasp"), ("bin 4", "place")] 
+            return [("red can", "grasp"), ("bin 4", "place")]
         if self.env_name == "PickPlaceBread":
-            return [("bread", "grasp"), ("bin 2", "place")] 
+            return [("bread", "grasp"), ("bin 2", "place")]
         if self.env_name == "PickPlaceMilk":
-            return [("milk carton", "grasp"), ("bin 1", "place")] 
+            return [("milk carton", "grasp"), ("bin 1", "place")]
         if self.env_name == "PickPlaceCereal":
-            return [("cereal box", "grasp"), ("bin 3", "place")] 
+            return [("cereal box", "grasp"), ("bin 3", "place")]
         if self.env_name == "PickPlace":
             for name in self.valid_obj_names:
                 plan.append((name, "grasp"))
@@ -311,12 +329,14 @@ class RobosuiteMPEnv(MPEnv):
         if self.env_name == "Door":
             return [("door", "grasp"), (None, None)]
         if self.env_name == "NutAssemblyRound":
-            return [("silver nut", "grasp"), ("silver peg", "place")] 
+            return [("silver nut", "grasp"), ("silver peg", "place")]
         if self.env_name == "NutAssemblySquare":
-            return [("gold nut", "grasp"), ("gold peg", "place")] 
+            return [("gold nut", "grasp"), ("gold peg", "place")]
         if self.env_name == "NutAssembly":
-            return [("silver round nut", "grasp"), ("silver peg", "place")] + [("gold square nut", "grasp"), ("gold peg", "place")]
-                    
+            return [("silver round nut", "grasp"), ("silver peg", "place")] + [
+                ("gold square nut", "grasp"),
+                ("gold peg", "place"),
+            ]
 
     def set_robot_colors(self, colors):
         if type(colors) is np.ndarray:
@@ -412,10 +432,14 @@ class RobosuiteMPEnv(MPEnv):
 
     def get_image(self, camera_name="frontview", width=960, height=540, depth=False):
         if depth:
-            im = self.sim.render(camera_name=camera_name, width=width, height=height, depth=True)[1]
+            im = self.sim.render(
+                camera_name=camera_name, width=width, height=height, depth=True
+            )[1]
             return im
         else:
-            im = self.sim.render(camera_name=camera_name, width=width, height=height)[:, :, ::-1]
+            im = self.sim.render(camera_name=camera_name, width=width, height=height)[
+                :, :, ::-1
+            ]
             return np.flipud(im)
 
     def get_object_string(self, obj_idx=0):
@@ -431,7 +455,9 @@ class RobosuiteMPEnv(MPEnv):
             elif self.env_name.endswith("Cereal"):
                 obj_string = "Cereal"
             else:
-                obj_string = self.text_plan[obj_idx * 2][0] # self.valid_obj_names[obj_idx - 1]
+                obj_string = self.text_plan[obj_idx * 2][
+                    0
+                ]  # self.valid_obj_names[obj_idx - 1]
         elif self.env_name.endswith("Door"):
             obj_string = "latch"
         elif self.env_name.endswith("Wipe"):
@@ -461,7 +487,7 @@ class RobosuiteMPEnv(MPEnv):
         else:
             new_obj_idx = obj_idx
         return new_obj_idx
-    
+
     def curr_obj_name_to_env_idx(self):
         if self.env_name.startswith("PickPlace"):
             valid_obj_names = self.valid_obj_names
@@ -470,10 +496,13 @@ class RobosuiteMPEnv(MPEnv):
             for obj_name in valid_obj_names:
                 obj_string_to_idx[obj_name] = idx
                 if obj_name.lower() in self.curr_obj_name.lower():
-                    return idx 
+                    return idx
                 idx += 1
         elif self.env_name.startswith("NutAssembly"):
-            if "square" in self.curr_obj_name.lower() or "gold" in self.curr_obj_name.lower():
+            if (
+                "square" in self.curr_obj_name.lower()
+                or "gold" in self.curr_obj_name.lower()
+            ):
                 return 0
             else:
                 return 1
@@ -519,7 +548,7 @@ class RobosuiteMPEnv(MPEnv):
             elif self.env_name.endswith("Round"):
                 nut = self.nuts[1]
             elif self.env_name.endswith("NutAssembly"):
-                nut = self.nuts[1 - obj_idx]  
+                nut = self.nuts[1 - obj_idx]
             nut_name = nut.name
             object_pos = self.sim.data.get_site_xpos(nut.important_sites["handle"])
             object_quat = T.convert_quat(
@@ -535,11 +564,17 @@ class RobosuiteMPEnv(MPEnv):
                     object_pos[0] -= 0.15
                     object_pos[1] += 0.05
             else:
-                object_name = self.curr_obj_name #self.text_plan[self.num_high_level_steps][0]
+                object_name = (
+                    self.curr_obj_name
+                )  # self.text_plan[self.num_high_level_steps][0]
                 if self.env_name == "Lift":
-                    object_pos = get_pose_from_sam_segmentation(self, object_name, "frontview")
+                    object_pos = get_pose_from_sam_segmentation(
+                        self, object_name, "frontview"
+                    )
                 if self.env_name.startswith("PickPlace"):
-                    object_pos = get_pose_from_sam_segmentation(self, object_name, "agentview", threshold=0.3)
+                    object_pos = get_pose_from_sam_segmentation(
+                        self, object_name, "agentview", threshold=0.3
+                    )
         return object_pos, object_quat
 
     def get_object_pose(self, obj_idx=0):
@@ -586,14 +621,18 @@ class RobosuiteMPEnv(MPEnv):
                 nut = self.nuts[1 - obj_idx]  # first nut is round, second nut is square
             nut_name = nut.name
             if nut.name == "SquareNut":
-                return np.array(self.sim.data.qpos[9:12]), T.convert_quat(self.sim.data.qpos[12:16], to="xyzw")
+                return np.array(self.sim.data.qpos[9:12]), T.convert_quat(
+                    self.sim.data.qpos[12:16], to="xyzw"
+                )
             else:
-                return np.array(self.sim.data.qpos[16:19]), T.convert_quat(self.sim.data.qpos[19:23], to="xyzw")
+                return np.array(self.sim.data.qpos[16:19]), T.convert_quat(
+                    self.sim.data.qpos[19:23], to="xyzw"
+                )
         else:
             raise NotImplementedError
         return object_pos, object_quat
 
-    # valid names idx to dict idx 
+    # valid names idx to dict idx
     def get_placement_pose(self, obj_idx=0):
         target_quat = self.reset_ori
         if self.env_name.endswith("Lift"):
@@ -627,7 +666,7 @@ class RobosuiteMPEnv(MPEnv):
                 self.target_pcd = target_pcd
                 target_pos_pcd = np.mean(target_pcd, axis=0)
                 if "NutAssembly" in self.env_name:
-                    target_pos_pcd[2] += 0.065 #0.1
+                    target_pos_pcd[2] += 0.065  # 0.1
                     target_pos_pcd[0] -= 0.065
                 elif "PickPlace" in self.env_name:
                     target_pos_pcd[2] += 0.125
@@ -635,20 +674,42 @@ class RobosuiteMPEnv(MPEnv):
             else:
                 object_name = self.text_plan[self.num_high_level_steps][0]
                 if self.env_name == "Lift":
-                    return target_pos # no need to segment anything 
+                    return target_pos  # no need to segment anything
                 elif self.env_name.startswith("PickPlace"):
-                    object_name = "dark brown bin" # hardcoding for now, should always be this 
-                    pc_mean, object_pointcloud = get_pose_from_sam_segmentation(self, "dark brown bin", "birdview", return_pcd=True)
+                    object_name = (
+                        "dark brown bin"  # hardcoding for now, should always be this
+                    )
+                    pc_mean, object_pointcloud = get_pose_from_sam_segmentation(
+                        self, "dark brown bin", "birdview", return_pcd=True
+                    )
                     pc_xmin = np.quantile(object_pointcloud[:, 0], 0.1)
                     pc_xmax = np.quantile(object_pointcloud[:, 0], 0.9)
                     pc_ymin = np.quantile(object_pointcloud[:, 1], 0.1)
                     pc_ymax = np.quantile(object_pointcloud[:, 1], 0.9)
-                    pc_new = np.array([
-                        [np.mean((pc_xmin, pc_mean[0])), np.mean((pc_ymin, pc_mean[1])), pc_mean[2]],
-                        [np.mean((pc_xmax, pc_mean[0])), np.mean((pc_ymin, pc_mean[1])), pc_mean[2]],
-                        [np.mean((pc_xmin, pc_mean[0])), np.mean((pc_ymax, pc_mean[1])), pc_mean[2]],
-                        [np.mean((pc_xmax, pc_mean[0])), np.mean((pc_ymax, pc_mean[1])), pc_mean[2]],
-                    ])
+                    pc_new = np.array(
+                        [
+                            [
+                                np.mean((pc_xmin, pc_mean[0])),
+                                np.mean((pc_ymin, pc_mean[1])),
+                                pc_mean[2],
+                            ],
+                            [
+                                np.mean((pc_xmax, pc_mean[0])),
+                                np.mean((pc_ymin, pc_mean[1])),
+                                pc_mean[2],
+                            ],
+                            [
+                                np.mean((pc_xmin, pc_mean[0])),
+                                np.mean((pc_ymax, pc_mean[1])),
+                                pc_mean[2],
+                            ],
+                            [
+                                np.mean((pc_xmax, pc_mean[0])),
+                                np.mean((pc_ymax, pc_mean[1])),
+                                pc_mean[2],
+                            ],
+                        ]
+                    )
                     print(f"PC mean: {pc_mean}")
                     print(f"Pc New: {pc_new}")
                     print(f"target bin placements: {self.target_bin_placements}")
@@ -681,15 +742,13 @@ class RobosuiteMPEnv(MPEnv):
 
     def get_placement_poses(self):
         placement_poses = []
-        if (
-            self.env_name.endswith("Lift")
-        ):
+        if self.env_name.endswith("Lift"):
             placement_pose, placement_quat = self.get_placement_pose(obj_idx=0)
             placement_poses.append((placement_pose, placement_quat))
         elif self.env_name.startswith("PickPlace"):
             for ob in range(0, len(self.text_plan), 2):
                 placement_pose, placement_quat = self.get_placement_pose(
-                    obj_idx=ob//2
+                    obj_idx=ob // 2
                 )
                 placement_poses.append((placement_pose, placement_quat))
         elif self.env_name.startswith("NutAssembly"):
@@ -722,19 +781,23 @@ class RobosuiteMPEnv(MPEnv):
             # pos = self.object_poses[self.num_high_level_steps // 2][0]
             pos = self.get_object_pose_mp(self.num_high_level_steps // 2)[0].copy()
             if self.curr_obj_name == "Bread":
-                pos += np.array([0., 0., 0.06])
+                pos += np.array([0.0, 0.0, 0.06])
             else:
                 pos += np.array([0.0, 0.0, self.vertical_displacement])
         else:
             pos = self.placement_poses[self.num_high_level_steps // 2][0]
         if self.hardcoded_orientations and self.num_high_level_steps % 2 == 0:
             for _ in range(2):
-                _, obj_quat = self.get_object_pose_mp(obj_idx=self.num_high_level_steps // 2)
+                _, obj_quat = self.get_object_pose_mp(
+                    obj_idx=self.num_high_level_steps // 2
+                )
                 quat = self.compute_hardcoded_orientation(pos, obj_quat)
         else:
             quat = self.reset_ori
             for _ in range(2):
-                _, obj_quat = self.get_object_pose_mp(obj_idx=self.num_high_level_steps // 2)
+                _, obj_quat = self.get_object_pose_mp(
+                    obj_idx=self.num_high_level_steps // 2
+                )
                 comp_quat = self.compute_hardcoded_orientation(pos, obj_quat)
         return pos, quat
 
@@ -762,7 +825,9 @@ class RobosuiteMPEnv(MPEnv):
                 # get avg of pcd - bin pos
                 xyz = self.target_pcd
                 new_obj_idx = self.compute_correct_obj_idx(obj_idx=obj_idx)
-                bin_size = np.array([max(xyz[0]) - min(xyz[0]), max(xyz[1]) - min(xyz[1])])
+                bin_size = np.array(
+                    [max(xyz[0]) - min(xyz[0]), max(xyz[1]) - min(xyz[1])]
+                )
                 bin2_pos = np.mean(xyz, axis=0)
                 bin_x_low = bin2_pos[0]
                 bin_y_low = bin2_pos[1]
@@ -891,7 +956,7 @@ class RobosuiteMPEnv(MPEnv):
         object_quat = object_quat.copy()
         gripper_qpos = self.sim.data.qpos[7:9].copy()
         gripper_qvel = self.sim.data.qvel[7:9].copy()
-        #print(f"Gripper qpos qvel: {gripper_qpos, gripper_qvel}")
+        # print(f"Gripper qpos qvel: {gripper_qpos, gripper_qvel}")
         old_eef_xquat = self._eef_xquat.copy()
         old_eef_xpos = self._eef_xpos.copy()
         og_qpos = self.sim.data.qpos.copy()
@@ -951,7 +1016,9 @@ class RobosuiteMPEnv(MPEnv):
         open_gripper_on_tp=True,
     ):
         obj_idx = self.compute_correct_obj_idx(obj_idx)
-        object_pos, object_quat = self.get_object_pose(obj_idx=self.compute_correct_obj_idx(obj_idx))
+        object_pos, object_quat = self.get_object_pose(
+            obj_idx=self.compute_correct_obj_idx(obj_idx)
+        )
         object_pos = object_pos.copy()
         object_quat = object_quat.copy()
         gripper_qpos = self.sim.data.qpos[7:9].copy()
@@ -1151,7 +1218,7 @@ class RobosuiteMPEnv(MPEnv):
                 object_geoms=[g for g in nut.contact_geoms],
             )
         elif self.env_name.endswith("Door"):
-            is_grasped = self._check_grasp(  
+            is_grasped = self._check_grasp(
                 gripper=self.robots[0].gripper,
                 object_geoms=[self.door],
             )
@@ -1178,20 +1245,18 @@ class RobosuiteMPEnv(MPEnv):
                 if type(self.initial_object_pos) is list
                 else self.initial_object_pos
             )
-            is_grasped = (
-                is_grasped
-                and (pos[2] - init_object_pos[2]) > 0.005
-            )  
+            is_grasped = is_grasped and (pos[2] - init_object_pos[2]) > 0.005
         return is_grasped
 
     def get_poses_from_obj_name(self, curr_obj_name):
         if self.env_name.startswith("PickPlace"):
             idx = self.valid_obj_names.index(curr_obj_name)
-            placement_pose, placement_quat = self.get_placement_pose(
-                obj_idx=idx
-            )
+            placement_pose, placement_quat = self.get_placement_pose(obj_idx=idx)
             placement_pose += np.array([0.0, 0.0, self.vertical_displacement])
-            return self.get_object_pose_mp(obj_idx=idx), (placement_pose, placement_quat)
+            return self.get_object_pose_mp(obj_idx=idx), (
+                placement_pose,
+                placement_quat,
+            )
         else:
             raise NotImplementedError
 

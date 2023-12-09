@@ -2,6 +2,7 @@ import numpy as np
 from robosuite.utils.transform_utils import *
 from planseqlearn.mnm.sam_utils import build_models
 from rlkit.envs.wrappers import ProxyEnv as RlkitProxyEnv
+
 try:
     from ompl import base as ob
     from ompl import geometric as og
@@ -12,6 +13,7 @@ except ImportError:
 class ProxyEnv(RlkitProxyEnv):
     def __init__(self, wrapped_env):
         self._wrapped_env = wrapped_env
+
 
 class MPEnv(ProxyEnv):
     def __init__(
@@ -164,9 +166,7 @@ class MPEnv(ProxyEnv):
                 self.teleport_on_place = True
         elif self.teleport_on_place:  # should always be false for metaworld
             # object we are checking is the number of high level steps we have taken so far
-            placed = self.check_object_placement(
-                obj_idx=self.object_idx 
-            )
+            placed = self.check_object_placement(obj_idx=self.object_idx)
             take_planner_step = (
                 placed
                 and not is_grasped
@@ -181,11 +181,13 @@ class MPEnv(ProxyEnv):
                 self.teleport_on_place = False
                 self.teleport_on_grasp = True
         if take_planner_step:
-            if self.env_name.startswith("NutAssembly") or self.env_name.startswith("PickPlace"):
+            if self.env_name.startswith("NutAssembly") or self.env_name.startswith(
+                "PickPlace"
+            ):
                 for i in range(len(self.placement_poses)):
                     if i % 2 == 0:
                         pos, obj_quat = self.get_object_pose_mp(obj_idx=i)
-                        pos += np.array([0., 0., self.vertical_displacement])
+                        pos += np.array([0.0, 0.0, self.vertical_displacement])
                         self.compute_hardcoded_orientation(pos, obj_quat)
             if (self.num_high_level_steps // 2) >= len(self.placement_poses):
                 take_planner_step = False
@@ -303,9 +305,7 @@ class MPEnv(ProxyEnv):
             si = ob.SpaceInformation(space)
             # set state validity checking for this space
             si.setStateValidityChecker(ob.StateValidityCheckerFn(check_valid))
-            si.setStateValidityCheckingResolution(
-                0.001
-            ) 
+            si.setStateValidityCheckingResolution(0.001)
             # create a random start state
             start = ob.State(space)
             start().setXYZ(*start_pos)
@@ -379,8 +379,9 @@ class MPEnv(ProxyEnv):
             mask = self.get_robot_mask()
             waypoint_imgs.append(im * mask)
             waypoint_masks.append(mask)
-        return [waypoint_imgs[-1] for i in range(len(waypoint_imgs))], \
-                [waypoint_masks[-1] for i in range(len(waypoint_masks))]
+        return [waypoint_imgs[-1] for i in range(len(waypoint_imgs))], [
+            waypoint_masks[-1] for i in range(len(waypoint_masks))
+        ]
 
     def mp_to_point(
         self,
@@ -394,9 +395,7 @@ class MPEnv(ProxyEnv):
         planning_time=20.0,
         get_intermediate_frames=False,
     ):
-        if (
-            target_pos is None
-        ):  
+        if target_pos is None:
             return -np.inf
         get_intermediate_frames = True
         og_qpos = self.sim.data.qpos.copy()
@@ -408,7 +407,7 @@ class MPEnv(ProxyEnv):
             target_quat = target_quat.astype(np.float64)
             target_quat /= np.linalg.norm(target_quat)
         except:
-            pass 
+            pass
         target_pos = target_pos.astype(np.float64)
         self.update_controllers()
 
@@ -473,7 +472,7 @@ class MPEnv(ProxyEnv):
         )
 
         # create a problem instance
-        curr_sol = None 
+        curr_sol = None
         ct = 0
         while "Exact" not in str(curr_sol):
             pdef = ob.ProblemDefinition(si)

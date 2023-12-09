@@ -112,7 +112,9 @@ def cart2joint_ac(
     return converted_ac
 
 
-def check_collisions(env, allowed_collision_pairs, env_name, verbose=False, *args, **kwargs):
+def check_collisions(
+    env, allowed_collision_pairs, env_name, verbose=False, *args, **kwargs
+):
     mjcontacts = env.sim.data.contact
     ncon = env.sim.data.ncon
     for i in range(ncon):
@@ -138,7 +140,10 @@ def check_collisions(env, allowed_collision_pairs, env_name, verbose=False, *arg
                 continue
             else:
                 return True
-        elif env_name == "SawyerAssemblyObstacle-v0" or env_name == "SawyerPushObstacle-v0":
+        elif (
+            env_name == "SawyerAssemblyObstacle-v0"
+            or env_name == "SawyerPushObstacle-v0"
+        ):
             if ((ct1, ct2) not in allowed_collision_pairs) and (
                 (ct2, ct1) not in allowed_collision_pairs
             ):
@@ -224,7 +229,7 @@ class MoPAWrapper(ProxyEnv):
     def reset(self):
         o = self._wrapped_env.reset()
         return self._convert_observation(o)
-    
+
     def _check_success(self):
         if self.env_name == "SawyerLift-v0" or self.env_name == "SawyerLiftObstacle-v0":
             # copied from sawyer_lift_obstacle.py
@@ -272,9 +277,9 @@ class MoPAWrapper(ProxyEnv):
                 reward_lift=reward_lift,
             )
             success = False
-            
+
             if reward_grasp > 0.0 and np.abs(object_z_locs - z_target) < 0.05:
-                reward += 150.0 # this is the success reward
+                reward += 150.0  # this is the success reward
                 success = True
             return success
         elif self.env_name == "SawyerAssemblyObstacle-v0":
@@ -402,27 +407,39 @@ class MoPAMPEnv(MPEnv):
             self.env_name,
             self.config,
         )
-        self.robot_bodies = [body for body in self.sim.model.body_names
-                            if body.startswith("left") or body.startswith("right") and not body.endswith("target") and not body.endswith("indicator")]
-        self.body_ids = [self.sim.model.body_name2id(body) for body in self.robot_bodies]
+        self.robot_bodies = [
+            body
+            for body in self.sim.model.body_names
+            if body.startswith("left")
+            or body.startswith("right")
+            and not body.endswith("target")
+            and not body.endswith("indicator")
+        ]
+        self.body_ids = [
+            self.sim.model.body_name2id(body) for body in self.robot_bodies
+        ]
         self.robot_geom_ids = []
         for geom_id, body_id in enumerate(self.sim.model.geom_bodyid):
             if body_id in self.body_ids:
                 self.robot_geom_ids.append(geom_id)
-        self.original_colors = [self.sim.model.geom_rgba[idx].copy() for idx in self.robot_geom_ids]
+        self.original_colors = [
+            self.sim.model.geom_rgba[idx].copy() for idx in self.robot_geom_ids
+        ]
         self.retry = False
         self.text_plan = [("null", "null")]
 
     def check_robot_collision(self, **kwargs):
-        return check_collisions(self, self.allowed_collision_pairs, self.env_name, **args, **kwargs)
-    
+        return check_collisions(
+            self, self.allowed_collision_pairs, self.env_name, **args, **kwargs
+        )
+
     def set_robot_colors(self, colors):
         if type(colors) is np.ndarray:
             colors = [colors] * len(self.robot_geom_ids)
         for idx, geom_id in enumerate(self.robot_geom_ids):
             self.sim.model.geom_rgba[geom_id] = colors[idx]
         self.sim.forward()
-    
+
     def reset_robot_colors(self):
         self.set_robot_colors(self.original_colors)
         self.sim.forward()
@@ -473,9 +490,14 @@ class MoPAMPEnv(MPEnv):
                     500,
                     500,
                     self._wrapped_env.sim,
-                    self, "4_part4_mesh", "topview", 500, 500, self._wrapped_env.sim
+                    self,
+                    "4_part4_mesh",
+                    "topview",
+                    500,
+                    500,
+                    self._wrapped_env.sim,
                 )
-                object_pos += np.array([0, -0.3, 0.45]) 
+                object_pos += np.array([0, -0.3, 0.45])
             object_quat = np.array([-0.50258679, -0.61890813, -0.49056324, 0.35172])
             object_quat /= np.linalg.norm(object_quat)
         elif self.env_name == "SawyerPushObstacle-v0":
@@ -526,9 +548,9 @@ class MoPAMPEnv(MPEnv):
 
     def check_object_placement(self, **kwargs):
         return True
-    
+
     def compute_hardcoded_orientation(self, *args, **kwargs):
-        pass 
+        pass
 
     def compute_ik(self, target_pos, target_quat, qpos, qvel, og_qpos, og_qvel):
         self.ik_env.set_state(qpos.copy(), qvel.copy())
@@ -689,13 +711,16 @@ class MoPAMPEnv(MPEnv):
                 qvel,
                 is_grasped=False,
             )
-            collision = check_collisions(self, self.allowed_collision_pairs, self.env_name)
+            collision = check_collisions(
+                self, self.allowed_collision_pairs, self.env_name
+            )
             iters += 1
             print(f"Iters: {iters, collision, curr_pos}")
         if collision:
             return start_pos, start_quat
         else:
             return curr_pos, target_quat
+
     def set_robot_based_on_joint_angles(
         self,
         joint_pos,
@@ -708,7 +733,7 @@ class MoPAMPEnv(MPEnv):
         object_pos, object_quat = self.get_object_pose()
         gripper_qpos = self.sim.data.qpos[self.ref_gripper_joint_pos_indexes].copy()
         gripper_qvel = self.sim.data.qvel[self.ref_gripper_joint_pos_indexes].copy()
-        old_eef_xpos, old_eef_xquat = get_site_pose(self, self.config['ik_target'])
+        old_eef_xpos, old_eef_xquat = get_site_pose(self, self.config["ik_target"])
         self.sim.data.qpos[self.ref_joint_pos_indexes] = joint_pos[:]
         self.sim.forward()
         assert (self.sim.data.qpos[:7] - joint_pos).sum() < 1e-10
@@ -740,7 +765,9 @@ class MoPAMPEnv(MPEnv):
         )
 
     def get_vid_image(self):
-        return np.flipud(self.sim.render(camera_name="frontview", width=960, height=540))[:, :, ::-1]
+        return np.flipud(
+            self.sim.render(camera_name="frontview", width=960, height=540)
+        )[:, :, ::-1]
 
     def take_mp_step(
         self,
@@ -761,9 +788,16 @@ class MoPAMPEnv(MPEnv):
             sim=sim,
         )
         geom_ids = np.unique(segmentation_map[:, :, 1])
-        robot_mask = np.expand_dims(np.any(
-            [segmentation_map[:, :, 1] == robot_id for robot_id in self.robot_geom_ids], axis=0
-        ), -1)
+        robot_mask = np.expand_dims(
+            np.any(
+                [
+                    segmentation_map[:, :, 1] == robot_id
+                    for robot_id in self.robot_geom_ids
+                ],
+                axis=0,
+            ),
+            -1,
+        )
         return robot_mask
 
     def rebuild_controller(self):
