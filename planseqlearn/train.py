@@ -73,7 +73,7 @@ def main(cfg):
                 cfg.noisy_mask_drop_prob,
                 cfg.use_rgbm,
                 cfg.slim_mask_cfg,
-                cfg.mprl,
+                cfg.psl,
             )
         elif cfg.task_name.split("_", 1)[0] == "robosuite":
             env = make_robosuite(
@@ -87,7 +87,7 @@ def main(cfg):
                 cfg.noisy_mask_drop_prob,
                 cfg.use_rgbm,
                 cfg.slim_mask_cfg,
-                cfg.mprl,
+                cfg.psl,
                 cfg.path_length,
                 cfg.vertical_displacement,
                 cfg.hardcoded_orientations,
@@ -112,7 +112,7 @@ def main(cfg):
                 cfg.use_rgbm,
                 cfg.slim_mask_cfg,
                 cfg.path_length,
-                cfg.mprl,
+                cfg.psl,
             )
         elif cfg.task_name.split("_", 1)[0] == "mopa":
             env = make_mopa(
@@ -122,7 +122,7 @@ def main(cfg):
                 discount=cfg.discount,
                 seed=cfg.seed,
                 horizon=cfg.path_length,
-                mprl=cfg.mprl,
+                psl=cfg.psl,
                 is_eval=is_eval,
             )
         return env
@@ -639,7 +639,7 @@ if __name__ == "__main__":
     singularity_pre_cmds = " && ".join(SINGULARITY_PRE_CMDS)
     # check if bash or zsh, and
     slurm_cmd = wrap_command_with_sbatch_matrix(
-        "/opt/singularity/bin/singularity exec --nv /projects/rsalakhugroup/containers/mprl.sif /bin/zsh -c \"" + singularity_pre_cmds + ' && source ~/.zshrc && conda activate drqv2 && ' + command + "\"",
+        "/opt/singularity/bin/singularity exec --nv /projects/rsalakhugroup/containers/psl.sif /bin/zsh -c \"" + singularity_pre_cmds + ' && source ~/.zshrc && conda activate drqv2 && ' + command + "\"",
         slurm_config,
         logdir,
     )

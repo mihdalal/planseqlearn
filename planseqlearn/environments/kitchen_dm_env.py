@@ -47,7 +47,7 @@ class Kitchen_Wrapper(dm_env.Environment):
         discount=1.0,
         seed=None,
         path_length=280,
-        mprl=False,
+        psl=False,
         camera_name="fixed",
         use_eef=True,
     ):
@@ -65,7 +65,7 @@ class Kitchen_Wrapper(dm_env.Environment):
             self._env = ALL_KITCHEN_ENVIRONMENTS[env_name](**env_kwargs)
         else:
             self._env = gym.make(env_name)
-        if mprl:
+        if psl:
             self._env = KitchenMPEnv(
                 self._env,
                 env_name,
@@ -175,7 +175,7 @@ def make_kitchen(
     use_rgbm=False,
     slim_mask_cfg=None,
     path_length=280,
-    mprl=False,
+    psl=False,
     use_eef=True,
 ):
     assert camera_name in ["wrist", "fixed", "wrist+fixed", "random"]
@@ -185,7 +185,7 @@ def make_kitchen(
         discount=discount,
         seed=seed,
         path_length=path_length,
-        mprl=mprl,
+        psl=psl,
         camera_name=camera_name,
         use_eef=use_eef,
     )

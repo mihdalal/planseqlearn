@@ -43,26 +43,26 @@ class MoPA_Env_Wrapper(dm_env.Environment):
         seed=None,
         proprioceptive_state=True,
         horizon=100,
-        mprl=False,
+        psl=False,
         is_eval=False,
     ):
         if env_name == "SawyerLift-v0":
             config = LIFT_CONFIG
-            if mprl:
+            if psl:
                 config["camera_name"] = "eye_in_hand"
         elif env_name == "SawyerLiftObstacle-v0":
             config = LIFT_OBSTACLE_CONFIG
-            if mprl:
+            if psl:
                 config["camera_name"] = "eye_in_hand"
             # if is_eval:
             #     config["camera_name"] = "visview"
         elif env_name == "SawyerAssemblyObstacle-v0":
             config = ASSEMBLY_OBSTACLE_CONFIG
-            if mprl:
+            if psl:
                 config["camera_name"] = "eye_in_hand"
         elif env_name == "SawyerPushObstacle-v0":
             config = PUSHER_OBSTACLE_CONFIG
-            if mprl:
+            if psl:
                 config["camera_name"] = "eye_in_hand"
         env = gym.make(**config)
         ik_env = gym.make(**config)
@@ -146,11 +146,11 @@ def make_mopa(
     discount,
     seed,
     horizon=100,
-    mprl=True,
+    psl=True,
     is_eval=False,
 ):
     np.random.seed(seed)
-    env = MoPA_Env_Wrapper(name, horizon=horizon, mprl=mprl, is_eval=is_eval)
+    env = MoPA_Env_Wrapper(name, horizon=horizon, psl=psl, is_eval=is_eval)
     env = ActionDTypeWrapper(env, np.float32)
     env = ActionRepeatWrapper(
         env,

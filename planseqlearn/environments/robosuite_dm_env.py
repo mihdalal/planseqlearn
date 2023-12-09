@@ -49,7 +49,7 @@ class Robosuite_Wrapper(dm_env.Environment):
         discount=1.0,
         seed=None,
         camera_names=None,
-        mprl=False,
+        psl=False,
         path_length=500,
         vertical_displacement=0.08,
         hardcoded_orientations=True,
@@ -208,10 +208,10 @@ class Robosuite_Wrapper(dm_env.Environment):
                 use_vision_grasp_check=False,
                 hardcoded_orientations=False,
             )
-        if mprl:
+        if psl:
             self._env = RobosuiteMPEnv(self._env, env_name, **mp_env_kwargs)
         self._reset_next_step = True
-        self.mprl = mprl
+        self.psl = psl
         self.current_step = 0
         self._observation_spec = None
         self._action_spec = None
@@ -346,7 +346,7 @@ def make_robosuite(
     noisy_mask_drop_prob,
     use_rgbm=None,
     slim_mask_cfg=None,
-    mprl=True,
+    psl=True,
     path_length=500,
     vertical_displacement=0.08,
     hardcoded_orientations=True,
@@ -363,7 +363,7 @@ def make_robosuite(
         discount=discount,
         seed=seed,
         camera_names=[camera_name],
-        mprl=mprl,
+        psl=psl,
         path_length=path_length,
         vertical_displacement=vertical_displacement,
         hardcoded_orientations=hardcoded_orientations,

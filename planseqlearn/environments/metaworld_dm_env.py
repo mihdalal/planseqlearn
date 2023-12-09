@@ -53,7 +53,7 @@ class MT_Wrapper(dm_env.Environment):
         discount=1.0,
         seed=None,
         proprioceptive_state=True,
-        mprl=False,
+        psl=False,
         use_mp=False,
     ):
         self.discount = discount
@@ -91,10 +91,10 @@ class MT_Wrapper(dm_env.Environment):
             use_vision_pose_estimation=True,
             use_sam_segmentation=False,
         )
-        self.mprl = mprl
+        self.psl = psl
         self.mp_env_kwargs = mp_env_kwargs
         self.env_name, self._env = self.sample_env()
-        if mprl:
+        if psl:
             # self._env = MPEnv(self._env, name=env_name, **mp_env_kwargs)
             self._env = MetaworldMPEnv(
                 self._env,
@@ -122,7 +122,7 @@ class MT_Wrapper(dm_env.Environment):
         self._reset_next_step = False
         self.current_step = 0
         self.env_name, self._env = self.sample_env()
-        if self.mprl:
+        if self.psl:
             # self._env = MPEnv(self._env, name=self.env_name, **self.mp_env_kwargs)
             self._env = MetaworldMPEnv(
                 self._env, env_name=self.env_name, **self.mp_env_kwargs
@@ -211,7 +211,7 @@ def make_metaworld(
     noisy_mask_drop_prob,
     use_rgbm=None,
     slim_mask_cfg=None,
-    mprl=False,
+    psl=False,
     use_mp=False,
 ):
     env = MT_Wrapper(
@@ -219,7 +219,7 @@ def make_metaworld(
         discount=discount,
         seed=seed,
         proprioceptive_state=True,
-        mprl=mprl,
+        psl=psl,
         use_mp=use_mp,
     )
 
@@ -232,8 +232,6 @@ def make_metaworld(
     rgb_key = "pixels"
     frame_keys.append(rgb_key)
     # use hardcoded camera name instead of user-specified
-    from rlkit.mprl.mp_env_metaworld import ENV_CAMERAS
-
     render_kwargs = dict(height=84, width=84, mode="offscreen", camera_name=camera_name)
     env = pixels.Wrapper(
         env, pixels_only=False, render_kwargs=render_kwargs, observation_key=rgb_key

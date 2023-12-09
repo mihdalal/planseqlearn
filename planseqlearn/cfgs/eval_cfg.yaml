@@ -15,7 +15,7 @@ slim_mask_cfg:
   scale: 3
   threshold: 0.9
   sigma: 0.5
-mprl: false 
+psl: false 
 path_length: 500
 use_rgbm: false
 # train settings
@@ -44,7 +44,7 @@ feature_dim: 50
 
 use_wandb: false
 wandb:
-  project_name: "mprl"
+  project_name: "psl"
   run_name: "test"
 
 experiment_id: "Default_Experiment_ID"

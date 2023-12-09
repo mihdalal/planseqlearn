@@ -47,7 +47,7 @@ for env_name in env_names:
             path_length = 150
         num_train_frames = 10000 * path_length
         seed = random.randint(0, 100000)
-        run_name = f"drqv2_mprl_kitchen_eef_{env_name}"
-        cmd = f"python planseqlearn/train.py experiment_subdir=mprl_kitchen_eef num_train_frames={num_train_frames} eval_every_frames=10000 num_eval_episodes=10 camera_name='wrist' debug=True replay_buffer_size=750000 agent=drqv2 use_wandb=True save_video=True seed={seed} wandb.project_name=mprl wandb.run_name={run_name} action_repeat=1 task={env_name} mprl=True path_length={path_length} experiment_id={run_name}"
+        run_name = f"drqv2_psl_kitchen_eef_{env_name}"
+        cmd = f"python planseqlearn/train.py experiment_subdir=psl_kitchen_eef num_train_frames={num_train_frames} eval_every_frames=10000 num_eval_episodes=10 camera_name='wrist' debug=True replay_buffer_size=750000 agent=drqv2 use_wandb=True save_video=True seed={seed} wandb.project_name=psl wandb.run_name={run_name} action_repeat=1 task={env_name} psl=True path_length={path_length} experiment_id={run_name}"
         os.system(cmd)
         time.sleep(5)

@@ -2,7 +2,6 @@ import numpy as np
 from gym import Env
 from robosuite.utils.transform_utils import *
 from planseqlearn.mnm.sam_utils import build_models
-import matplotlib.pyplot as plt
 
 try:
     from ompl import base as ob
@@ -11,26 +10,6 @@ except:
     pass
 
 
-def save_img(env, camera_name, filename, flip=False):
-    frame = env.sim.render(camera_name=camera_name, width=500, height=500)
-    if flip:
-        frame = np.flipud(frame)
-    plt.imshow(frame)
-    plt.savefig(filename)
-
-def save_depth(depth, filename, flip=True):
-    if flip:
-        depth = np.flipud(depth)
-    plt.clf()
-    plt.imshow(depth)
-    plt.gca().set_axis_off()
-    plt.subplots_adjust(top = 1, bottom = 0, right = 1, left = 0, 
-                hspace = 0, wspace = 0)
-    plt.margins(0,0)
-    plt.savefig(filename)
-
-
-# Taken from rlkit
 class ProxyEnv(Env):
     def __init__(self, wrapped_env):
         self._wrapped_env = wrapped_env
@@ -83,15 +62,11 @@ class MPEnv(ProxyEnv):
         self,
         env,
         env_name,
-        terminate_on_success=False,
         verify_stable_grasp=False,
         # mp
         teleport_instead_of_mp=True,
         teleport_on_grasp=True,
-        backtrack_movement_fraction=0.001,
-        planning_time=10.0,
         use_joint_space_mp=True,
-        video_mode=False,
         # vision
         use_pcd_collision_check=False,
         use_vision_pose_estimation=False,
@@ -119,9 +94,9 @@ class MPEnv(ProxyEnv):
         self.teleport_on_grasp = teleport_on_grasp
         if self.use_sam_segmentation:
             self.dino, self.sam = build_models(
-                config_file="/home/tarunc/Desktop/research/Grounded-Segment-Anything/GroundingDINO/groundingdino/config/GroundingDINO_SwinT_OGC.py",
-                grounded_checkpoint="/home/tarunc/Desktop/research/Grounded-Segment-Anything/groundingdino_swint_ogc.pth",
-                sam_checkpoint="/home/tarunc/Desktop/research/Grounded-Segment-Anything/sam_vit_h_4b8939.pth",
+                config_file="../Grounded-Segment-Anything/GroundingDINO/groundingdino/config/GroundingDINO_SwinT_OGC.py",
+                grounded_checkpoint="../Grounded-Segment-Anything/groundingdino_swint_ogc.pth",
+                sam_checkpoint="../Grounded-Segment-Anything/sam_vit_h_4b8939.pth",
                 sam_hq_checkpoint=None,
                 use_sam_hq=False,
             )
@@ -222,8 +197,6 @@ class MPEnv(ProxyEnv):
 
     def step(self, action, get_intermediate_frames=False, **kwargs):
         o, r, d, i = self._wrapped_env.step(action)
-        # if self.video_mode:
-        #     get_intermediate_frames = True 
         self.num_steps += 1
         self.ep_step_ctr += 1
         is_grasped = self.check_grasp()  # add verify stable grasp for robosuite
