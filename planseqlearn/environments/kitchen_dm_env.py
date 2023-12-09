@@ -12,32 +12,12 @@ from planseqlearn.environments.wrappers import (
     Camera_Render_Wrapper,
     ExtendedTimeStepWrapper,
     FrameStackWrapper,
-    NoisyMaskWrapper,
-    RandomCameraWrapper,
-    SegmentationFilter,
-    SegmentationToRobotMaskWrapper,
-    SlimMaskWrapper,
-    StackRGBAndMaskWrapper,
     Wrist_Camera_Render_Wrapper,
     get_env_action_spec,
     get_env_observation_spec,
 )
 from planseqlearn.mnm.kitchen_mp_env import KitchenMPEnv
 from d4rl.kitchen.env_dict import ALL_KITCHEN_ENVIRONMENTS
-
-
-class CombinedPhysicsWrapper:
-    def __init__(self, physics1, physics2):
-        self.physics1 = physics1
-        self.physics2 = physics2
-
-    def render(self, **render_kwargs):
-        """
-        Render from both physics, and concatenate across channel dimension
-        """
-        render1 = self.physics1.render(**render_kwargs)
-        render2 = self.physics2.render(**render_kwargs)
-        return np.concatenate([render1, render2], axis=-1)
 
 
 class Kitchen_Wrapper(dm_env.Environment):
@@ -93,17 +73,6 @@ class Kitchen_Wrapper(dm_env.Environment):
             )
         elif camera_name == "fixed":
             self.physics = self.fixed_view_physics
-        elif camera_name == "wrist+fixed":
-            wrist_physics = Wrist_Camera_Render_Wrapper(
-                self._env.sim,
-                lookat=[-0.3, 0.5, 2.0],
-                distance=1.86,
-                azimuth=90,
-                elevation=-60,
-            )
-            self.physics = CombinedPhysicsWrapper(
-                wrist_physics, self.fixed_view_physics
-            )
         self._reset_next_step = True
         self.current_step = 0
         self.episode_total_score = 0

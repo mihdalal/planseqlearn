@@ -6,23 +6,12 @@ import numpy as np
 from dm_control.suite.wrappers import action_scale, pixels
 from dm_env import specs
 
-from planseqlearn.environments.metaworld_custom_envs import (
-    MT3_Customized,
-    MT5_Customized,
-    MT10_Customized,
-    MT_Door,
-)
 from planseqlearn.environments.wrappers import (
     ActionDTypeWrapper,
     ActionRepeatWrapper,
     ExtendedTimeStepWrapper,
     FrameStackWrapper,
-    NoisyMaskWrapper,
     Render_Wrapper,
-    SegmentationFilter,
-    SegmentationToRobotMaskWrapper,
-    SlimMaskWrapper,
-    StackRGBAndMaskWrapper,
     get_env_action_spec,
     get_env_observation_spec,
 )
@@ -58,20 +47,7 @@ class MT_Wrapper(dm_env.Environment):
         use_mp=False,
     ):
         self.discount = discount
-        if env_name in ["MT10", "mt10"]:
-            self.mt = metaworld.MT10(seed=seed)
-        elif env_name in ["MT50", "mt50"]:
-            self.mt = metaworld.MT50(seed=seed)
-        elif env_name in ["MT3-Customized", "mt3-customized"]:
-            self.mt = MT3_Customized(seed=seed)
-        elif env_name in ["MT5-Customized", "mt5-customized"]:
-            self.mt = MT5_Customized(seed=seed)
-        elif env_name in ["MT10-Customized", "mt10-customized"]:
-            self.mt = MT10_Customized(seed=seed)
-        elif env_name in ["MT-Door", "mt-door"]:
-            self.mt = MT_Door(seed=seed)
-        else:
-            self.mt = metaworld.MT1(env_name, seed=seed)
+        self.mt = metaworld.MT1(env_name, seed=seed)
         self.all_envs = {
             name: env_cls() for name, env_cls in self.mt.train_classes.items()
         }
@@ -96,7 +72,6 @@ class MT_Wrapper(dm_env.Environment):
         self.mp_env_kwargs = mp_env_kwargs
         self.env_name, self._env = self.sample_env()
         if psl:
-            # self._env = MPEnv(self._env, name=env_name, **mp_env_kwargs)
             self._env = MetaworldMPEnv(
                 self._env,
                 env_name,
@@ -124,7 +99,6 @@ class MT_Wrapper(dm_env.Environment):
         self.current_step = 0
         self.env_name, self._env = self.sample_env()
         if self.psl:
-            # self._env = MPEnv(self._env, name=self.env_name, **self.mp_env_kwargs)
             self._env = MetaworldMPEnv(
                 self._env, env_name=self.env_name, **self.mp_env_kwargs
             )
@@ -228,7 +202,6 @@ def make_metaworld(
 
     rgb_key = "pixels"
     frame_keys.append(rgb_key)
-    # use hardcoded camera name instead of user-specified
     render_kwargs = dict(height=84, width=84, mode="offscreen", camera_name=camera_name)
     env = pixels.Wrapper(
         env, pixels_only=False, render_kwargs=render_kwargs, observation_key=rgb_key

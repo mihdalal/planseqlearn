@@ -1,32 +1,16 @@
 import collections
-import random
 import cv2
 
 import dm_env
-import metaworld
 import numpy as np
-from dm_control.suite.wrappers import action_scale, pixels
+from dm_control.suite.wrappers import action_scale
 from dm_env import specs
 
-from planseqlearn.environments.metaworld_custom_envs import (
-    MT3_Customized,
-    MT5_Customized,
-    MT10_Customized,
-    MT_Door,
-)
 from planseqlearn.environments.wrappers import (
     ActionDTypeWrapper,
     ActionRepeatWrapper,
     ExtendedTimeStepWrapper,
-    FrameStackWrapper,
-    NoisyMaskWrapper,
-    Render_Wrapper,
-    SegmentationFilter,
-    SegmentationToRobotMaskWrapper,
-    SlimMaskWrapper,
-    StackRGBAndMaskWrapper,
-    get_env_action_spec,
-    get_env_observation_spec,
+    FrameStackWrapper
 )
 import robosuite as suite
 from planseqlearn.mnm.robosuite_mp_env import RobosuiteMPEnv

@@ -1,12 +1,8 @@
-import random
-import mujoco_py
 import dm_env
-import metaworld
 import gym
 import numpy as np
 import collections
-import matplotlib.pyplot as plt
-from dm_control.suite.wrappers import action_scale, pixels
+from dm_control.suite.wrappers import action_scale
 from dm_env import specs
 
 from planseqlearn.environments.wrappers import (
@@ -14,18 +10,8 @@ from planseqlearn.environments.wrappers import (
     ActionRepeatWrapper,
     ExtendedTimeStepWrapper,
     FrameStackWrapper,
-    NoisyMaskWrapper,
-    Render_Wrapper,
-    SegmentationFilter,
-    SegmentationToRobotMaskWrapper,
-    SlimMaskWrapper,
-    StackRGBAndMaskWrapper,
-    get_env_action_spec,
-    get_env_observation_spec,
 )
 
-# rlkit imports
-# from rlkit.mopa.mopa_env import MoPAMPEnv, get_site_pose
 from planseqlearn.mnm.mopa_mp_env import MoPAMPEnv
 from mopa_rl.config.default_configs import (
     LIFT_OBSTACLE_CONFIG,
@@ -40,11 +26,8 @@ class MoPA_Env_Wrapper(dm_env.Environment):
         self,
         env_name,
         discount=1.0,
-        seed=None,
-        proprioceptive_state=True,
         horizon=100,
         psl=False,
-        is_eval=False,
     ):
         if env_name == "SawyerLift-v0":
             config = LIFT_CONFIG
@@ -54,8 +37,6 @@ class MoPA_Env_Wrapper(dm_env.Environment):
             config = LIFT_OBSTACLE_CONFIG
             if psl:
                 config["camera_name"] = "eye_in_hand"
-            # if is_eval:
-            #     config["camera_name"] = "visview"
         elif env_name == "SawyerAssemblyObstacle-v0":
             config = ASSEMBLY_OBSTACLE_CONFIG
             if psl:

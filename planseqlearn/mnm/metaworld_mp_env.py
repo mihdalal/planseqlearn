@@ -215,7 +215,7 @@ class MetaworldMPEnv(MPEnv):
         )
         return im
 
-    def get_object_pose_mp(self):
+    def get_object_pose_mp(self, obj_idx=0):
         if self.env_name == "assembly-v2":
             object_pos = self._get_pos_objects().copy() + np.array([0.03, 0.0, 0.05])
             object_quat = self._get_quat_objects().copy()
