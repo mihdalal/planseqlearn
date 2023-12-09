@@ -170,15 +170,11 @@ def make_kitchen(
     discount,
     seed,
     camera_name,
-    add_segmentation_to_obs,
-    noisy_mask_drop_prob,
-    use_rgbm=False,
-    slim_mask_cfg=None,
     path_length=280,
     psl=False,
     use_eef=True,
 ):
-    assert camera_name in ["wrist", "fixed", "wrist+fixed", "random"]
+    assert camera_name in ["wrist", "fixed"]
 
     env = Kitchen_Wrapper(
         env_name=name,
@@ -189,15 +185,6 @@ def make_kitchen(
         camera_name=camera_name,
         use_eef=use_eef,
     )
-    if camera_name == "random":
-        env = RandomCameraWrapper(
-            env,
-            lookats=[[-0.3, 0.5, 2.0]] * 6,
-            distances=[1.86] * 6,
-            azimuths=[70, 90, 110, 70, 90, 110],
-            elevations=[-60, -60, -60, -30, -30, -30],
-        )
-
     env = ActionDTypeWrapper(env, np.float32)
     env = ActionRepeatWrapper(env, action_repeat, use_metaworld_reward_dict=True)
     env = action_scale.Wrapper(env, minimum=-1.0, maximum=+1.0)
@@ -210,40 +197,6 @@ def make_kitchen(
     env = pixels.Wrapper(
         env, pixels_only=False, render_kwargs=render_kwargs, observation_key=rgb_key
     )
-
-    if add_segmentation_to_obs:
-        segmentation_key = "segmentation"
-        frame_keys.append(segmentation_key)
-        segmentation_kwargs = dict(height=84 * 3, width=84 * 3, segmentation=True)
-        env = pixels.Wrapper(
-            env,
-            pixels_only=False,
-            render_kwargs=segmentation_kwargs,
-            observation_key=segmentation_key,
-        )
-        env = SegmentationToRobotMaskWrapper(env, segmentation_key, types_channel=1)
-
-        env = SegmentationFilter(env, segmentation_key)
-
-        if noisy_mask_drop_prob > 0:
-            env = NoisyMaskWrapper(
-                env, segmentation_key, prob_drop=noisy_mask_drop_prob
-            )
-
-        if slim_mask_cfg and slim_mask_cfg.use_slim_mask:
-            env = SlimMaskWrapper(
-                env,
-                segmentation_key,
-                slim_mask_cfg.scale,
-                slim_mask_cfg.threshold,
-                slim_mask_cfg.sigma,
-            )
-
-        if use_rgbm:
-            env = StackRGBAndMaskWrapper(
-                env, rgb_key, segmentation_key, new_key="pixels"
-            )
-            frame_keys = ["pixels"]
 
     env = FrameStackWrapper(env, frame_stack, frame_keys)
     env = ExtendedTimeStepWrapper(env, has_success_metric=True)

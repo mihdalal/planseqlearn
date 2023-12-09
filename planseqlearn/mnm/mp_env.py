@@ -1,61 +1,17 @@
 import numpy as np
-from gym import Env
 from robosuite.utils.transform_utils import *
 from planseqlearn.mnm.sam_utils import build_models
-
+from rlkit.envs.wrappers import ProxyEnv as RlkitProxyEnv
 try:
     from ompl import base as ob
     from ompl import geometric as og
-except:
+except ImportError:
     pass
 
 
-class ProxyEnv(Env):
+class ProxyEnv(RlkitProxyEnv):
     def __init__(self, wrapped_env):
         self._wrapped_env = wrapped_env
-
-    @property
-    def wrapped_env(self):
-        return self._wrapped_env
-
-    def reset(self, **kwargs):
-        return self._wrapped_env.reset(**kwargs)
-
-    def step(self, action):
-        return self._wrapped_env.step(action)
-
-    def render(self, *args, **kwargs):
-        return self._wrapped_env.render(*args, **kwargs)
-
-    @property
-    def horizon(self):
-        return self._wrapped_env.horizon
-
-    def terminate(self):
-        if hasattr(self.wrapped_env, "terminate"):
-            self.wrapped_env.terminate()
-
-    def __getattr__(self, attr):
-        if attr == "_wrapped_env":
-            raise AttributeError()
-        return getattr(self._wrapped_env, attr)
-
-    def __getstate__(self):
-        """
-        This is useful to override in case the wrapped env has some funky
-        __getstate__ that doesn't play well with overriding __getattr__.
-
-        The main problematic case is/was gym's EzPickle serialization scheme.
-        :return:
-        """
-        return self.__dict__
-
-    def __setstate__(self, state):
-        self.__dict__.update(state)
-
-    def __str__(self):
-        return "{}({})".format(type(self).__name__, self.wrapped_env)
-
 
 class MPEnv(ProxyEnv):
     def __init__(
@@ -279,7 +235,6 @@ class MPEnv(ProxyEnv):
             target_angles = self.compute_ik(
                 target_pos, target_quat, qpos, qvel, og_qpos, og_qvel
             ).astype(np.float64)
-            #lambda 
             space = ob.RealVectorStateSpace(7)
             bounds = ob.RealVectorBounds(7)
             env_bounds = self.get_joint_bounds()
@@ -289,7 +244,7 @@ class MPEnv(ProxyEnv):
             space.setBounds(bounds)
             si = ob.SpaceInformation(space)
             si.setStateValidityChecker(ob.StateValidityCheckerFn(check_valid))
-            si.setStateValidityCheckingResolution(0.01)  # default of 0.01 is too coarse
+            si.setStateValidityCheckingResolution(0.01)
             start = ob.State(space)
             for i in range(7):
                 start()[i] = self.sim.data.qpos[i].astype(np.float64)
@@ -350,7 +305,7 @@ class MPEnv(ProxyEnv):
             si.setStateValidityChecker(ob.StateValidityCheckerFn(check_valid))
             si.setStateValidityCheckingResolution(
                 0.001
-            )  # default of 0.01 is too coarse
+            ) 
             # create a random start state
             start = ob.State(space)
             start().setXYZ(*start_pos)
@@ -441,7 +396,7 @@ class MPEnv(ProxyEnv):
     ):
         if (
             target_pos is None
-        ):  # case of tasks like disassemble where only 1 teleport is required
+        ):  
             return -np.inf
         get_intermediate_frames = True
         og_qpos = self.sim.data.qpos.copy()
@@ -453,9 +408,8 @@ class MPEnv(ProxyEnv):
             target_quat = target_quat.astype(np.float64)
             target_quat /= np.linalg.norm(target_quat)
         except:
-            pass # case of mopa environments 
+            pass 
         target_pos = target_pos.astype(np.float64)
-        # update ik controller (only needed in robosuite)
         self.update_controllers()
 
         def isStateValid(state):

@@ -69,10 +69,6 @@ def main(cfg):
                 cfg.discount,
                 cfg.seed,
                 cfg.camera_name,
-                cfg.add_segmentation_to_obs,
-                cfg.noisy_mask_drop_prob,
-                cfg.use_rgbm,
-                cfg.slim_mask_cfg,
                 cfg.psl,
             )
         elif cfg.task_name.split("_", 1)[0] == "robosuite":
@@ -81,12 +77,7 @@ def main(cfg):
                 cfg.frame_stack,
                 cfg.action_repeat,
                 cfg.discount,
-                cfg.seed,
                 cfg.camera_name,
-                cfg.add_segmentation_to_obs,
-                cfg.noisy_mask_drop_prob,
-                cfg.use_rgbm,
-                cfg.slim_mask_cfg,
                 cfg.psl,
                 cfg.path_length,
                 cfg.vertical_displacement,
@@ -94,7 +85,6 @@ def main(cfg):
                 cfg.valid_obj_names,
                 cfg.steps_of_high_level_plan_to_complete,
                 cfg.use_proprio,
-                cfg.use_fixed_plus_wrist_view,
                 cfg.pose_sigma,
                 cfg.noisy_pose_estimates,
                 cfg.hardcoded_high_level_plan,
@@ -107,10 +97,6 @@ def main(cfg):
                 cfg.discount,
                 cfg.seed,
                 cfg.camera_name,
-                cfg.add_segmentation_to_obs,
-                cfg.noisy_mask_drop_prob,
-                cfg.use_rgbm,
-                cfg.slim_mask_cfg,
                 cfg.path_length,
                 cfg.psl,
             )
@@ -119,7 +105,6 @@ def main(cfg):
                 name=cfg.task_name.split("_", 1)[1],
                 frame_stack=cfg.frame_stack,
                 action_repeat=cfg.action_repeat,
-                discount=cfg.discount,
                 seed=cfg.seed,
                 horizon=cfg.path_length,
                 psl=cfg.psl,
@@ -562,7 +547,6 @@ def main(cfg):
                 "frame_stack",
                 "action_repeat",
                 "discount",
-                "add_segmentation_to_obs",
             ]
             if "camera_name" in self.cfg:
                 cfg_keys_to_save.append("camera_name")

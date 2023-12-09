@@ -1,27 +1,17 @@
 import numpy as np
-from gym import Env
-from planseqlearn.mnm.inverse_kinematics import qpos_from_site_pose
 from planseqlearn.mnm.vision_utils import *
 from planseqlearn.mnm.mp_env import MPEnv
 from robosuite.wrappers.gym_wrapper import GymWrapper
 import robosuite.utils.camera_utils as CU
 from robosuite.controllers import controller_factory
 import robosuite
-from plantcv import plantcv as pcv 
 from robosuite.utils.control_utils import orientation_error
 import robosuite.utils.transform_utils as T
 from robosuite.utils.transform_utils import *
 import copy
-import cv2
 from urdfpy import URDF
 import trimesh
-import sys
-from os.path import abspath, dirname, join
 from robosuite.wrappers.gym_wrapper import GymWrapper
-
-from ompl import base as ob
-from ompl import geometric as og
-from ompl import util as ou 
 
 
 def update_controller_config(env, controller_config):
@@ -346,14 +336,6 @@ class RobosuiteMPEnv(MPEnv):
                 self.initial_object_pos.append(
                     self.get_object_pose_mp(obj_idx=obj_idx)[0].copy()
                 )
-        # elif self.env_name.endswith("NutAssembly"):
-        #     self.initial_object_pos = []
-        #     self.initial_object_pos.append(
-        #         self.get_object_pose(obj_idx=0)[0].copy()
-        #     )
-        #     self.initial_object_pos.append(
-        #         self.get_object_pose(obj_idx=1)[0].copy()
-        #     )
 
     def reset(self, get_intermediate_frames=False, **kwargs):
         self.curr_obj_name = self.text_plan[0][0]
@@ -428,10 +410,6 @@ class RobosuiteMPEnv(MPEnv):
         self.ik_ctrl = controller_factory("IK_POSE", self.ik_controller_config)
         self.ik_ctrl.update_base_pose(self.robots[0].base_pos, self.robots[0].base_ori)
 
-    # def get_image(self):
-    #     im = self.cam_sensor[0](None)
-    #     im = cv2.flip(im, 0)
-    #     return im[:, :, ::-1]
     def get_image(self, camera_name="frontview", width=960, height=540, depth=False):
         if depth:
             im = self.sim.render(camera_name=camera_name, width=width, height=height, depth=True)[1]
@@ -484,7 +462,6 @@ class RobosuiteMPEnv(MPEnv):
             new_obj_idx = obj_idx
         return new_obj_idx
     
-    # plan idx to valid_names idx
     def curr_obj_name_to_env_idx(self):
         if self.env_name.startswith("PickPlace"):
             valid_obj_names = self.valid_obj_names
@@ -522,7 +499,6 @@ class RobosuiteMPEnv(MPEnv):
             object_pos = self.sim.data.qpos[30:33].copy()
             object_quat = T.convert_quat(self.sim.data.qpos[33:37].copy(), to="xyzw")
         elif self.env_name.endswith("PickPlace"):
-            # from valid_names idx to dict idx
             new_obj_idx = self.compute_correct_obj_idx(obj_idx=obj_idx)
             object_pos = self.sim.data.qpos[
                 9 + 7 * new_obj_idx : 12 + 7 * new_obj_idx
@@ -1077,8 +1053,6 @@ class RobosuiteMPEnv(MPEnv):
         qvel,
         obj_idx=0,
         is_grasped=False,
-        ignore_object_collision=False,
-        open_gripper_on_tp=True,
         movement_fraction=0.001,
     ):
         curr_angles = goal_angles.copy()
@@ -1110,7 +1084,7 @@ class RobosuiteMPEnv(MPEnv):
         else:
             return curr_angles
 
-    def check_robot_collision(self, ignore_object_collision, obj_idx=0, verbose=False):
+    def check_robot_collision(self, ignore_object_collision, obj_idx=0):
         obj_string = self.get_object_string(obj_idx=obj_idx)
         d = self.sim.data
         for coni in range(d.ncon):
@@ -1177,7 +1151,7 @@ class RobosuiteMPEnv(MPEnv):
                 object_geoms=[g for g in nut.contact_geoms],
             )
         elif self.env_name.endswith("Door"):
-            is_grasped = self._check_grasp(  # this is not going to work well, but likely won't be used anyways
+            is_grasped = self._check_grasp(  
                 gripper=self.robots[0].gripper,
                 object_geoms=[self.door],
             )
@@ -1207,7 +1181,7 @@ class RobosuiteMPEnv(MPEnv):
             is_grasped = (
                 is_grasped
                 and (pos[2] - init_object_pos[2]) > 0.005
-            )  # changed from 0.01 to 0.005 because vision is not as accurate
+            )  
         return is_grasped
 
     def get_poses_from_obj_name(self, curr_obj_name):
@@ -1235,7 +1209,6 @@ class RobosuiteMPEnv(MPEnv):
         qvel,
         is_grasped,
         obj_idx,
-        open_gripper_on_tp=True,
         ignore_object_collision=False,
     ):
         if self.use_pcd_collision_check:

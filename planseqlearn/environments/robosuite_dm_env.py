@@ -47,7 +47,6 @@ class Robosuite_Wrapper(dm_env.Environment):
         self,
         env_name: str,
         discount=1.0,
-        seed=None,
         camera_names=None,
         psl=False,
         path_length=500,
@@ -56,7 +55,6 @@ class Robosuite_Wrapper(dm_env.Environment):
         valid_obj_names=None,
         steps_of_high_level_plan_to_complete=-1,
         use_proprio=True,
-        use_fixed_plus_wrist_view=False,
         pose_sigma=0.0,
         noisy_pose_estimates=False,
         hardcoded_high_level_plan=True,
@@ -64,9 +62,6 @@ class Robosuite_Wrapper(dm_env.Environment):
         self.discount = discount
         self.env_name = env_name
         self.use_proprio = use_proprio
-        self.use_fixed_plus_wrist_view = use_fixed_plus_wrist_view
-        if self.use_fixed_plus_wrist_view:
-            camera_names = ["robot0_eye_in_hand", "agentview"]
         controller_configs = dict(
             type="OSC_POSE",
             input_max=1,
@@ -248,16 +243,7 @@ class Robosuite_Wrapper(dm_env.Environment):
             new_observation["state"] = np.concatenate(
                 (observation["robot0_eef_pos"], observation["robot0_eef_quat"])
             )
-        if self.use_fixed_plus_wrist_view:
-            new_observation["pixels"] = np.concatenate(
-                (
-                    observation[f"{self.camera_names[0]}_image"],
-                    observation[f"{self.camera_names[0]}_image"],
-                ),
-                axis=2,
-            )
-        else:
-            new_observation["pixels"] = observation[f"{self.camera_names[0]}_image"]
+        new_observation["pixels"] = observation[f"{self.camera_names[0]}_image"]
         return dm_env.restart(new_observation)
 
     def step(self, action: int) -> dm_env.TimeStep:
@@ -273,17 +259,7 @@ class Robosuite_Wrapper(dm_env.Environment):
             new_observation["state"] = np.concatenate(
                 (observation["robot0_eef_pos"], observation["robot0_eef_quat"])
             )
-        # new_observation['pixels'] = cv2.flip(observation[f'{self.camera_names[0]}_image'], 0)[:, :, ::-1]
-        if self.use_fixed_plus_wrist_view:
-            new_observation["pixels"] = np.concatenate(
-                (
-                    observation[f"{self.camera_names[0]}_image"],
-                    observation[f"{self.camera_names[0]}_image"],
-                ),
-                axis=2,
-            )
-        else:
-            new_observation["pixels"] = observation[f"{self.camera_names[0]}_image"]
+        new_observation["pixels"] = observation[f"{self.camera_names[0]}_image"]
 
         if self.current_step == self._env.horizon or d:
             self._reset_next_step = True
@@ -305,10 +281,6 @@ class Robosuite_Wrapper(dm_env.Environment):
             spec["state"] = proprio_spec
 
         pixels_obs_space = self._env.observation_spec()[f"{self.camera_names[0]}_image"]
-        if self.use_fixed_plus_wrist_view:
-            pixels_obs_space = np.concatenate(
-                (pixels_obs_space, pixels_obs_space), axis=2
-            )
         pixels_spec = specs.Array(
             shape=pixels_obs_space.shape, dtype=np.uint8, name="pixels"
         )
@@ -340,12 +312,7 @@ def make_robosuite(
     frame_stack,
     action_repeat,
     discount,
-    seed,
     camera_name,
-    add_segmentation_to_obs,
-    noisy_mask_drop_prob,
-    use_rgbm=None,
-    slim_mask_cfg=None,
     psl=True,
     path_length=500,
     vertical_displacement=0.08,
@@ -353,7 +320,6 @@ def make_robosuite(
     valid_obj_names=None,
     steps_of_high_level_plan_to_complete=-1,
     use_proprio=True,
-    use_fixed_plus_wrist_view=False,
     pose_sigma=0,
     noisy_pose_estimates=False,
     hardcoded_high_level_plan=True,
@@ -361,7 +327,6 @@ def make_robosuite(
     env = Robosuite_Wrapper(
         env_name=name,
         discount=discount,
-        seed=seed,
         camera_names=[camera_name],
         psl=psl,
         path_length=path_length,
@@ -370,7 +335,6 @@ def make_robosuite(
         valid_obj_names=valid_obj_names,
         steps_of_high_level_plan_to_complete=steps_of_high_level_plan_to_complete,
         use_proprio=use_proprio,
-        use_fixed_plus_wrist_view=use_fixed_plus_wrist_view,
         pose_sigma=pose_sigma,
         noisy_pose_estimates=noisy_pose_estimates,
         hardcoded_high_level_plan=hardcoded_high_level_plan,
@@ -383,55 +347,6 @@ def make_robosuite(
 
     rgb_key = "pixels"
     frame_keys.append(rgb_key)
-    # render_kwargs = dict(height=84,
-    #                      width=84,
-    #                      mode="offscreen",
-    #                      camera_name=camera_name)
-    # env = pixels.Wrapper(env,
-    #                      pixels_only=False,
-    #                      render_kwargs=render_kwargs,
-    #                      observation_key=rgb_key)
-
-    if add_segmentation_to_obs:
-        segmentation_key = "segmentation"
-        frame_keys.append(segmentation_key)
-        segmentation_kwargs = dict(
-            height=84 * 3,
-            width=84 * 3,
-            mode="offscreen",
-            camera_name=camera_name,
-            segmentation=True,
-        )
-        env = pixels.Wrapper(
-            env,
-            pixels_only=False,
-            render_kwargs=segmentation_kwargs,
-            observation_key=segmentation_key,
-        )
-        env = SegmentationToRobotMaskWrapper(env, segmentation_key)
-
-        env = SegmentationFilter(env, segmentation_key)
-
-        if noisy_mask_drop_prob > 0:
-            env = NoisyMaskWrapper(
-                env, segmentation_key, prob_drop=noisy_mask_drop_prob
-            )
-
-        if slim_mask_cfg and slim_mask_cfg.use_slim_mask:
-            env = SlimMaskWrapper(
-                env,
-                segmentation_key,
-                slim_mask_cfg.scale,
-                slim_mask_cfg.threshold,
-                slim_mask_cfg.sigma,
-            )
-
-        if use_rgbm:
-            env = StackRGBAndMaskWrapper(
-                env, rgb_key, segmentation_key, new_key="pixels"
-            )
-            frame_keys = ["pixels"]
-
     env = FrameStackWrapper(env, frame_stack, frame_keys)
     env = ExtendedTimeStepWrapper(env, has_success_metric=True)
     return env

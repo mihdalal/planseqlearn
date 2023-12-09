@@ -37,7 +37,6 @@ device: cuda
 save_video: false
 save_train_video: false
 use_tb: true
-add_segmentation_to_obs: false # Overidden in agent yaml if needed by agent
 # agent
 lr: 1e-4
 feature_dim: 50

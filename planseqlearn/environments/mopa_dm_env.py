@@ -143,7 +143,6 @@ def make_mopa(
     name,
     frame_stack,
     action_repeat,
-    discount,
     seed,
     horizon=100,
     psl=True,

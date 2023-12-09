@@ -207,10 +207,6 @@ def make_metaworld(
     discount,
     seed,
     camera_name,
-    add_segmentation_to_obs,
-    noisy_mask_drop_prob,
-    use_rgbm=None,
-    slim_mask_cfg=None,
     psl=False,
     use_mp=False,
 ):
@@ -236,46 +232,6 @@ def make_metaworld(
     env = pixels.Wrapper(
         env, pixels_only=False, render_kwargs=render_kwargs, observation_key=rgb_key
     )
-
-    if add_segmentation_to_obs:
-        segmentation_key = "segmentation"
-        frame_keys.append(segmentation_key)
-        segmentation_kwargs = dict(
-            height=84 * 3,
-            width=84 * 3,
-            mode="offscreen",
-            camera_name=camera_name,
-            segmentation=True,
-        )
-        env = pixels.Wrapper(
-            env,
-            pixels_only=False,
-            render_kwargs=segmentation_kwargs,
-            observation_key=segmentation_key,
-        )
-        env = SegmentationToRobotMaskWrapper(env, segmentation_key)
-
-        env = SegmentationFilter(env, segmentation_key)
-
-        if noisy_mask_drop_prob > 0:
-            env = NoisyMaskWrapper(
-                env, segmentation_key, prob_drop=noisy_mask_drop_prob
-            )
-
-        if slim_mask_cfg and slim_mask_cfg.use_slim_mask:
-            env = SlimMaskWrapper(
-                env,
-                segmentation_key,
-                slim_mask_cfg.scale,
-                slim_mask_cfg.threshold,
-                slim_mask_cfg.sigma,
-            )
-
-        if use_rgbm:
-            env = StackRGBAndMaskWrapper(
-                env, rgb_key, segmentation_key, new_key="pixels"
-            )
-            frame_keys = ["pixels"]
 
     env = FrameStackWrapper(env, frame_stack, frame_keys)
     env = ExtendedTimeStepWrapper(env, has_success_metric=True)
