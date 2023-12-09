@@ -1,7 +1,6 @@
 import numpy as np
 import robosuite.utils.camera_utils as CU
 from planseqlearn.mnm.sam_utils import get_seg_mask
-import matplotlib.pyplot as plt
 import open3d as o3d
 from plantcv import plantcv as pcv
 

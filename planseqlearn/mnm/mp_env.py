@@ -1,30 +1,18 @@
 import numpy as np
 from gym import Env
-from planseqlearn.mnm.inverse_kinematics import qpos_from_site_pose
-import robosuite.utils.camera_utils as CU
-from robosuite.controllers import controller_factory
-from robosuite.utils.control_utils import orientation_error
-import robosuite.utils.transform_utils as T
 from robosuite.utils.transform_utils import *
 from planseqlearn.mnm.sam_utils import build_models
-import copy
-import pdb
-import sys
 import matplotlib.pyplot as plt
-from os.path import abspath, dirname, join
-import cv2
 
 try:
     from ompl import base as ob
     from ompl import geometric as og
-    from ompl import util as ou
 except:
     pass
 
 
 def save_img(env, camera_name, filename, flip=False):
-    # frame = env.sim.render(camera_name=camera_name, width=500, height=500)
-    frame = env.sim.render(width=500, camera_name=camera_name, height=500)
+    frame = env.sim.render(camera_name=camera_name, width=500, height=500)
     if flip:
         frame = np.flipud(frame)
     plt.imshow(frame)

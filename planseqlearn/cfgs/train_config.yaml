@@ -65,5 +65,4 @@ hydra:
     nodes: 1
     submitit_folder: ./exp/${now:%Y.%m.%d}/${now:%H%M%S}_${agent_cfg.experiment}/.slurm
 
-sheet_name: "motion-planning-rl"
 debug: false
