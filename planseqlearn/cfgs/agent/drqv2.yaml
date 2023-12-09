@@ -1,0 +1,8 @@
+defaults:
+  - common
+  - _self_
+
+agent:
+  _target_: planseqlearn.agents.drqv2.DrQV2Agent
+  use_pool_encoder: false
+  pool_encoder_latent_dim: 512 # Only used if use_pool_encoder is set to true

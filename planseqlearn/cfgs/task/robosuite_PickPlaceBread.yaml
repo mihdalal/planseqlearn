@@ -1,0 +1,7 @@
+defaults:
+  - robosuite
+  - _self_
+
+task_name: robosuite_PickPlaceBread
+hardcoded_orientations: false
+vertical_displacement: 0.06

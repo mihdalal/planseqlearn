@@ -1,0 +1,69 @@
+defaults:
+  - _self_
+  - task@_global_: quadruped_walk
+  - agent@_global_: drqv2
+  - override hydra/launcher: submitit_local
+
+# task settings
+frame_stack: 3
+action_repeat: 2
+discount: 0.99
+has_success_metric: false # Overidden in task yaml if true
+noisy_mask_drop_prob: 0.0
+slim_mask_cfg:
+  use_slim_mask: false
+  scale: 3
+  threshold: 0.9
+  sigma: 0.5
+mprl: false 
+path_length: 500
+use_rgbm: false
+# train settings
+num_seed_frames: 4000
+# eval
+eval_every_frames: 10000
+num_eval_episodes: 10
+# snapshot
+save_snapshot: true
+save_buffer_snapshot: false
+# replay buffer
+replay_buffer_size: 1000000
+replay_buffer_num_workers: 4
+nstep: 3
+batch_size: 256
+# misc
+seed: 1
+device: cuda
+save_video: false
+save_train_video: false
+use_tb: true
+add_segmentation_to_obs: false # Overidden in agent yaml if needed by agent
+# agent
+lr: 1e-4
+feature_dim: 50
+
+use_wandb: false
+wandb:
+  project_name: "mprl"
+  run_name: "test"
+
+experiment_id: "Default_Experiment_ID"
+
+hydra:
+  run:
+    dir: ./exp_local/${experiment_id}_${seed}_${now:%Y.%m.%d}_${now:%H:%M:%S}
+  sweep:
+    dir: ./exp/${now:%Y.%m.%d}/${now:%H%M}_${agent_cfg.experiment}
+    subdir: ${hydra.job.num}
+  launcher:
+    timeout_min: 4300
+    cpus_per_task: 10
+    gpus_per_node: 1
+    tasks_per_node: 1
+    mem_gb: 160
+    nodes: 1
+    submitit_folder: ./exp/${now:%Y.%m.%d}/${now:%H%M%S}_${agent_cfg.experiment}/.slurm
+
+sheet_name: "motion-planning-rl"
+debug: false
+agent_snapshots: ''

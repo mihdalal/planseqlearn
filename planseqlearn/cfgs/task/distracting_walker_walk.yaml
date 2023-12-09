@@ -1,0 +1,7 @@
+defaults:
+  - distracting
+  - _self_
+
+task_name: distracting_walker_walk
+nstep: 1
+batch_size: 512

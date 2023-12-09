@@ -1,0 +1,15 @@
+num_train_frames: 2500000
+stddev_schedule: 'linear(1.0,0.1,500000)'
+
+camera_name: "agentview"
+has_success_metric: true
+hardcoded_orientations: true
+vertical_displacement: 0.08
+valid_obj_names: null
+action_repeat: 1  
+steps_of_high_level_plan_to_complete: -1
+use_proprio: true
+use_fixed_plus_wrist_view: false
+pose_sigma: 0.0
+noisy_pose_estimates: false
+hardcoded_high_level_plan: true

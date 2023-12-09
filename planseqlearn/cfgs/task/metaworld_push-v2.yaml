@@ -1,0 +1,5 @@
+defaults:
+  - metaworld
+  - _self_
+
+task_name: metaworld_push-v2

@@ -1,0 +1,14 @@
+defaults:
+  - _self_
+  - override hydra/launcher: submitit_local
+
+snapshot: ???
+seed: 1
+device: cuda
+num_episodes: 50
+dataset_id: "Default_Dataset_ID"
+add_segmentation_to_obs: true
+
+hydra:
+  run:
+    dir: ./expert_data/${dataset_id}_${seed}_${now:%Y.%m.%d}_${now:%H:%M:%S}

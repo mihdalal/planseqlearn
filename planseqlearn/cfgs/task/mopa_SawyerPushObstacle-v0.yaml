@@ -1,0 +1,5 @@
+defaults:
+  - mopa
+  - _self_
+
+task_name: mopa_SawyerPushObstacle-v0

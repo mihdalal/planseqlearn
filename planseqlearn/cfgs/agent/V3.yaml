@@ -1,0 +1,14 @@
+defaults:
+  - common
+  - _self_
+
+agent:
+  _target_: planseqlearn.agents.V3.V3Agent
+  reconstruction_loss_coeff: 1 # Controls balance between critic and decoder on encoder gradient updates
+  decoder_lr: 1e-4
+  mask_lr: 1e-4
+  mask_loss_coeff: 2.5e-1
+  latent_dim: ${latent_dim}
+
+add_segmentation_to_obs: true
+latent_dim: 4096

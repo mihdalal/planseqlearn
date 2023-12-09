@@ -1,0 +1,5 @@
+num_train_frames: 2500000
+stddev_schedule: 'linear(1.0,0.1,500000)'
+
+camera_name: "corner"
+has_success_metric: true

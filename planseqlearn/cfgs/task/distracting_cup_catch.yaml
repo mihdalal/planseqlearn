@@ -1,0 +1,5 @@
+defaults:
+  - distracting
+  - _self_
+
+task_name: distracting_cup_catch

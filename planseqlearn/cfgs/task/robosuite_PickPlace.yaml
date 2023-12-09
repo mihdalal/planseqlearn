@@ -1,0 +1,8 @@
+defaults:
+  - robosuite
+  - _self_
+
+task_name: robosuite_PickPlace
+hardcoded_orientations: true
+vertical_displacement: 0.08
+valid_obj_names: ["Cereal", "Milk", "Can", "Bread"]

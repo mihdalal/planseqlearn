@@ -1,0 +1,7 @@
+defaults:
+  - robosuite
+  - _self_
+
+task_name: robosuite_PickPlaceMilk
+hardcoded_orientations: false
+vertical_displacement: 0.08

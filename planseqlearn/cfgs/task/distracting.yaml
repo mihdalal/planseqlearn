@@ -1,0 +1,9 @@
+num_train_frames: 2500000
+stddev_schedule: 'linear(1.0,0.1,500000)'
+
+has_success_metric: false
+
+distraction:
+  difficulty: "medium" # Easy, medium, hard
+  types: ["background"] # Select combinations of: background, color, camera
+  dataset_path: ???

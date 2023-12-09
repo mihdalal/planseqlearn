@@ -2,10 +2,6 @@
 	path = d4rl
 	url = git@github.com:mihdalal/d4rl.git
 	branch = psl_release
-[submodule "DisentangledRep4RL"]
-	path = DisentangledRep4RL
-	url = git@github.com:mihdalal/DisentangledRep4RL.git
-	branch = psl_release
 [submodule "metaworld"]
 	path = metaworld
 	url = git@github.com:mihdalal/metaworld.git

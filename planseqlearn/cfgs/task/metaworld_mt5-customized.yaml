@@ -1,0 +1,7 @@
+defaults:
+  - metaworld
+  - _self_
+
+task_name: metaworld_mt5-customized
+num_train_frames: 10000000
+stddev_schedule: 'linear(1.0,0.1,2000000)'

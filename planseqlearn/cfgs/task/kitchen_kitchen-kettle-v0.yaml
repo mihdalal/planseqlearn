@@ -1,0 +1,5 @@
+defaults:
+  - kitchen
+  - _self_
+
+task_name: kitchen_kitchen-kettle-v0

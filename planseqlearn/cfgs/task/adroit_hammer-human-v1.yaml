@@ -1,0 +1,5 @@
+defaults:
+  - adroit
+  - _self_
+
+task_name: adroit_hammer-human-v1
