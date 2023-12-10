@@ -65,9 +65,9 @@ ENV LD_LIBRARY_PATH /root/.mujoco/mujoco210/bin:${LD_LIBRARY_PATH}
 ENV LD_LIBRARY_PATH /root/.mujoco/mujoco210_linux/bin:${LD_LIBRARY_PATH}
 
 # https://github.com/openai/mujoco-py/issues/773 -> mujoco py cythonization fails with cython 3.0
-RUN pip install "cython<3" 
+RUN pip install cython==0.29.34
 RUN pip install numpy==1.23.5
-RUN pip install mujoco_py==2.0.2.13
+RUN pip install mujoco_py==2.0.2.5
 RUN python -c 'import mujoco_py'
 
 ENV PYTHONPATH /mnt/planseqlearn/doodad:$PYTHONPATH
