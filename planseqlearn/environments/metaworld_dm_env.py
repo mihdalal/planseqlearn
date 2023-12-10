@@ -65,7 +65,7 @@ class MT_Wrapper(dm_env.Environment):
             verify_stable_grasp=False,
             teleport_on_grasp=True,
             max_path_length=200,
-            use_vision_pose_estimation=True,
+            use_vision_pose_estimation=False,
             use_sam_segmentation=False,
         )
         self.psl = psl

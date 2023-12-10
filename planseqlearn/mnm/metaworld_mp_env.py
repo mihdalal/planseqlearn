@@ -2,29 +2,12 @@ import numpy as np
 from planseqlearn.mnm.inverse_kinematics import qpos_from_site_pose
 from planseqlearn.mnm.mp_env import MPEnv
 from planseqlearn.mnm.vision_utils import *
-import math
 from robosuite.utils.transform_utils import (
-    euler2mat,
     mat2pose,
-    mat2quat,
     pose2mat,
     quat2mat,
-    quat_conjugate,
-    quat_multiply,
-    convert_quat,
 )
 
-import sys
-from os.path import abspath, dirname, join
-
-try:
-    from ompl import base as ob
-    from ompl import geometric as og
-    from ompl import util as ou
-except:
-    pass
-
-import re
 
 
 def set_robot_based_on_ee_pos(
@@ -201,11 +184,6 @@ class MetaworldMPEnv(MPEnv):
             return [("green cube", "grasp"), ("blue bin", "place")]
         if self.env_name == "disassemble-v2":
             return [("green wrench", "grasp"), (None, None)]
-        if self.env_name == "peg-insert-side-v2":
-            return [
-                ("green bar on table", "grasp"),
-                ("hole", "insert"),
-            ]  # figure this out with sam
 
     def get_image(self):
         im = self.sim.render(
@@ -228,12 +206,6 @@ class MetaworldMPEnv(MPEnv):
         elif self.env_name == "bin-picking-v2":
             object_pos = self._get_pos_objects().copy() + np.array([0.0, 0.0, 0.02])
             object_quat = self._get_quat_objects().copy()
-        elif self.env_name == "peg-insert-side-v2":
-            object_pos = self._get_pos_objects().copy() + np.array([0.05, 0.0, 0.03])
-            object_quat = self._get_quat_objects().copy()
-        elif self.env_name == "stick-pull-v2":
-            object_pos = self.get_object_pose().copy() + np.array([0.0, 0.0, 0.05])
-            object_quat = self._get_quat_objects()[:4].copy()
         if self.use_vision_pose_estimation:
             object_name = (
                 self.text_plan[0][0]
@@ -286,20 +258,6 @@ class MetaworldMPEnv(MPEnv):
                     )
                 object_pos += np.array([-0.00, 0.0, 0.02])
                 object_quat = self._get_quat_objects().copy()
-            elif self.env_name == "peg-insert-side-v2":
-                if not self.use_sam_segmentation:
-                    object_pos = get_geom_pose_from_seg(
-                        self,
-                        self.sim.model.geom_name2id("peg"),
-                        ["topview", "corner2"],
-                        500,
-                        500,
-                        self.sim,
-                    )
-                else:
-                    raise NotImplementedError
-                object_pos += np.array([0.09, 0.0, 0.03])
-                object_quat = self._get_quat_objects().copy()
         return object_pos, object_quat
 
     def get_object_poses(self):
@@ -322,10 +280,6 @@ class MetaworldMPEnv(MPEnv):
                 placement_pos = self._wrapped_env._get_pos_objects()[3:] + np.array(
                     [-0.05, -0.20, 0.05]
                 )
-            elif self.env_name == "peg-insert-side-v2":
-                placement_pos = self.sim.data.body_xpos[
-                    self.sim.model.body_name2id("box")
-                ] + np.array([0.3, 0.0, 0.12])
         else:
             object_name = (
                 self.text_plan[1][0]
@@ -345,11 +299,6 @@ class MetaworldMPEnv(MPEnv):
                         self, object_name, "corner"
                     )
                     placement_pos += np.array([-0.15, -0.15, 0.0])
-            elif self.env_name == "peg-insert-side-v2":
-                placement_pos = get_geom_pose_from_seg(
-                    self, 37, ["corner2", "topview", "corner3"], 500, 500, self.sim
-                )
-                placement_pos += np.array([0.21, 0.02, 0.08])
             elif self.env_name == "bin-picking-v2":
                 if not self.use_sam_segmentation:
                     placement_pos = get_geom_pose_from_seg(
@@ -369,7 +318,7 @@ class MetaworldMPEnv(MPEnv):
                     placement_pos = get_pose_from_sam_segmentation(
                         self, object_name, "corner"
                     )
-                placement_pos += np.array([0.13, 0.0, 0.15])  # go back to 0.12
+                placement_pos += np.array([0.13, 0.0, 0.15])
         return placement_pos, placement_quat
 
     def get_placement_poses(self):
@@ -387,7 +336,7 @@ class MetaworldMPEnv(MPEnv):
         return self._get_obs()
 
     def get_object_pose(self):
-        if self.env_name == "hammer-v2" or self.env_name == "stick-pull-v2":
+        if self.env_name == "hammer-v2":
             object_pos = self._get_pos_objects()[:3] + np.array([0.0, 0.0, 0.016])
             object_quat = self._get_quat_objects()[:4]
         elif self.env_name == "assembly-v2" or self.env_name == "disassemble-v2":
@@ -414,8 +363,6 @@ class MetaworldMPEnv(MPEnv):
             obj_name = "asmbly_peg"
         elif self.env_name == "bin-picking-v2":
             obj_name = "objA"
-        elif self.env_name == "peg-insert-side-v2":
-            obj_name = "peg"
         return obj_name
 
     def body_check_grasp(self):
@@ -451,7 +398,7 @@ class MetaworldMPEnv(MPEnv):
         qpos = self.sim.data.qpos.copy()
         qvel = self.sim.data.qvel.copy()
         contact_grasp = self.body_check_grasp()
-        if self.env_name == "hammer-v2" or self.env_name == "peg-insert-side-v2":
+        if self.env_name == "hammer-v2":
             return contact_grasp
         return (
             contact_grasp
@@ -617,9 +564,6 @@ class MetaworldMPEnv(MPEnv):
                 return self.get_object_pose_mp(), self.get_placement_pose()
             else:
                 raise NotImplementedError
-        elif self.env_name == "peg-insert-side-v2":
-            if "peg" in obj_name:
-                return self.get_object_pose_mp(), self.get_placement_pose()
 
     def update_controllers(self, *args, **kwargs):
         pass

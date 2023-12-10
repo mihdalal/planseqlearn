@@ -4,16 +4,6 @@ from planseqlearn.mnm.mp_env import MPEnv
 from planseqlearn.mnm.vision_utils import *
 import robosuite.utils.transform_utils as T
 from robosuite.utils.transform_utils import *
-import sys
-from os.path import abspath, dirname, join
-
-try:
-    from ompl import base as ob
-    from ompl import geometric as og
-    from ompl import util as ou
-    import re
-except:
-    pass
 
 
 def check_object_grasp(env, obj_idx=0):
@@ -500,7 +490,7 @@ class KitchenMPEnv(MPEnv):
         iters = 0
         max_iters = int(1 / movement_fraction)
         while collision and iters < max_iters:
-            curr_pos = curr_pos - movement_fraction * (goal_pos - start_pos)
+            curr_pos = curr_pos - movement_fraction * (target_pos - start_pos)
             self.set_robot_based_on_ee_pos(
                 curr_pos,
                 target_quat,
