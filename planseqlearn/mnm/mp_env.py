@@ -41,14 +41,12 @@ class MPEnv(ProxyEnv):
         self.verify_stable_grasp = verify_stable_grasp
         # mp and teleporting
         self.teleport_instead_of_mp = teleport_instead_of_mp
-        self.planning_time = 1
         self.use_joint_space_mp = use_joint_space_mp
         self.use_pcd_collision_check = use_pcd_collision_check
         self.use_vision_pose_estimation = use_vision_pose_estimation
         self.use_sam_segmentation = use_sam_segmentation
         self.use_vision_grasp_check = use_vision_grasp_check
         self.use_vision_placement_check = use_vision_placement_check
-        self.hasnt_teleported = False
         self.teleport_on_grasp = teleport_on_grasp
         if self.use_sam_segmentation:
             self.dino, self.sam = build_models(
@@ -63,11 +61,6 @@ class MPEnv(ProxyEnv):
         # trajectory information
         self.num_steps = 0
         self.num_high_level_steps = 0
-        self.done = False
-        self.success = False
-        self.break_mp_action = (
-            False  # break when we are close to goal during motion planning
-        )
         self.object_idx = 0
 
     def get_observation(self):
@@ -91,11 +84,9 @@ class MPEnv(ProxyEnv):
     ):
         raise NotImplementedError
 
-    def reset(self, get_intermediate_frames=False, skip_mp=True, **kwargs):
+    def reset(self, get_intermediate_frames=False, **kwargs):
         self.num_steps = 0
         self.num_high_level_steps = 0
-        self.done = False
-        self.success = False
         self.object_idx = 0
         # reset wrapped env
         obs = self._wrapped_env.reset(**kwargs)
@@ -123,7 +114,7 @@ class MPEnv(ProxyEnv):
             self.get_all_initial_poses()
         except:
             pass
-        self.update_controllers()  # will do nothing for robosuite, will
+        self.update_controllers()
         target_pos, target_quat = self.get_target_pos()
         if self.teleport_instead_of_mp:
             error = self.set_robot_based_on_ee_pos(
@@ -164,7 +155,7 @@ class MPEnv(ProxyEnv):
             if take_planner_step:
                 self.teleport_on_grasp = False
                 self.teleport_on_place = True
-        elif self.teleport_on_place:  # should always be false for metaworld
+        elif self.teleport_on_place:  
             # object we are checking is the number of high level steps we have taken so far
             placed = self.check_object_placement(obj_idx=self.object_idx)
             take_planner_step = (
@@ -527,7 +518,6 @@ class MPEnv(ProxyEnv):
             self.sim.data.qvel[:] = og_qvel.copy()
             self.sim.forward()
             self.update_mp_controllers()
-            self.break_mp = False
             self.set_robot_colors(np.array([0.1, 0.3, 0.7, 1.0]))
             for state_idx, state in enumerate(converted_path):
                 state_frames = []
@@ -568,9 +558,6 @@ class MPEnv(ProxyEnv):
                                 + im * (1 - robot_mask)
                             )
                             intermediate_frames.append(im)
-                    if self.break_mp:
-                        self.break_mp = False
-                        break
                 try:
                     state_frames = self.process_state_frames(state_frames)
                     intermediate_frames.extend(state_frames)

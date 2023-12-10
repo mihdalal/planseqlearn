@@ -1316,9 +1316,7 @@ class RobosuiteMPEnv(MPEnv):
 
     def take_mp_step(self, state, is_grasped):
         if self.use_joint_space_mp:
-            start_angles = self.sim.data.qpos[:7]
             policy_step = True
-            # change action action limits if this doesn't always work
             if is_grasped:
                 grip_val = self.grip_ctrl_scale
             else:
