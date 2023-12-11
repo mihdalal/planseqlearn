@@ -1,7 +1,7 @@
 import numpy as np
-from planseqlearn.mnm.inverse_kinematics import qpos_from_site_pose_kitchen
-from planseqlearn.mnm.mp_env import MPEnv
-from planseqlearn.mnm.vision_utils import *
+from planseqlearn.psl.inverse_kinematics import qpos_from_site_pose_kitchen
+from planseqlearn.psl.mp_env import PSLEnv
+from planseqlearn.psl.vision_utils import *
 import robosuite.utils.transform_utils as T
 from robosuite.utils.transform_utils import *
 
@@ -103,7 +103,7 @@ def check_string(string, other_string):
     return string.startswith(other_string)
 
 
-class KitchenMPEnv(MPEnv):
+class KitchenPSLEnv(PSLEnv):
     def __init__(
         self,
         env,

@@ -13,7 +13,7 @@ from planseqlearn.environments.wrappers import (
     FrameStackWrapper,
 )
 import robosuite as suite
-from planseqlearn.mnm.robosuite_mp_env import RobosuiteMPEnv
+from planseqlearn.psl.robosuite_mp_env import RobosuitePSLEnv
 
 
 def get_proprioceptive_spec(spec, num_proprioceptive_features):
@@ -35,13 +35,9 @@ class Robosuite_Wrapper(dm_env.Environment):
         psl=False,
         path_length=500,
         vertical_displacement=0.08,
-        hardcoded_orientations=True,
+        estimate_orientation=True,
         valid_obj_names=None,
-        steps_of_high_level_plan_to_complete=-1,
         use_proprio=True,
-        pose_sigma=0.0,
-        noisy_pose_estimates=False,
-        hardcoded_high_level_plan=True,
     ):
         self.discount = discount
         self.env_name = env_name
@@ -93,102 +89,51 @@ class Robosuite_Wrapper(dm_env.Environment):
             reward_scale=reward_scale,
             **extra_kwargs,
         )
+        # Base dictionary for common parameters
+        mp_env_kwargs = dict(
+            teleport_instead_of_mp=True,
+            mp_bounds_low=(-1.45, -1.25, 0.45),
+            mp_bounds_high=(0.45, 0.85, 2.25),
+            backtrack_movement_fraction=0.001,
+            grip_ctrl_scale=0.0025,
+            planning_time=20,
+            controller_configs=controller_configs,
+            use_vision_pose_estimation=False,
+            use_vision_placement_check=False,
+            use_vision_grasp_check=False,
+            estimate_orientation=False,
+        )
+
         if env_name == "Lift":
-            mp_env_kwargs = dict(
-                vertical_displacement=0.04,
-                teleport_instead_of_mp=True,
-                randomize_init_target_pos=False,
-                mp_bounds_low=(-1.45, -1.25, 0.8),
-                mp_bounds_high=(0.45, 0.85, 2.25),
-                backtrack_movement_fraction=0.001,
-                clamp_actions=True,
-                update_with_true_state=True,
-                grip_ctrl_scale=0.0025,
-                planning_time=20,
-                verify_stable_grasp=True,
-                hardcoded_high_level_plan=True,
-                num_ll_actions_per_hl_action=50,
-                controller_configs=controller_configs,
-                use_vision_pose_estimation=False,
-                use_vision_placement_check=False,
-                use_vision_grasp_check=False,
-                hardcoded_orientations=False,
+            mp_env_kwargs.update(
+                dict(
+                    vertical_displacement=0.04,
+                    mp_bounds_low=(-1.45, -1.25, 0.8),
+                )
             )
         elif env_name.startswith("PickPlace"):
-            mp_env_kwargs = dict(
-                vertical_displacement=vertical_displacement,
-                teleport_instead_of_mp=True,
-                randomize_init_target_pos=False,
-                mp_bounds_low=(-1.45, -1.25, 0.45),
-                mp_bounds_high=(0.45, 0.85, 2.25),
-                backtrack_movement_fraction=0.001,
-                clamp_actions=True,
-                update_with_true_state=True,
-                grip_ctrl_scale=0.0025,
-                planning_time=20,
-                hardcoded_high_level_plan=hardcoded_high_level_plan,
-                terminate_on_success=False,
-                plan_to_learned_goals=False,
-                reset_at_grasped_state=False,
-                verify_stable_grasp=True,
-                hardcoded_orientations=hardcoded_orientations,
-                num_ll_actions_per_hl_action=50,
-                controller_configs=controller_configs,
-                steps_of_high_level_plan_to_complete=steps_of_high_level_plan_to_complete,
-                use_vision_pose_estimation=False,
-                use_vision_placement_check=False,
-                use_vision_grasp_check=False,
-                pose_sigma=pose_sigma,
-                noisy_pose_estimates=noisy_pose_estimates,
+            mp_env_kwargs.update(
+                dict(
+                    vertical_displacement=vertical_displacement,
+                    estimate_orientation=estimate_orientation,
+                )
             )
         elif env_name.startswith("NutAssembly"):
-            mp_env_kwargs = dict(
-                vertical_displacement=0.04,
-                teleport_instead_of_mp=True,
-                randomize_init_target_pos=False,
-                mp_bounds_low=(-1.45, -1.25, 0.45),
-                mp_bounds_high=(0.45, 0.85, 2.25),
-                backtrack_movement_fraction=0.001,
-                clamp_actions=True,
-                update_with_true_state=True,
-                grip_ctrl_scale=0.0025,
-                planning_time=20,
-                hardcoded_high_level_plan=True,
-                terminate_on_success=False,
-                plan_to_learned_goals=False,
-                reset_at_grasped_state=False,
-                verify_stable_grasp=True,
-                hardcoded_orientations=True,
-                num_ll_actions_per_hl_action=50,
-                controller_configs=controller_configs,
-                use_vision_pose_estimation=False,
-                use_vision_placement_check=False,
-                use_vision_grasp_check=False,
+            mp_env_kwargs.update(
+                dict(
+                    vertical_displacement=0.04,
+                    estimate_orientation=True,
+                )
             )
         elif env_name.startswith("Door"):
-            mp_env_kwargs = dict(
-                vertical_displacement=0.06,
-                teleport_instead_of_mp=True,
-                randomize_init_target_pos=False,
-                mp_bounds_low=(-1.45, -1.25, 0.45),
-                mp_bounds_high=(0.45, 0.85, 2.25),
-                backtrack_movement_fraction=0.001,
-                clamp_actions=True,
-                update_with_true_state=True,
-                grip_ctrl_scale=0.0025,
-                planning_time=20,
-                verify_stable_grasp=True,
-                hardcoded_high_level_plan=True,
-                use_teleports_in_step=False,
-                num_ll_actions_per_hl_action=50,
-                controller_configs=controller_configs,
-                use_vision_pose_estimation=False,
-                use_vision_placement_check=False,
-                use_vision_grasp_check=False,
-                hardcoded_orientations=False,
+            mp_env_kwargs.update(
+                dict(
+                    vertical_displacement=0.06,
+                )
             )
+
         if psl:
-            self._env = RobosuiteMPEnv(self._env, env_name, **mp_env_kwargs)
+            self._env = RobosuitePSLEnv(self._env, env_name, **mp_env_kwargs)
         self._reset_next_step = True
         self.psl = psl
         self.current_step = 0
@@ -300,13 +245,9 @@ def make_robosuite(
     psl=True,
     path_length=500,
     vertical_displacement=0.08,
-    hardcoded_orientations=True,
+    estimate_orientation=True,
     valid_obj_names=None,
-    steps_of_high_level_plan_to_complete=-1,
     use_proprio=True,
-    pose_sigma=0,
-    noisy_pose_estimates=False,
-    hardcoded_high_level_plan=True,
 ):
     env = Robosuite_Wrapper(
         env_name=name,
@@ -315,13 +256,9 @@ def make_robosuite(
         psl=psl,
         path_length=path_length,
         vertical_displacement=vertical_displacement,
-        hardcoded_orientations=hardcoded_orientations,
+        estimate_orientation=estimate_orientation,
         valid_obj_names=valid_obj_names,
-        steps_of_high_level_plan_to_complete=steps_of_high_level_plan_to_complete,
         use_proprio=use_proprio,
-        pose_sigma=pose_sigma,
-        noisy_pose_estimates=noisy_pose_estimates,
-        hardcoded_high_level_plan=hardcoded_high_level_plan,
     )
     env = ActionDTypeWrapper(env, np.float32)
     env = ActionRepeatWrapper(env, action_repeat, use_metaworld_reward_dict=True)

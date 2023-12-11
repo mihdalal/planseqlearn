@@ -15,9 +15,9 @@ from robosuite.utils.transform_utils import (
 )
 from mopa_rl.config.default_configs import *
 import mopa_rl.env
-from planseqlearn.mnm.inverse_kinematics import qpos_from_site_pose
-from planseqlearn.mnm.mp_env import MPEnv, ProxyEnv
-from planseqlearn.mnm.vision_utils import *
+from planseqlearn.psl.inverse_kinematics import qpos_from_site_pose
+from planseqlearn.psl.mp_env import PSLEnv, ProxyEnv
+from planseqlearn.psl.vision_utils import *
 
 
 def save_img(env, camera_name, filename, flip=False):
@@ -353,7 +353,7 @@ class MoPAWrapper(ProxyEnv):
         return o, r, d, i
 
 
-class MoPAMPEnv(MPEnv):
+class MoPAPSLEnv(PSLEnv):
     def __init__(
         self,
         env,

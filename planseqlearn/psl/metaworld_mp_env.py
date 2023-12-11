@@ -1,7 +1,7 @@
 import numpy as np
-from planseqlearn.mnm.inverse_kinematics import qpos_from_site_pose
-from planseqlearn.mnm.mp_env import MPEnv
-from planseqlearn.mnm.vision_utils import *
+from planseqlearn.psl.inverse_kinematics import qpos_from_site_pose
+from planseqlearn.psl.mp_env import PSLEnv
+from planseqlearn.psl.vision_utils import *
 from robosuite.utils.transform_utils import (
     mat2pose,
     pose2mat,
@@ -101,7 +101,7 @@ def check_string(string, other_string):
     return string.startswith(other_string)
 
 
-class MetaworldMPEnv(MPEnv):
+class MetaworldPSLEnv(PSLEnv):
     def __init__(
         self,
         env,

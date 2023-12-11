@@ -81,13 +81,9 @@ def main(cfg):
                 cfg.psl,
                 cfg.path_length,
                 cfg.vertical_displacement,
-                cfg.hardcoded_orientations,
+                cfg.estimate_orientation,
                 cfg.valid_obj_names,
-                cfg.steps_of_high_level_plan_to_complete,
                 cfg.use_proprio,
-                cfg.pose_sigma,
-                cfg.noisy_pose_estimates,
-                cfg.hardcoded_high_level_plan,
             )
         elif cfg.task_name.split("_", 1)[0] == "kitchen":
             env = make_kitchen(

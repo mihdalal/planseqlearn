@@ -3,5 +3,5 @@ defaults:
   - _self_
 
 task_name: robosuite_PickPlaceCereal
-hardcoded_orientations: true
+estimate_orientation: true
 vertical_displacement: 0.08

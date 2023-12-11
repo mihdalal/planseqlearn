@@ -1,6 +1,6 @@
 import numpy as np
 from robosuite.utils.transform_utils import *
-from planseqlearn.mnm.sam_utils import build_models
+from planseqlearn.psl.sam_utils import build_models
 from rlkit.envs.wrappers import ProxyEnv as RlkitProxyEnv
 
 try:
@@ -15,12 +15,11 @@ class ProxyEnv(RlkitProxyEnv):
         self._wrapped_env = wrapped_env
 
 
-class MPEnv(ProxyEnv):
+class PSLEnv(ProxyEnv):
     def __init__(
         self,
         env,
         env_name,
-        verify_stable_grasp=False,
         # mp
         teleport_instead_of_mp=True,
         teleport_on_grasp=True,
@@ -36,9 +35,23 @@ class MPEnv(ProxyEnv):
         text_plan=None,
         **kwargs,
     ):
+        """
+        Base class for Plan-Seq-Learn Environments.
+        Args:
+            env: The environment to wrap.
+            teleport_instead_of_mp (bool): Whether to teleport instead of motion planning.
+            teleport_on_grasp (bool): Whether to teleport on grasp.
+            use_joint_space_mp (bool): Whether to use joint space motion planning instead of end-effector space motion planning.
+            use_pcd_collision_check (bool): Whether to use point cloud collision checking instead of simulator collision checking.
+            use_vision_pose_estimation (bool): Whether to use vision pose estimation.
+            use_sam_segmentation (bool): Whether to use SAM for segmentation or the simulator.
+            use_vision_grasp_check (bool): Whether to use vision-based grasp checking.
+            use_vision_placement_check (bool): Whether to use vision-based placement checking.
+            use_llm_plan (bool): Whether to use LLM high-level plan.
+            text_plan (list): Text plan.
+        """
         super().__init__(env)
         self.env_name = env_name
-        self.verify_stable_grasp = verify_stable_grasp
         # mp and teleporting
         self.teleport_instead_of_mp = teleport_instead_of_mp
         self.use_joint_space_mp = use_joint_space_mp
@@ -66,9 +79,6 @@ class MPEnv(ProxyEnv):
     def get_observation(self):
         raise NotImplementedError
 
-    def get_init_target_pos():
-        raise NotImplementedError
-
     def get_image(self):
         raise NotImplementedError
 
@@ -78,10 +88,10 @@ class MPEnv(ProxyEnv):
     def check_robot_collision(self, is_grasped=False):
         raise NotImplementedError
 
-    def set_robot_based_on_pos(
-        self,
-        **kwargs,
-    ):
+    def post_reset_burn_in(self):
+        pass
+
+    def get_object_pose_mp(self, obj_idx=0):
         raise NotImplementedError
 
     def reset(self, get_intermediate_frames=False, **kwargs):
@@ -90,12 +100,7 @@ class MPEnv(ProxyEnv):
         self.object_idx = 0
         # reset wrapped env
         obs = self._wrapped_env.reset(**kwargs)
-        # add burn in steps
-        if "NutAssembly" in self.env_name:
-            for _ in range(10):
-                a = np.zeros(7)
-                a[-1] = -1
-                self._wrapped_env.step(a)
+        self.post_reset_burn_in()
 
         # initialize trajectory variables
         self.ep_step_ctr = 0
@@ -117,7 +122,7 @@ class MPEnv(ProxyEnv):
         self.update_controllers()
         target_pos, target_quat = self.get_target_pos()
         if self.teleport_instead_of_mp:
-            error = self.set_robot_based_on_ee_pos(
+            self.set_robot_based_on_ee_pos(
                 target_pos.copy(),
                 target_quat.copy(),
                 self.reset_qpos,
@@ -126,9 +131,8 @@ class MPEnv(ProxyEnv):
                 obj_idx=self.object_idx,  # first step
                 open_gripper_on_tp=True,
             )
-            obs = self.get_observation()
         else:
-            error = self.mp_to_point(
+            self.mp_to_point(
                 target_pos,
                 target_quat,
                 self.reset_qpos,
@@ -138,7 +142,7 @@ class MPEnv(ProxyEnv):
                 open_gripper_on_tp=True,
                 get_intermediate_frames=get_intermediate_frames,
             )
-            obs = self.get_observation()
+        obs = self.get_observation()
         self.teleport_on_grasp = True
         self.teleport_on_place = False
         self.num_high_level_steps += 1

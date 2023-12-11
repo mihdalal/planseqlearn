@@ -12,7 +12,7 @@ from planseqlearn.environments.wrappers import (
     FrameStackWrapper,
 )
 
-from planseqlearn.mnm.mopa_mp_env import MoPAMPEnv
+from planseqlearn.psl.mopa_mp_env import MoPAPSLEnv
 from mopa_rl.config.default_configs import (
     LIFT_OBSTACLE_CONFIG,
     LIFT_CONFIG,
@@ -49,12 +49,12 @@ class MoPA_Env_Wrapper(dm_env.Environment):
         ik_env = gym.make(**config)
         self.name = env_name
         self.horizon = horizon
-        self._env = MoPAMPEnv(
+        self._env = MoPAPSLEnv(
             env,
             env_name,
             ik_env=ik_env,
             teleport_on_grasp=True,
-            use_vision_pose_estimation=True,
+            use_vision_pose_estimation=False,
             teleport_instead_of_mp=True,
             config=config,
         )

@@ -1,6 +1,6 @@
 import numpy as np
-from planseqlearn.mnm.vision_utils import *
-from planseqlearn.mnm.mp_env import MPEnv
+from planseqlearn.psl.vision_utils import *
+from planseqlearn.psl.mp_env import PSLEnv
 from robosuite.wrappers.gym_wrapper import GymWrapper
 import robosuite.utils.camera_utils as CU
 from robosuite.controllers import controller_factory
@@ -206,7 +206,7 @@ def grasp_pcd_collision_check(
     return collision
 
 
-class RobosuiteMPEnv(MPEnv):
+class RobosuitePSLEnv(PSLEnv):
     def __init__(
         self,
         env,
@@ -221,7 +221,7 @@ class RobosuiteMPEnv(MPEnv):
         )
         self.max_path_length = self._wrapped_env.horizon
         self.vertical_displacement = kwargs["vertical_displacement"]
-        self.hardcoded_orientations = kwargs["hardcoded_orientations"]
+        self.estimate_orientation = kwargs["estimate_orientation"]
         self.add_cameras()
         self.controller_configs = dict(
             type="OSC_POSE",
@@ -356,6 +356,13 @@ class RobosuiteMPEnv(MPEnv):
                 self.initial_object_pos.append(
                     self.get_object_pose_mp(obj_idx=obj_idx)[0].copy()
                 )
+
+    def post_reset_burn_in(self):
+        if "NutAssembly" in self.env_name:
+            for _ in range(10):
+                a = np.zeros(7)
+                a[-1] = -1
+                self._wrapped_env.step(a)
 
     def reset(self, get_intermediate_frames=False, **kwargs):
         self.curr_obj_name = self.text_plan[0][0]
@@ -786,7 +793,7 @@ class RobosuiteMPEnv(MPEnv):
                 pos += np.array([0.0, 0.0, self.vertical_displacement])
         else:
             pos = self.placement_poses[self.num_high_level_steps // 2][0]
-        if self.hardcoded_orientations and self.num_high_level_steps % 2 == 0:
+        if self.estimate_orientation and self.num_high_level_steps % 2 == 0:
             for _ in range(2):
                 _, obj_quat = self.get_object_pose_mp(
                     obj_idx=self.num_high_level_steps // 2
@@ -1238,7 +1245,7 @@ class RobosuiteMPEnv(MPEnv):
                 obj_idx = i // 2
         assert obj_idx is not None
         is_grasped = self.check_object_grasp(obj_idx=obj_idx)
-        if self.verify_stable_grasp and is_grasped:
+        if is_grasped:
             pos, quat = self.get_object_pose_mp(obj_idx=obj_idx)
             init_object_pos = (
                 self.initial_object_pos[obj_idx]

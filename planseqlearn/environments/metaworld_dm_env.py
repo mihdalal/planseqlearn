@@ -15,7 +15,7 @@ from planseqlearn.environments.wrappers import (
     get_env_action_spec,
     get_env_observation_spec,
 )
-from planseqlearn.mnm.metaworld_mp_env import MetaworldMPEnv
+from planseqlearn.psl.metaworld_mp_env import MetaworldPSLEnv
 
 ENV_CAMERA_DICT = {
     "assembly-v2": "gripperPOVneg",
@@ -54,15 +54,11 @@ class MT_Wrapper(dm_env.Environment):
         mp_env_kwargs = dict(
             vertical_displacement=0.05,
             teleport_instead_of_mp=not use_mp,
-            randomize_init_target_pos=False,
             mp_bounds_low=(-0.2, 0.6, 0.0),
             mp_bounds_high=(0.2, 0.8, 0.2),
             backtrack_movement_fraction=0.001,
-            clamp_actions=True,
-            update_with_true_state=True,
             grip_ctrl_scale=0.0025,
             planning_time=20,
-            verify_stable_grasp=False,
             teleport_on_grasp=True,
             max_path_length=200,
             use_vision_pose_estimation=False,
@@ -72,7 +68,7 @@ class MT_Wrapper(dm_env.Environment):
         self.mp_env_kwargs = mp_env_kwargs
         self.env_name, self._env = self.sample_env()
         if psl:
-            self._env = MetaworldMPEnv(
+            self._env = MetaworldPSLEnv(
                 self._env,
                 env_name,
                 **mp_env_kwargs,
@@ -99,7 +95,7 @@ class MT_Wrapper(dm_env.Environment):
         self.current_step = 0
         self.env_name, self._env = self.sample_env()
         if self.psl:
-            self._env = MetaworldMPEnv(
+            self._env = MetaworldPSLEnv(
                 self._env, env_name=self.env_name, **self.mp_env_kwargs
             )
         self.physics = Render_Wrapper(self._env.sim.render)

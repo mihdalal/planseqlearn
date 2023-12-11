@@ -3,5 +3,5 @@ defaults:
   - _self_
 
 task_name: robosuite_PickPlaceCan
-hardcoded_orientations: false
+estimate_orientation: false
 vertical_displacement: 0.08

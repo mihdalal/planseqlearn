@@ -16,7 +16,7 @@ from planseqlearn.environments.wrappers import (
     get_env_action_spec,
     get_env_observation_spec,
 )
-from planseqlearn.mnm.kitchen_mp_env import KitchenMPEnv
+from planseqlearn.psl.kitchen_mp_env import KitchenPSLEnv
 from d4rl.kitchen.env_dict import ALL_KITCHEN_ENVIRONMENTS
 
 
@@ -29,24 +29,20 @@ class Kitchen_Wrapper(dm_env.Environment):
         path_length=280,
         psl=False,
         camera_name="fixed",
-        use_eef=True,
     ):
         self.discount = discount
-        if use_eef:
-            env_kwargs = dict(
-                dense=False,  # test also with dense = False
-                image_obs=True,
-                action_scale=1,
-                control_mode="end_effector",
-                frame_skip=40,
-                max_path_length=path_length,
-            )
-            # do preprocessing
-            self._env = ALL_KITCHEN_ENVIRONMENTS[env_name](**env_kwargs)
-        else:
-            self._env = gym.make(env_name)
+        env_kwargs = dict(
+            dense=False,
+            image_obs=True,
+            action_scale=1,
+            control_mode="end_effector",
+            frame_skip=40,
+            max_path_length=path_length,
+        )
+        # do preprocessing
+        self._env = ALL_KITCHEN_ENVIRONMENTS[env_name](**env_kwargs)
         if psl:
-            self._env = KitchenMPEnv(
+            self._env = KitchenPSLEnv(
                 self._env,
                 env_name,
                 use_vision_pose_estimation=False,
@@ -141,7 +137,6 @@ def make_kitchen(
     camera_name,
     path_length=280,
     psl=False,
-    use_eef=True,
 ):
     assert camera_name in ["wrist", "fixed"]
 
@@ -152,7 +147,6 @@ def make_kitchen(
         path_length=path_length,
         psl=psl,
         camera_name=camera_name,
-        use_eef=use_eef,
     )
     env = ActionDTypeWrapper(env, np.float32)
     env = ActionRepeatWrapper(env, action_repeat, use_metaworld_reward_dict=True)
