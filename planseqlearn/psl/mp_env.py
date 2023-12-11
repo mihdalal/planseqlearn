@@ -146,7 +146,7 @@ class PSLEnv(ProxyEnv):
 
     def step(self, action, get_intermediate_frames=False, **kwargs):
         o, r, d, i = self._wrapped_env.step(action)
-        is_grasped = self.check_grasp()  # add verify stable grasp for robosuite
+        is_grasped = self.check_grasp()
         open_gripper_on_tp = False
         if self.teleport_on_grasp:
             take_planner_step = is_grasped

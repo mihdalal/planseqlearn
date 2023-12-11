@@ -467,8 +467,6 @@ class RobosuitePSLEnv(PSLEnv):
                 ]  # self.valid_obj_names[obj_idx - 1]
         elif self.env_name.endswith("Door"):
             obj_string = "latch"
-        elif self.env_name.endswith("Wipe"):
-            obj_string = ""
         elif "NutAssembly" in self.env_name:
             if self.env_name.endswith("Square"):
                 nut = self.nuts[0]
@@ -546,9 +544,6 @@ class RobosuitePSLEnv(PSLEnv):
         elif self.env_name.startswith("Door"):
             object_pos = self.sim.data.site_xpos[self.door_handle_site_id].copy()
             object_quat = np.zeros(4)
-        elif self.env_name.startswith("Wipe"):
-            object_pos = np.zeros(3)
-            object_quat = np.zeros(4)
         elif "NutAssembly" in self.env_name:
             if self.env_name.endswith("Square"):
                 nut = self.nuts[0]
@@ -616,9 +611,6 @@ class RobosuitePSLEnv(PSLEnv):
             object_quat = np.array(
                 [self.sim.data.qpos[self.handle_qpos_addr]]
             )  # this is not what they are, but they will be decoded properly
-        elif self.env_name.startswith("Wipe"):
-            object_pos = np.zeros(3)
-            object_quat = np.zeros(4)
         elif "NutAssembly" in self.env_name:
             if self.env_name.endswith("Square"):
                 nut = self.nuts[0]
@@ -733,7 +725,6 @@ class RobosuitePSLEnv(PSLEnv):
             or self.env_name.endswith("NutAssemblyRound")
             or self.env_name.endswith("NutAssemblySquare")
             or self.env_name.endswith("Door")
-            or self.env_name.endswith("Wipe")
         ):
             object_poses.append(self.get_object_pose_mp(obj_idx=0))
         elif self.env_name.endswith("PickPlace"):
@@ -897,7 +888,7 @@ class RobosuitePSLEnv(PSLEnv):
         return joint_pos
 
     def set_object_pose(self, object_pos, object_quat, obj_idx=0):
-        if len(object_quat) == 4:  # for everything except wipe/door
+        if len(object_quat) == 4: 
             object_quat = T.convert_quat(object_quat, to="wxyz")
         if self.env_name.endswith("Lift"):
             self.sim.data.qpos[9:12] = object_pos
@@ -923,8 +914,6 @@ class RobosuitePSLEnv(PSLEnv):
         elif self.env_name.startswith("Door"):
             self.sim.data.qpos[self.hinge_qpos_addr] = object_pos
             self.sim.data.qpos[self.handle_qpos_addr] = object_quat
-        elif self.env_name.startswith("Wipe"):
-            pass
         elif "NutAssembly" in self.env_name:
             if self.env_name.endswith("Square"):
                 nut = self.nuts[0]
@@ -1055,19 +1044,13 @@ class RobosuitePSLEnv(PSLEnv):
             self.set_object_pose(object_pos, object_quat, obj_idx=obj_idx)
 
         if open_gripper_on_tp:
-            try:
-                self.sim.data.qpos[7:9] = np.array([0.04, -0.04])
-                self.sim.data.qvel[7:9] = np.zeros(2)
-                self.sim.forward()
-            except:
-                pass  # case of wipe
+            self.sim.data.qpos[7:9] = np.array([0.04, -0.04])
+            self.sim.data.qvel[7:9] = np.zeros(2)
+            self.sim.forward()
         else:
-            try:
-                self.sim.data.qpos[7:9] = gripper_qpos
-                self.sim.data.qvel[7:9] = gripper_qvel
-                self.sim.forward()
-            except:
-                pass  # case of wipe
+            self.sim.data.qpos[7:9] = gripper_qpos
+            self.sim.data.qvel[7:9] = gripper_qvel
+            self.sim.forward()
         self.rebuild_controller()
 
     def backtracking_search_from_goal(
@@ -1228,8 +1211,6 @@ class RobosuitePSLEnv(PSLEnv):
                 gripper=self.robots[0].gripper,
                 object_geoms=[self.door],
             )
-        elif self.env_name.endswith("Wipe"):
-            is_grasped = False
         else:
             raise NotImplementedError
         if self.use_vision_grasp_check:
