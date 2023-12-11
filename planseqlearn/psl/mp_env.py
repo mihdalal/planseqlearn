@@ -72,7 +72,6 @@ class PSLEnv(ProxyEnv):
         self.use_llm_plan = use_llm_plan
         self.text_plan = text_plan
         # trajectory information
-        self.num_steps = 0
         self.num_high_level_steps = 0
         self.object_idx = 0
 
@@ -95,7 +94,6 @@ class PSLEnv(ProxyEnv):
         raise NotImplementedError
 
     def reset(self, get_intermediate_frames=False, **kwargs):
-        self.num_steps = 0
         self.num_high_level_steps = 0
         self.object_idx = 0
         # reset wrapped env
@@ -103,16 +101,14 @@ class PSLEnv(ProxyEnv):
         self.post_reset_burn_in()
 
         # initialize trajectory variables
-        self.ep_step_ctr = 0
         self.num_high_level_steps = 0
-        self.num_steps = 0
-        self.current_ll_policy_steps = 0
 
         # reset position
-        self.reset_pos = self._eef_xpos.copy()
-        self.reset_ori = self._eef_xquat.copy()
-        self.reset_qpos = self.sim.data.qpos.copy()
-        self.reset_qvel = self.sim.data.qvel.copy()
+        self.reset_pos, self.reset_ori = self._eef_xpos.copy(), self._eef_xquat.copy()
+        self.reset_qpos, self.reset_qvel = (
+            self.sim.data.qpos.copy(),
+            self.sim.data.qvel.copy(),
+        )
         self.initial_object_pos = self.get_object_pose_mp(obj_idx=0)[0].copy()
         self.placement_poses = self.get_placement_poses()
         try:
@@ -150,8 +146,6 @@ class PSLEnv(ProxyEnv):
 
     def step(self, action, get_intermediate_frames=False, **kwargs):
         o, r, d, i = self._wrapped_env.step(action)
-        self.num_steps += 1
-        self.ep_step_ctr += 1
         is_grasped = self.check_grasp()  # add verify stable grasp for robosuite
         open_gripper_on_tp = False
         if self.teleport_on_grasp:

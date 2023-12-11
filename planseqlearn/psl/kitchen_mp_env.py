@@ -612,8 +612,6 @@ class KitchenPSLEnv(PSLEnv):
 
     def step(self, action, get_intermediate_frames=False, **kwargs):
         o, r, d, i = self._wrapped_env.step(action)
-        self.num_steps += 1
-        self.ep_step_ctr += 1
         take_planner_step = r > 0  # if succeeded at subtask, jump to next subtask
         if take_planner_step:
             target_pos, target_quat = self.get_target_pos()

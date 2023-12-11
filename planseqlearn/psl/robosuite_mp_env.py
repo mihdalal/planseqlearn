@@ -626,7 +626,6 @@ class RobosuitePSLEnv(PSLEnv):
                 nut = self.nuts[1]
             elif self.env_name.endswith("NutAssembly"):
                 nut = self.nuts[1 - obj_idx]  # first nut is round, second nut is square
-            nut_name = nut.name
             if nut.name == "SquareNut":
                 return np.array(self.sim.data.qpos[9:12]), T.convert_quat(
                     self.sim.data.qpos[12:16], to="xyzw"
@@ -1356,8 +1355,6 @@ class RobosuitePSLEnv(PSLEnv):
                 self.sim.step()
                 self._update_observables()
                 policy_step = False
-            if hasattr(self, "num_steps"):
-                self.num_steps += 1
 
     def get_eef_xpos(self):
         return self._eef_xpos
