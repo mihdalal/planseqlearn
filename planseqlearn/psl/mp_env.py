@@ -84,6 +84,9 @@ class PSLEnv(ProxyEnv):
     def check_grasp(self, **kwargs):
         raise NotImplementedError
 
+    def check_place(self, **kwargs):
+        raise NotImplementedError
+
     def check_robot_collision(self, is_grasped=False):
         raise NotImplementedError
 
@@ -92,6 +95,9 @@ class PSLEnv(ProxyEnv):
 
     def get_object_pose_mp(self, obj_idx=0):
         raise NotImplementedError
+
+    def get_all_initial_object_poses(self):
+        self.initial_object_pos = [self.get_object_pose_mp(obj_idx=0)[0].copy()]
 
     def reset(self, get_intermediate_frames=False, **kwargs):
         self.num_high_level_steps = 0
@@ -109,12 +115,8 @@ class PSLEnv(ProxyEnv):
             self.sim.data.qpos.copy(),
             self.sim.data.qvel.copy(),
         )
-        self.initial_object_pos = self.get_object_pose_mp(obj_idx=0)[0].copy()
         self.placement_poses = self.get_placement_poses()
-        try:
-            self.get_all_initial_poses()
-        except:
-            pass
+        self.get_all_initial_object_poses()
         self.update_controllers()
         target_pos, target_quat = self.get_target_pos()
         if self.teleport_instead_of_mp:

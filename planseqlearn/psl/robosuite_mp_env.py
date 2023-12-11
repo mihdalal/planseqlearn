@@ -349,13 +349,15 @@ class RobosuitePSLEnv(PSLEnv):
         self.set_robot_colors(self.original_colors)
         self.sim.forward()
 
-    def get_all_initial_poses(self):
+    def get_all_initial_object_poses(self):
         if self.env_name.endswith("PickPlace"):
             self.initial_object_pos = []
             for obj_idx in range(len(self.valid_obj_names)):
                 self.initial_object_pos.append(
                     self.get_object_pose_mp(obj_idx=obj_idx)[0].copy()
                 )
+        else:
+            self.initial_object_pos = [self.get_object_pose_mp(obj_idx=0)[0].copy()]
 
     def post_reset_burn_in(self):
         if "NutAssembly" in self.env_name:
@@ -1227,11 +1229,7 @@ class RobosuitePSLEnv(PSLEnv):
         is_grasped = self.check_object_grasp(obj_idx=obj_idx)
         if is_grasped:
             pos, quat = self.get_object_pose_mp(obj_idx=obj_idx)
-            init_object_pos = (
-                self.initial_object_pos[obj_idx]
-                if type(self.initial_object_pos) is list
-                else self.initial_object_pos
-            )
+            init_object_pos = self.initial_object_pos[obj_idx]
             is_grasped = is_grasped and (pos[2] - init_object_pos[2]) > 0.005
         return is_grasped
 

@@ -164,7 +164,6 @@ class MetaworldPSLEnv(PSLEnv):
         ]
         self.max_path_length = kwargs["max_path_length"]
         self.hardcoded_text_plan = self.get_hardcoded_text_plan()
-        self.initial_object_pos = self.get_object_pose()[0].copy()
 
     def get_body_geom_ids_from_robot_bodies(self):
         body_ids = [self.sim.model.body_name2id(body) for body in self.geom_bodies]
@@ -401,7 +400,7 @@ class MetaworldPSLEnv(PSLEnv):
             return contact_grasp
         return (
             contact_grasp
-            and abs(self.get_object_pose()[0][2] - self.initial_object_pos[2]) > 0.03
+            and abs(self.get_object_pose()[0][2] - self.initial_object_pos[0][2]) > 0.03
         )
 
     def set_object_pose(self, object_pos, object_quat):
@@ -409,7 +408,6 @@ class MetaworldPSLEnv(PSLEnv):
 
     def get_target_pos(self):
         if self.num_high_level_steps % 2 == 0:
-            # pos = self.object_poses[self.num_high_level_steps // 2][0]
             pos = self.get_object_pose_mp()[0]
         else:
             pos = self.placement_poses[(self.num_high_level_steps - 1) // 2][0]
