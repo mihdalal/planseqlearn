@@ -10,7 +10,7 @@ from planseqlearn.environments.wrappers import (
     ActionDTypeWrapper,
     ActionRepeatWrapper,
     ExtendedTimeStepWrapper,
-    FrameStackWrapper
+    FrameStackWrapper,
 )
 import robosuite as suite
 from planseqlearn.mnm.robosuite_mp_env import RobosuiteMPEnv

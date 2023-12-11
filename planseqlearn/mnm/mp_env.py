@@ -155,7 +155,7 @@ class MPEnv(ProxyEnv):
             if take_planner_step:
                 self.teleport_on_grasp = False
                 self.teleport_on_place = True
-        elif self.teleport_on_place:  
+        elif self.teleport_on_place:
             # object we are checking is the number of high level steps we have taken so far
             placed = self.check_object_placement(obj_idx=self.object_idx)
             take_planner_step = (

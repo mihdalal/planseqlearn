@@ -9,7 +9,6 @@ from robosuite.utils.transform_utils import (
 )
 
 
-
 def set_robot_based_on_ee_pos(
     env,
     target_pos,
