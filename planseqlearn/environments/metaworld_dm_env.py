@@ -45,6 +45,7 @@ class MT_Wrapper(dm_env.Environment):
         proprioceptive_state=True,
         psl=False,
         use_mp=False,
+        use_sam_segmentation=False,
     ):
         self.discount = discount
         self.mt = metaworld.MT1(env_name, seed=seed)
@@ -62,7 +63,7 @@ class MT_Wrapper(dm_env.Environment):
             teleport_on_grasp=True,
             max_path_length=200,
             use_vision_pose_estimation=False,
-            use_sam_segmentation=False,
+            use_sam_segmentation=use_sam_segmentation,
         )
         self.psl = psl
         self.mp_env_kwargs = mp_env_kwargs
@@ -180,6 +181,7 @@ def make_metaworld(
     camera_name,
     psl=False,
     use_mp=False,
+    use_sam_segmentation=False,
 ):
     env = MT_Wrapper(
         env_name=name,
@@ -188,6 +190,7 @@ def make_metaworld(
         proprioceptive_state=True,
         psl=psl,
         use_mp=use_mp,
+        use_sam_segmentation=use_sam_segmentation,
     )
 
     env = ActionDTypeWrapper(env, np.float32)

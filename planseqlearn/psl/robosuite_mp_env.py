@@ -277,10 +277,6 @@ class RobosuitePSLEnv(PSLEnv):
                 if obj_name in self.valid_obj_names:
                     self.pick_place_bin_names[obj_name] = idx
                     idx += 1
-        if self.text_plan is None:
-            self.text_plan = self.get_hardcoded_text_plan()
-            print(f"Text plan: {self.text_plan}")
-        self.curr_obj_name = self.text_plan[0][0]
         self.robot = URDF.load(
             robosuite.__file__[: -len("/__init__.py")]
             + "/models/assets/bullet_data/panda_description/urdf/panda_arm_hand.urdf"
@@ -300,6 +296,409 @@ class RobosuitePSLEnv(PSLEnv):
             ]
         )
         self.retry = False
+    
+    def reset_precompute_sam_poses(self):
+        self.sam_object_pose = {}
+        if self.env_name == "Lift":
+            frame = self.sim.render(camera_name="frontview", width=500, height=500)
+            obj_masks, _, _, pred_phrases, _ = get_seg_mask(
+                np.flipud(frame[:, :, ::-1]),
+                self.dino,
+                self.sam,
+                text_prompts=["small red cube"],
+                box_threshold=0.35,
+                text_threshold=0.25,
+                device="cuda",
+                debug=True,
+                output_dir="sam_outputs",
+            )
+            object_mask = obj_masks[-1].cpu().detach().numpy()[0, :, :]
+            depth_map = get_camera_depth(
+                camera_name="frontview",
+                camera_width=500,
+                camera_height=500,
+                sim=self.sim,
+            )
+            depth_map = np.expand_dims(
+                CU.get_real_depth_map(sim=self.sim, depth_map=depth_map), -1
+            )
+            world_to_camera = CU.get_camera_transform_matrix(
+                sim=self.sim,
+                camera_name="frontview",
+                camera_height=500,
+                camera_width=500,
+            )
+            camera_to_world = np.linalg.inv(world_to_camera)
+            object_pixels = np.argwhere(object_mask)
+            object_pointcloud = CU.transform_from_pixels_to_world(
+                pixels=object_pixels,
+                depth_map=depth_map[..., 0],
+                camera_to_world_transform=camera_to_world,
+            )
+            self.sam_object_pose["red cube"] = np.mean(object_pointcloud, axis=0)
+        elif self.env_name == "Door":
+            frame = self.sim.render(camera_name="frontview", width=500, height=500)
+            obj_masks, _, _, pred_phrases, _ = get_seg_mask(
+                np.flipud(frame[:, :, ::-1]),
+                self.dino,
+                self.sam,
+                text_prompts=["black door"],
+                box_threshold=0.30,
+                text_threshold=0.25,
+                device="cuda",
+                debug=True,
+                output_dir="sam_outputs",
+            )
+            object_mask = obj_masks[-1].cpu().detach().numpy()[0, :, :]
+            depth_map = get_camera_depth(
+                camera_name="frontview",
+                camera_width=500,
+                camera_height=500,
+                sim=self.sim,
+            )
+            depth_map = np.expand_dims(
+                CU.get_real_depth_map(sim=self.sim, depth_map=depth_map), -1
+            )
+            world_to_camera = CU.get_camera_transform_matrix(
+                sim=self.sim,
+                camera_name="frontview",
+                camera_height=500,
+                camera_width=500,
+            )
+            camera_to_world = np.linalg.inv(world_to_camera)
+            object_pixels = np.argwhere(object_mask)
+            object_pointcloud = CU.transform_from_pixels_to_world(
+                pixels=object_pixels,
+                depth_map=depth_map[..., 0],
+                camera_to_world_transform=camera_to_world,
+            )
+            self.sam_object_pose["door"] = np.mean(object_pointcloud, axis=0) + np.array([0., 0.08, 0.07])
+        elif self.env_name == "NutAssemblySquare":
+            frame = self.sim.render(camera_name="agentview", width=500, height=500)
+            obj_masks, _, _, pred_phrases, _ = get_seg_mask(
+                np.flipud(frame[:, :, ::-1]),
+                self.dino,
+                self.sam,
+                text_prompts=["gold square key"],
+                box_threshold=0.30,
+                text_threshold=0.25,
+                device="cuda",
+                debug=True,
+                output_dir="sam_outputs",
+            )
+            object_mask = obj_masks[-1].cpu().detach().numpy()[0, :, :]
+            placement_mask = obj_masks[1].cpu().detach().numpy()[0, :, :]
+            depth_map = get_camera_depth(
+                camera_name="agentview",
+                camera_width=500,
+                camera_height=500,
+                sim=self.sim,
+            )
+            depth_map = np.expand_dims(
+                CU.get_real_depth_map(sim=self.sim, depth_map=depth_map), -1
+            )
+            world_to_camera = CU.get_camera_transform_matrix(
+                sim=self.sim,
+                camera_name="agentview",
+                camera_height=500,
+                camera_width=500,
+            )
+            camera_to_world = np.linalg.inv(world_to_camera)
+            object_pixels = np.argwhere(object_mask)
+            placement_pixels = np.argwhere(placement_mask)
+            object_pointcloud = CU.transform_from_pixels_to_world(
+                pixels=object_pixels,
+                depth_map=depth_map[..., 0],
+                camera_to_world_transform=camera_to_world,
+            )
+            placement_pointcloud = CU.transform_from_pixels_to_world(
+                pixels=placement_pixels,
+                depth_map=depth_map[..., 0],
+                camera_to_world_transform=camera_to_world,
+            )
+            self.sam_object_pose["gold square nut"] = np.mean(object_pointcloud, axis=0)
+            self.sam_object_pose["gold peg"] = np.mean(placement_pointcloud, axis=0)
+        elif self.env_name == "NutAssemblyRound":
+            frame = self.sim.render(camera_name="agentview", width=500, height=500)
+            obj_masks, _, _, pred_phrases, _ = get_seg_mask(
+                np.flipud(frame[:, :, ::-1]),
+                self.dino,
+                self.sam,
+                text_prompts=["silver round nut"],
+                box_threshold=0.3,
+                text_threshold=0.25,
+                device="cuda",
+                debug=True,
+                output_dir="sam_outputs",
+            )
+            object_mask = obj_masks[1].cpu().detach().numpy()[0, :, :]
+            placement_mask = obj_masks[-1].cpu().detach().numpy()[0, :, :]
+            depth_map = get_camera_depth(
+                camera_name="agentview",
+                camera_width=500,
+                camera_height=500,
+                sim=self.sim,
+            )
+            depth_map = np.expand_dims(
+                CU.get_real_depth_map(sim=self.sim, depth_map=depth_map), -1
+            )
+            world_to_camera = CU.get_camera_transform_matrix(
+                sim=self.sim,
+                camera_name="agentview",
+                camera_height=500,
+                camera_width=500,
+            )
+            camera_to_world = np.linalg.inv(world_to_camera)
+            object_pixels = np.argwhere(object_mask)
+            placement_pixels = np.argwhere(placement_mask)
+            object_pointcloud = CU.transform_from_pixels_to_world(
+                pixels=object_pixels,
+                depth_map=depth_map[..., 0],
+                camera_to_world_transform=camera_to_world,
+            )
+            placement_pointcloud = CU.transform_from_pixels_to_world(
+                pixels=object_pixels,
+                depth_map=depth_map[..., 0],
+                camera_to_world_transform=camera_to_world,
+            )
+            self.sam_object_pose["silver round nut"] = np.mean(object_pointcloud, axis=0)
+            self.sam_object_pose["silver peg"] = np.mean(placement_pointcloud, axis=0)
+        elif self.env_name == "PickPlaceCan":
+            frame = self.sim.render(camera_name="agentview", width=500, height=500)
+            obj_masks, _, _, pred_phrases, _ = get_seg_mask(
+                np.flipud(frame[:, :, ::-1]),
+                self.dino,
+                self.sam,
+                text_prompts=["red can"],
+                box_threshold=0.30,
+                text_threshold=0.25,
+                device="cuda",
+                debug=True,
+                output_dir="sam_outputs",
+            )
+            object_mask = obj_masks[-1].cpu().detach().numpy()[0, :, :]
+            depth_map = get_camera_depth(
+                camera_name="agentview",
+                camera_width=500,
+                camera_height=500,
+                sim=self.sim,
+            )
+            depth_map = np.expand_dims(
+                CU.get_real_depth_map(sim=self.sim, depth_map=depth_map), -1
+            )
+            world_to_camera = CU.get_camera_transform_matrix(
+                sim=self.sim,
+                camera_name="agentview",
+                camera_height=500,
+                camera_width=500,
+            )
+            camera_to_world = np.linalg.inv(world_to_camera)
+            object_pixels = np.argwhere(object_mask)
+            object_pointcloud = CU.transform_from_pixels_to_world(
+                pixels=object_pixels,
+                depth_map=depth_map[..., 0],
+                camera_to_world_transform=camera_to_world,
+            )
+            self.sam_object_pose["red can"] = np.mean(object_pointcloud, axis=0) 
+        elif self.env_name == "PickPlaceCereal":
+            frame = self.sim.render(camera_name="robot0_robotview", width=500, height=500)
+            obj_masks, _, _, pred_phrases, _ = get_seg_mask(
+                np.flipud(frame[:, :, ::-1]),
+                self.dino,
+                self.sam,
+                text_prompts=["red cereal box"],
+                box_threshold=0.30,
+                text_threshold=0.25,
+                device="cuda",
+                debug=True,
+                output_dir="sam_outputs",
+            )
+            object_mask = obj_masks[0].cpu().detach().numpy()[0, :, :]
+            depth_map = get_camera_depth(
+                camera_name="robot0_robotview",
+                camera_width=500,
+                camera_height=500,
+                sim=self.sim,
+            )
+            depth_map = np.expand_dims(
+                CU.get_real_depth_map(sim=self.sim, depth_map=depth_map), -1
+            )
+            world_to_camera = CU.get_camera_transform_matrix(
+                sim=self.sim,
+                camera_name="robot0_robotview",
+                camera_height=500,
+                camera_width=500,
+            )
+            camera_to_world = np.linalg.inv(world_to_camera)
+            object_pixels = np.argwhere(object_mask)
+            object_pointcloud = CU.transform_from_pixels_to_world(
+                pixels=object_pixels,
+                depth_map=depth_map[..., 0],
+                camera_to_world_transform=camera_to_world,
+            )
+            self.sam_object_pose["cereal box"] = np.mean(object_pointcloud, axis=0)
+        elif self.env_name == "PickPlaceBread":
+            frame = self.sim.render(camera_name="robot0_robotview", width=500, height=500)
+            obj_masks, _, _, pred_phrases, _ = get_seg_mask(
+                np.flipud(frame[:, :, ::-1]),
+                self.dino,
+                self.sam,
+                text_prompts=["small brown box"],
+                box_threshold=0.30,
+                text_threshold=0.25,
+                device="cuda",
+                debug=True,
+                output_dir="sam_outputs",
+            )
+            object_mask = obj_masks[0].cpu().detach().numpy()[0, :, :]
+            depth_map = get_camera_depth(
+                camera_name="robot0_robotview",
+                camera_width=500,
+                camera_height=500,
+                sim=self.sim,
+            )
+            depth_map = np.expand_dims(
+                CU.get_real_depth_map(sim=self.sim, depth_map=depth_map), -1
+            )
+            world_to_camera = CU.get_camera_transform_matrix(
+                sim=self.sim,
+                camera_name="robot0_robotview",
+                camera_height=500,
+                camera_width=500,
+            )
+            camera_to_world = np.linalg.inv(world_to_camera)
+            object_pixels = np.argwhere(object_mask)
+            object_pointcloud = CU.transform_from_pixels_to_world(
+                pixels=object_pixels,
+                depth_map=depth_map[..., 0],
+                camera_to_world_transform=camera_to_world,
+            )
+            self.sam_object_pose["bread"] = np.mean(object_pointcloud, axis=0) 
+        elif self.env_name == "PickPlaceMilk":
+            frame = self.sim.render(camera_name="agentview", width=500, height=500)
+            obj_masks, _, _, pred_phrases, _ = get_seg_mask(
+                np.flipud(frame[:, :, ::-1]),
+                self.dino,
+                self.sam,
+                text_prompts=["robot, white milk carton"],
+                box_threshold=0.30,
+                text_threshold=0.25,
+                device="cuda",
+                debug=True,
+                output_dir="sam_outputs",
+            )
+            object_mask = obj_masks[1].cpu().detach().numpy()[0, :, :]
+            depth_map = get_camera_depth(
+                camera_name="agentview",
+                camera_width=500,
+                camera_height=500,
+                sim=self.sim,
+            )
+            depth_map = np.expand_dims(
+                CU.get_real_depth_map(sim=self.sim, depth_map=depth_map), -1
+            )
+            world_to_camera = CU.get_camera_transform_matrix(
+                sim=self.sim,
+                camera_name="agentview",
+                camera_height=500,
+                camera_width=500,
+            )
+            camera_to_world = np.linalg.inv(world_to_camera)
+            object_pixels = np.argwhere(object_mask)
+            object_pointcloud = CU.transform_from_pixels_to_world(
+                pixels=object_pixels,
+                depth_map=depth_map[..., 0],
+                camera_to_world_transform=camera_to_world,
+            )
+            self.sam_object_pose["milk carton"] = np.mean(object_pointcloud, axis=0)
+        # placement for nut assembly
+        if self.env_name.startswith("NutAssembly"):
+            frame = self.sim.render(camera_name="robot0_robotview", width=500, height=500)
+            obj_masks, _, _, pred_phrases, _ = get_seg_mask(
+                np.flipud(frame[:, :, ::-1]),
+                self.dino,
+                self.sam,
+                text_prompts=["tall cylinder"],
+                box_threshold=0.4,
+                text_threshold=0.25,
+                device="cuda",
+                debug=True,
+                output_dir="sam_outputs",
+            )
+            gold_mask = obj_masks[0].cpu().detach().numpy()[0, :, :]
+            silver_mask = obj_masks[1].cpu().detach().numpy()[0, :, :]
+            depth_map = get_camera_depth(
+                camera_name="robot0_robotview",
+                camera_width=500,
+                camera_height=500,
+                sim=self.sim,
+            )
+            depth_map = np.expand_dims(
+                CU.get_real_depth_map(sim=self.sim, depth_map=depth_map), -1
+            )
+            world_to_camera = CU.get_camera_transform_matrix(
+                sim=self.sim,
+                camera_name="robot0_robotview",
+                camera_height=500,
+                camera_width=500,
+            )
+            camera_to_world = np.linalg.inv(world_to_camera)
+            gold_pixels = np.argwhere(gold_mask)
+            gold_pointcloud = CU.transform_from_pixels_to_world(
+                pixels=gold_pixels,
+                depth_map=depth_map[..., 0],
+                camera_to_world_transform=camera_to_world,
+            )
+            silver_pixels = np.argwhere(gold_mask)
+            silver_pointcloud = CU.transform_from_pixels_to_world(
+                pixels=silver_pixels,
+                depth_map=depth_map[..., 0],
+                camera_to_world_transform=camera_to_world,
+            )
+            self.sam_object_pose['gold peg'] = np.mean(gold_pointcloud, axis=0)
+            self.sam_object_pose['silver peg'] = np.mean(silver_pointcloud, axis=0)
+        # placement for pick place
+        if self.env_name.startswith("PickPlace"):
+            frame = self.sim.render(camera_name="birdview", width=500, height=500)
+            obj_masks, _, _, pred_phrases, _ = get_seg_mask(
+                np.flipud(frame[:, :, ::-1]),
+                self.dino,
+                self.sam,
+                text_prompts=["grid"],
+                box_threshold=0.4,
+                text_threshold=0.25,
+                device="cuda",
+                debug=True,
+                output_dir="sam_outputs",
+            )
+            object_mask = obj_masks[0].cpu().detach().numpy()[0, :, :]
+            depth_map = get_camera_depth(
+                camera_name="birdview",
+                camera_width=500,
+                camera_height=500,
+                sim=self.sim,
+            )
+            depth_map = np.expand_dims(
+                CU.get_real_depth_map(sim=self.sim, depth_map=depth_map), -1
+            )
+            world_to_camera = CU.get_camera_transform_matrix(
+                sim=self.sim,
+                camera_name="birdview",
+                camera_height=500,
+                camera_width=500,
+            )
+            camera_to_world = np.linalg.inv(world_to_camera)
+            object_pixels = np.argwhere(object_mask)
+            object_pointcloud = CU.transform_from_pixels_to_world(
+                pixels=object_pixels,
+                depth_map=depth_map[..., 0],
+                camera_to_world_transform=camera_to_world,
+            )
+            bin_center = np.mean(object_pointcloud, axis=0)
+            self.sam_object_pose["bin1"] = bin_center + np.array([-0.075, -0.13, -0.04])
+            self.sam_object_pose["bin2"] = bin_center + np.array([-0.075, 0.13, -0.04])
+            self.sam_object_pose["bin3"] = bin_center + np.array([0.075, -0.13, -0.04])
+            self.sam_object_pose["bin4"] = bin_center + np.array([-0.075, 0.13, -0.04])
 
     def get_body_geom_ids_from_robot_bodies(self):
         body_ids = [self.sim.model.body_name2id(body) for body in self.robot_bodies]
@@ -312,31 +711,31 @@ class RobosuitePSLEnv(PSLEnv):
     def get_hardcoded_text_plan(self):
         plan = []
         if self.env_name == "PickPlaceCan":
-            return [("red can", "grasp"), ("bin 4", "place")]
+            return [("red can", "grasp"), ("bin4", "place")]
         if self.env_name == "PickPlaceBread":
-            return [("bread", "grasp"), ("bin 2", "place")]
+            return [("bread", "grasp"), ("bin2", "place")]
         if self.env_name == "PickPlaceMilk":
-            return [("milk carton", "grasp"), ("bin 1", "place")]
+            return [("milk carton", "grasp"), ("bin1", "place")]
         if self.env_name == "PickPlaceCereal":
-            return [("cereal box", "grasp"), ("bin 3", "place")]
+            return [("cereal box", "grasp"), ("bin3", "place")]
         if self.env_name == "PickPlace":
             for name in self.valid_obj_names:
-                plan.append((name, "grasp"))
-                plan.append((f"bin {self.pick_place_bin_names[name]}", "place"))
+                plan.append((name.lower(), "grasp"))
+                plan.append((f"bin{self.pick_place_bin_names[name]}", "place"))
             return plan
         if self.env_name == "Lift":
-            return [("red cube", "grasp"), (None, None)]
+            return [("red cube", "grasp")]
         if self.env_name == "Door":
-            return [("door", "grasp"), (None, None)]
+            return [("door", "grasp")]
         if self.env_name == "NutAssemblyRound":
-            return [("silver nut", "grasp"), ("silver peg", "place")]
+            return [("silver round nut", "grasp"), ("silver peg", "place")]
         if self.env_name == "NutAssemblySquare":
-            return [("gold nut", "grasp"), ("gold peg", "place")]
+            return [("gold square nut", "grasp"), ("gold peg", "place")]
         if self.env_name == "NutAssembly":
-            return [("silver round nut", "grasp"), ("silver peg", "place")] + [
+            return [
                 ("gold square nut", "grasp"),
                 ("gold peg", "place"),
-            ]
+            ] + [("silver round nut", "grasp"), ("silver peg", "place")] 
 
     def set_robot_colors(self, colors):
         if type(colors) is np.ndarray:
@@ -350,14 +749,23 @@ class RobosuitePSLEnv(PSLEnv):
         self.sim.forward()
 
     def get_all_initial_object_poses(self):
-        if self.env_name.endswith("PickPlace"):
-            self.initial_object_pos = []
-            for obj_idx in range(len(self.valid_obj_names)):
-                self.initial_object_pos.append(
-                    self.get_object_pose_mp(obj_idx=obj_idx)[0].copy()
-                )
+        if self.env_name.endswith("NutAssembly"):
+            # self.initial_object_pos = [
+            #     self.get_object_pose_mp(obj_idx=0)[0].copy(),
+            #     self.get_object_pose_mp(obj_idx=1)[0].copy(),
+            # ]
+            # self.initial_object_pos_dict = {}
+            # self.initial_object_pos_dict["gold square nut"] = self.initial_object_pos[0].copy()
+            # self.initial_object_pos_dict["silver round nut"] = self.initial_object_pos[1].copy()
+            self.initial_object_pos_dict = {}
+            for obj_name, action in self.text_plan:
+                if action == "grasp":
+                    self.initial_object_pos_dict[obj_name] = self.named_get_object_pose_mp(obj_name)[0].copy()
         else:
-            self.initial_object_pos = [self.get_object_pose_mp(obj_idx=0)[0].copy()]
+            self.initial_object_pos_dict = {}
+            for obj_name, action in self.text_plan:
+                if action == "grasp":
+                    self.initial_object_pos_dict[obj_name] = self.named_get_object_pose_mp(obj_name)[0].copy()
 
     def post_reset_burn_in(self):
         if "NutAssembly" in self.env_name:
@@ -367,7 +775,6 @@ class RobosuitePSLEnv(PSLEnv):
                 self._wrapped_env.step(a)
 
     def reset(self, get_intermediate_frames=False, **kwargs):
-        self.curr_obj_name = self.text_plan[0][0]
         o = super().reset(get_intermediate_frames=get_intermediate_frames, **kwargs)
         return o
 
@@ -451,49 +858,50 @@ class RobosuitePSLEnv(PSLEnv):
             ]
             return np.flipud(im)
 
-    def get_object_string(self, obj_idx=0):
-        if self.env_name.endswith("Lift"):
-            obj_string = "cube"
-        elif self.env_name.startswith("PickPlace"):
-            if self.env_name.endswith("Bread"):
-                obj_string = "Bread"
-            elif self.env_name.endswith("Can"):
-                obj_string = "Can"
-            elif self.env_name.endswith("Milk"):
-                obj_string = "Milk"
-            elif self.env_name.endswith("Cereal"):
-                obj_string = "Cereal"
-            else:
-                obj_string = self.text_plan[obj_idx * 2][
-                    0
-                ]  # self.valid_obj_names[obj_idx - 1]
-        elif self.env_name.endswith("Door"):
-            obj_string = "latch"
-        elif "NutAssembly" in self.env_name:
-            if self.env_name.endswith("Square"):
-                nut = self.nuts[0]
-            elif self.env_name.endswith("Round"):
-                nut = self.nuts[1]
-            elif self.env_name.endswith("NutAssembly"):
-                nut = self.nuts[1 - obj_idx]  # first nut is round, second nut is square
-            obj_string = nut.name
-        else:
-            raise NotImplementedError
-        return obj_string
+    # def get_object_string(self, obj_idx=0):
+    #     if self.env_name.endswith("Lift"):
+    #         obj_string = "cube"
+    #     elif self.env_name.startswith("PickPlace"):
+    #         if self.env_name.endswith("Bread"):
+    #             obj_string = "Bread"
+    #         elif self.env_name.endswith("Can"):
+    #             obj_string = "Can"
+    #         elif self.env_name.endswith("Milk"):
+    #             obj_string = "Milk"
+    #         elif self.env_name.endswith("Cereal"):
+    #             obj_string = "Cereal"
+    #         else:
+    #             obj_string = self.text_plan[obj_idx * 2][
+    #                 0
+    #             ]  # self.valid_obj_names[obj_idx - 1]
+    #     elif self.env_name.endswith("Door"):
+    #         obj_string = "latch"
+    #     elif "NutAssembly" in self.env_name:
+    #         if self.env_name.endswith("Square"):
+    #             nut = self.nuts[0]
+    #         elif self.env_name.endswith("Round"):
+    #             nut = self.nuts[1]
+    #         elif self.env_name.endswith("NutAssembly"):
+    #             nut = self.nuts[1 - obj_idx]  # first nut is round, second nut is square
+    #         obj_string = nut.name
+    #     else:
+    #         raise NotImplementedError
+    #     return obj_string
 
-    def compute_correct_obj_idx(self, obj_idx=0):
-        if self.env_name.startswith("PickPlace"):
-            valid_obj_names = self.valid_obj_names
-            obj_string_to_idx = {}
-            idx = 0
-            for obj_name in ["Milk", "Bread", "Cereal", "Can"]:
-                if obj_name in valid_obj_names:
-                    obj_string_to_idx[obj_name] = idx
-                    idx += 1
-            new_obj_idx = obj_string_to_idx[self.get_object_string(obj_idx=obj_idx)]
-        else:
-            new_obj_idx = obj_idx
-        return new_obj_idx
+    # def compute_correct_obj_idx(self, obj_idx=0):
+    #     if self.env_name.startswith("PickPlace"):
+    #         valid_obj_names = self.valid_obj_names
+    #         print(self.valid_obj_names)
+    #         obj_string_to_idx = {}
+    #         idx = 0
+    #         for obj_name in ["Milk", "Bread", "Cereal", "Can"]:
+    #             if obj_name in valid_obj_names:
+    #                 obj_string_to_idx[obj_name.lower()] = idx
+    #                 idx += 1
+    #         new_obj_idx = obj_string_to_idx[self.get_object_string(obj_idx=obj_idx)]
+    #     else:
+    #         new_obj_idx = obj_idx
+    #     return new_obj_idx
 
     def curr_obj_name_to_env_idx(self):
         if self.env_name.startswith("PickPlace"):
@@ -562,7 +970,11 @@ class RobosuitePSLEnv(PSLEnv):
             raise NotImplementedError
         if self.use_vision_pose_estimation:
             if not self.use_sam_segmentation:
-                object_pcd = compute_object_pcd(self, obj_idx=obj_idx)
+                #object_pcd = compute_object_pcd(self, obj_idx=obj_idx)
+                if obj_idx == 0:
+                    object_pcd = compute_object_pcd(self, obj_name="gold")
+                if obj_idx == 1:
+                    object_pcd = compute_object_pcd(self, obj_name="silver")
                 object_pos = np.mean(object_pcd, axis=0)
                 if self.env_name.startswith("Door"):
                     object_pos[0] -= 0.15
@@ -775,29 +1187,148 @@ class RobosuitePSLEnv(PSLEnv):
         self.sim.forward()
         return target_quat
 
-    def get_target_pos(self):
-        if self.num_high_level_steps % 2 == 0:
-            # pos = self.object_poses[self.num_high_level_steps // 2][0]
-            pos = self.get_object_pose_mp(self.num_high_level_steps // 2)[0].copy()
-            if self.curr_obj_name == "Bread":
-                pos += np.array([0.0, 0.0, 0.06])
-            else:
-                pos += np.array([0.0, 0.0, self.vertical_displacement])
+    def named_get_object_pose_mp(self, obj_name):
+        if self.use_sam_segmentation:
+            object_pos = self.sam_object_pose[obj_name].copy()
+            object_quat = self.named_get_object_pose(obj_name)[1].copy()
+        elif self.use_vision_pose_estimation:
+            object_pcd = compute_object_pcd(self, obj_name=obj_name)
+            object_pos = np.mean(object_pcd, axis=0)
+            object_quat = np.zeros(4) if self.text_plan[self.curr_plan_stage][1] == "place" \
+                else self.named_get_object_pose(obj_name)[1].copy()
+            if "place" == self.text_plan[self.curr_plan_stage][1]:
+                object_pos += 0.125
         else:
-            pos = self.placement_poses[self.num_high_level_steps // 2][0]
-        if self.estimate_orientation and self.num_high_level_steps % 2 == 0:
-            for _ in range(2):
-                _, obj_quat = self.get_object_pose_mp(
-                    obj_idx=self.num_high_level_steps // 2
+            if self.env_name.endswith("Lift"):
+                assert "cube" in obj_name.lower(), f"Object {obj_name} does not exist in environment!"
+                object_pos = self.sim.data.qpos[9:12].copy()
+                object_quat = T.convert_quat(self.sim.data.qpos[12:16].copy(), to="xyzw")
+            elif self.env_name.startswith("PickPlaceMilk"):
+                assert "milk" in obj_name.lower(), f"Object {obj_name} does not exist in environment!"
+                object_pos = self.sim.data.qpos[9:12].copy()
+                object_quat = T.convert_quat(self.sim.data.qpos[12:16].copy(), to="xyzw")
+            elif self.env_name.startswith("PickPlaceBread"):
+                assert "bread" in obj_name.lower(), f"Object {obj_name} does not exist in environment!"
+                object_pos = self.sim.data.qpos[16:19].copy()
+                object_quat = T.convert_quat(self.sim.data.qpos[19:23].copy(), to="xyzw")
+            elif self.env_name.startswith("PickPlaceCereal"):
+                assert "cereal" in obj_name.lower(), f"Object {obj_name} does not exist in environment!"
+                object_pos = self.sim.data.qpos[23:26].copy()
+                object_quat = T.convert_quat(self.sim.data.qpos[26:30].copy(), to="xyzw")
+            elif self.env_name.startswith("PickPlaceCan"):
+                assert "can" in obj_name.lower(), f"Object {obj_name} does not exist in environment!"
+                object_pos = self.sim.data.qpos[30:33].copy()
+                object_quat = T.convert_quat(self.sim.data.qpos[33:37].copy(), to="xyzw")
+            elif self.env_name.endswith("PickPlace"):
+                if self.text_plan[self.curr_plan_stage][1] == "grasp":
+                    all_obj_names = [name.lower() for name in ["Milk", "Bread", "Cereal", "Can"] if name in self.valid_obj_names]
+                    new_obj_idx = [name for name in enumerate(all_obj_names) if name[1] in obj_name][0][0]
+                    object_pos = self.sim.data.qpos[
+                        9 + 7 * new_obj_idx : 12 + 7 * new_obj_idx
+                    ].copy()
+                    object_quat = T.convert_quat(
+                        self.sim.data.qpos[12 + 7 * new_obj_idx : 16 + 7 * new_obj_idx].copy(),
+                        to="xyzw",
+                    )
+                elif self.text_plan[self.curr_plan_stage][1] == "place":
+                    assert self.text_plan[self.curr_plan_stage][0].lower().startswith("bin"), "placement location must be a bin"
+                    bin_num = int(self.text_plan[self.curr_plan_stage][0][-1])
+                    object_pos = self.pick_place_bin_locations[bin_num - 1].copy()
+                    object_pos[2] += 0.125
+                    object_quat = np.zeros(4)
+            elif self.env_name.startswith("Door"):
+                object_pos = np.array(
+                    [self.sim.data.qpos[self.hinge_qpos_addr]]
+                )  # this is not what they are, but they will be decoded properly
+                object_quat = np.array(
+                    [self.sim.data.qpos[self.handle_qpos_addr]]
+                )  # this is not what they are, but they will be decoded properly
+            elif "NutAssembly" in self.env_name:
+                if "grasp" in self.text_plan[self.curr_plan_stage][1]:
+                    if "gold" in obj_name:
+                        nut = self.nuts[0]
+                    elif "silver" in obj_name:
+                        nut = self.nuts[1]
+                    else:
+                        raise NotImplementedError
+                    object_pos = self.sim.data.get_site_xpos(nut.important_sites["handle"])
+                    object_quat = T.convert_quat(
+                        self.sim.data.body_xquat[self.obj_body_id[nut.name]], to="xyzw"
+                    )
+                elif "place" in self.text_plan[self.curr_plan_stage][1]:
+                    if "gold" in obj_name:
+                        object_pos = np.array(self.sim.data.body_xpos[self.peg1_body_id])
+                    elif "silver" in obj_name:
+                        object_pos = np.array(self.sim.data.body_xpos[self.peg2_body_id])
+                    object_pos[2] += 0.15
+                    object_pos[0] -= 0.065
+                    object_quat = np.zeros(4) # not used
+            else:
+                raise NotImplementedError
+        return object_pos, object_quat
+    
+    def named_get_object_pose(self, obj_name):
+        if self.env_name.endswith("Lift"):
+            assert "cube" in obj_name.lower(), f"Object {obj_name} does not exist in environment!"
+            object_pos = self.sim.data.qpos[9:12].copy()
+            object_quat = T.convert_quat(self.sim.data.qpos[12:16].copy(), to="xyzw")
+        elif self.env_name.startswith("PickPlaceMilk"):
+            assert "milk" in obj_name.lower(), f"Object {obj_name} does not exist in environment!"
+            object_pos = self.sim.data.qpos[9:12].copy()
+            object_quat = T.convert_quat(self.sim.data.qpos[12:16].copy(), to="xyzw")
+        elif self.env_name.startswith("PickPlaceBread"):
+            assert "bread" in obj_name.lower(), f"Object {obj_name} does not exist in environment!"
+            object_pos = self.sim.data.qpos[16:19].copy()
+            object_quat = T.convert_quat(self.sim.data.qpos[19:23].copy(), to="xyzw")
+        elif self.env_name.startswith("PickPlaceCereal"):
+            assert "cereal" in obj_name.lower(), f"Object {obj_name} does not exist in environment!"
+            object_pos = self.sim.data.qpos[23:26].copy()
+            object_quat = T.convert_quat(self.sim.data.qpos[26:30].copy(), to="xyzw")
+        elif self.env_name.startswith("PickPlaceCan"):
+            assert "can" in obj_name.lower(), f"Object {obj_name} does not exist in environment!"
+            object_pos = self.sim.data.qpos[30:33].copy()
+            object_quat = T.convert_quat(self.sim.data.qpos[33:37].copy(), to="xyzw")
+        elif self.env_name.endswith("PickPlace"):
+            all_obj_names = [name.lower() for name in ["Milk", "Bread", "Cereal", "Can"] if name in self.valid_obj_names]
+            new_obj_idx = [name for name in enumerate(all_obj_names) if name[1] in obj_name][0][0]
+            object_pos = self.sim.data.qpos[
+                9 + 7 * new_obj_idx : 12 + 7 * new_obj_idx
+            ].copy()
+            object_quat = T.convert_quat(
+                self.sim.data.qpos[12 + 7 * new_obj_idx : 16 + 7 * new_obj_idx].copy(),
+                to="xyzw",
+            )
+        elif self.env_name.startswith("Door"):
+            object_pos = np.array(
+                [self.sim.data.qpos[self.hinge_qpos_addr]]
+            )  # this is not what they are, but they will be decoded properly
+            object_quat = np.array(
+                [self.sim.data.qpos[self.handle_qpos_addr]]
+            )  # this is not what they are, but they will be decoded properly
+        elif "NutAssembly" in self.env_name:
+            if "gold" in obj_name:
+                nut = self.nuts[0]
+            elif "silver" in obj_name:
+                nut = self.nuts[1]
+            if nut.name == "SquareNut":
+                return np.array(self.sim.data.qpos[9:12]), T.convert_quat(
+                    self.sim.data.qpos[12:16], to="xyzw"
                 )
-                quat = self.compute_hardcoded_orientation(pos, obj_quat)
+            else:
+                return np.array(self.sim.data.qpos[16:19]), T.convert_quat(
+                    self.sim.data.qpos[19:23], to="xyzw"
+                )
+        else:
+            raise NotImplementedError
+        return object_pos, object_quat
+
+    def get_target_pos(self):
+        pos, obj_quat = self.named_get_object_pose_mp(self.text_plan[self.curr_plan_stage][0])
+        if self.estimate_orientation and self.text_plan[self.curr_plan_stage][1] == "grasp": #self.num_high_level_steps % 2 == 0:
+            pos += np.array([0.0, 0.0, self.vertical_displacement])
+            quat = self.compute_hardcoded_orientation(pos, obj_quat)
         else:
             quat = self.reset_ori
-            for _ in range(2):
-                _, obj_quat = self.get_object_pose_mp(
-                    obj_idx=self.num_high_level_steps // 2
-                )
-                comp_quat = self.compute_hardcoded_orientation(pos, obj_quat)
         return pos, quat
 
     def check_object_placement(self, obj_idx=0):
@@ -870,7 +1401,6 @@ class RobosuitePSLEnv(PSLEnv):
         self.sim.data.qpos[:7] = qpos[:7]
         self.sim.data.qvel[:7] = qvel[:7]
         self.sim.forward()
-
         self.ik_ctrl.sync_state()
         cur_rot_inv = quat_conjugate(self._eef_xquat.copy())
         pos_diff = target_pos - self._eef_xpos
@@ -889,7 +1419,7 @@ class RobosuitePSLEnv(PSLEnv):
         self.sim.forward()
         return joint_pos
 
-    def set_object_pose(self, object_pos, object_quat, obj_idx=0):
+    def set_object_pose(self, object_pos, object_quat, obj_name):
         if len(object_quat) == 4: 
             object_quat = T.convert_quat(object_quat, to="wxyz")
         if self.env_name.endswith("Lift"):
@@ -908,7 +1438,8 @@ class RobosuitePSLEnv(PSLEnv):
             self.sim.data.qpos[30:33] = object_pos
             self.sim.data.qpos[33:37] = object_quat
         elif self.env_name.endswith("PickPlace"):
-            new_obj_idx = self.compute_correct_obj_idx(obj_idx=obj_idx)
+            all_obj_names = [name.lower() for name in ["Milk", "Bread", "Cereal", "Can"] if name in self.valid_obj_names]
+            new_obj_idx = [name for name in enumerate(all_obj_names) if name[1] in obj_name][0][0]
             self.sim.data.qpos[9 + 7 * new_obj_idx : 12 + 7 * new_obj_idx] = object_pos
             self.sim.data.qpos[
                 12 + 7 * new_obj_idx : 16 + 7 * new_obj_idx
@@ -917,12 +1448,12 @@ class RobosuitePSLEnv(PSLEnv):
             self.sim.data.qpos[self.hinge_qpos_addr] = object_pos
             self.sim.data.qpos[self.handle_qpos_addr] = object_quat
         elif "NutAssembly" in self.env_name:
-            if self.env_name.endswith("Square"):
+            if "gold" in obj_name:
                 nut = self.nuts[0]
-            elif self.env_name.endswith("Round"):
+            elif "silver" in obj_name:
                 nut = self.nuts[1]
-            elif self.env_name.endswith("NutAssembly"):
-                nut = self.nuts[1 - obj_idx]  # first nut is round, second nut is square
+            # elif self.env_name.endswith("NutAssembly"):
+            #     nut = self.nuts[1 - obj_idx]  # first nut is round, second nut is square
             self.sim.data.set_joint_qpos(
                 nut.joints[0],
                 np.concatenate([np.array(object_pos), np.array(object_quat)]),
@@ -944,16 +1475,17 @@ class RobosuitePSLEnv(PSLEnv):
         target_quat,
         qpos,
         qvel,
-        is_grasped=False,
-        obj_idx=0,
-        open_gripper_on_tp=True,
+        obj_name=None,
     ):
-        object_pos, object_quat = self.get_object_pose(obj_idx=obj_idx)
+        # recompute is grasped in here 
+        is_grasped = self.named_check_object_grasp(
+            self.text_plan[self.curr_plan_stage - (self.curr_plan_stage % 2)][0]
+        )()
+        object_pos, object_quat = self.named_get_object_pose(obj_name) #self.get_object_pose(obj_idx=obj_idx)
         object_pos = object_pos.copy()
         object_quat = object_quat.copy()
         gripper_qpos = self.sim.data.qpos[7:9].copy()
         gripper_qvel = self.sim.data.qvel[7:9].copy()
-        # print(f"Gripper qpos qvel: {gripper_qpos, gripper_qvel}")
         old_eef_xquat = self._eef_xquat.copy()
         old_eef_xpos = self._eef_xpos.copy()
         og_qpos = self.sim.data.qpos.copy()
@@ -977,13 +1509,13 @@ class RobosuitePSLEnv(PSLEnv):
                 np.dot(transform, pose2mat((object_pos, object_quat)))
             )
             self.set_object_pose(
-                new_object_pose[0], new_object_pose[1], obj_idx=obj_idx
+                new_object_pose[0], new_object_pose[1], obj_name
             )
             self.sim.forward()
         else:
-            self.set_object_pose(object_pos, object_quat, obj_idx=obj_idx)
+            self.set_object_pose(object_pos, object_quat, obj_name)
 
-        if open_gripper_on_tp:
+        if not is_grasped:
             try:
                 self.sim.data.qpos[7:9] = np.array([0.04, -0.04])
                 self.sim.data.qvel[7:9] = np.zeros(2)
@@ -1170,68 +1702,138 @@ class RobosuitePSLEnv(PSLEnv):
                     )
                     return True
         return False
-
-    def check_object_grasp(self, obj_idx=0):
-        if self.env_name.endswith("Lift"):
-            is_grasped = self._check_grasp(
-                gripper=self.robots[0].gripper,
-                object_geoms=self.cube,
-            )
-        elif self.env_name.startswith("PickPlace"):
-            if self.env_name.endswith("PickPlace"):
-                is_grasped = self._check_grasp(
-                    gripper=self.robots[0].gripper,
-                    object_geoms=self.objects[
-                        self.compute_correct_obj_idx(obj_idx=obj_idx)
-                    ],
+    
+    def named_check_object_placement(self, obj_name):
+        def check_object_placement(obj_name=obj_name):
+            is_dropped = \
+                not (self.named_check_object_grasp(self.text_plan[self.curr_plan_stage - 1][0]))()
+            if self.use_vision_placement_check:
+                # get object point cloud 
+                obj_xyz = compute_object_pcd(
+                    self,
+                    obj_name=self.text_plan[self.curr_plan_stage - (self.curr_plan_stage % 2)][0],
+                    grasp_pose=False,
+                    target_obj=False,
+                    camera_height=256,
+                    camera_width=256,
                 )
+                obj_pos = np.mean(obj_xyz, axis=0)
+                if "NutAssembly" in self.env_name: 
+                    pass 
+                elif "PickPlace" in self.env_name:
+                    pass 
             else:
-                is_grasped = self._check_grasp(
-                    gripper=self.robots[0].gripper,
-                    object_geoms=self.objects[self.object_id],
-                )
-        elif self.env_name.endswith("NutAssemblySquare"):
-            nut = self.nuts[0]
-            is_grasped = self._check_grasp(
-                gripper=self.robots[0].gripper,
-                object_geoms=[g for g in nut.contact_geoms],
-            )
-        elif self.env_name.endswith("NutAssemblyRound"):
-            nut = self.nuts[1]
-            is_grasped = self._check_grasp(
-                gripper=self.robots[0].gripper,
-                object_geoms=[g for g in nut.contact_geoms],
-            )
-        elif self.env_name.endswith("NutAssembly"):
-            nut = self.nuts[1 - obj_idx]
-            is_grasped = self._check_grasp(
-                gripper=self.robots[0].gripper,
-                object_geoms=[g for g in nut.contact_geoms],
-            )
-        elif self.env_name.endswith("Door"):
-            is_grasped = self._check_grasp(
-                gripper=self.robots[0].gripper,
-                object_geoms=[self.door],
-            )
-        else:
+                if self.env_name == "Lift" or self.env_name == "Door":
+                    return False # not used for these environments
+                if "NutAssembly" in self.env_name:
+                    #obj_name = self.text_plan[self.curr_plan_stage - (self.curr_plan_stage % 2)][0]
+                    if "gold" in obj_name:
+                        placed = self.objects_on_pegs[0]
+                    if "silver" in obj_name:
+                        placed = self.objects_on_pegs[1]
+                if "PickPlace" in self.env_name:
+                    obj_name = self.text_plan[self.curr_plan_stage - (self.curr_plan_stage % 2)][0]
+                    all_obj_names = [name.lower() for name in ["Milk", "Bread", "Cereal", "Can"] if name in self.valid_obj_names]
+                    new_obj_idx = [name for name in enumerate(all_obj_names) if name[1] in obj_name][0][0]
+                    placed = self.objects_in_bins[new_obj_idx]
+            return is_dropped and placed 
+        return check_object_placement                 
+        
+    def named_check_object_grasp(self, obj_name):
+        if self.use_vision_grasp_check: # using vision
             raise NotImplementedError
-        if self.use_vision_grasp_check:
-            is_grasped = grasp_pcd_collision_check(self, obj_idx=obj_idx)
-        return is_grasped
+        else: # hardcoded 
+            def check_object_grasp():
+                if self.env_name.endswith("Lift"):
+                    is_grasped = self._check_grasp(
+                        gripper=self.robots[0].gripper,
+                        object_geoms=self.cube,
+                    )
+                if self.env_name.endswith("PickPlace"):
+                    all_obj_names = [name.lower() for name in ["Milk", "Bread", "Cereal", "Can"] if name in self.valid_obj_names]
+                    new_obj_idx = [name for name in enumerate(all_obj_names) if name[1] in obj_name][0][0]
+                    is_grasped = self._check_grasp(
+                        gripper=self.robots[0].gripper,
+                        object_geoms=self.objects[new_obj_idx],
+                    )
+                if self.env_name.startswith("NutAssembly"):
+                    if "gold" in obj_name:
+                        is_grasped = self._check_grasp(
+                            gripper=self.robots[0].gripper,
+                            object_geoms=[g for g in self.nuts[0].contact_geoms],
+                        )
+                    if "silver" in obj_name:
+                        is_grasped = self._check_grasp(
+                            gripper=self.robots[0].gripper,
+                            object_geoms=[g for g in self.nuts[1].contact_geoms],
+                        )
+                initial_object_pos = self.initial_object_pos_dict[obj_name]
+                pos, quat = self.named_get_object_pose_mp(obj_name)
+                is_grasped = is_grasped and (pos[2] - initial_object_pos[2]) > 0.005
+                return is_grasped
+            return check_object_grasp 
+    
+    # def check_object_grasp(self, obj_idx=0):
+    #     if self.env_name.endswith("Lift"):
+    #         is_grasped = self._check_grasp(
+    #             gripper=self.robots[0].gripper,
+    #             object_geoms=self.cube,
+    #         )
+    #     elif self.env_name.startswith("PickPlace"):
+    #         if self.env_name.endswith("PickPlace"):
+    #             is_grasped = self._check_grasp(
+    #                 gripper=self.robots[0].gripper,
+    #                 object_geoms=self.objects[
+    #                     self.compute_correct_obj_idx(obj_idx=obj_idx)
+    #                 ],
+    #             )
+    #         else:
+    #             is_grasped = self._check_grasp(
+    #                 gripper=self.robots[0].gripper,
+    #                 object_geoms=self.objects[self.object_id],
+    #             )
+    #     elif self.env_name.endswith("NutAssemblySquare"):
+    #         nut = self.nuts[0]
+    #         is_grasped = self._check_grasp(
+    #             gripper=self.robots[0].gripper,
+    #             object_geoms=[g for g in nut.contact_geoms],
+    #         )
+    #     elif self.env_name.endswith("NutAssemblyRound"):
+    #         nut = self.nuts[1]
+    #         is_grasped = self._check_grasp(
+    #             gripper=self.robots[0].gripper,
+    #             object_geoms=[g for g in nut.contact_geoms],
+    #         )
+    #     elif self.env_name.endswith("NutAssembly"):
+    #         nut = self.nuts[1 - obj_idx]
+    #         is_grasped = self._check_grasp(
+    #             gripper=self.robots[0].gripper,
+    #             object_geoms=[g for g in nut.contact_geoms],
+    #         )
+    #     elif self.env_name.endswith("Door"):
+    #         is_grasped = self._check_grasp(
+    #             gripper=self.robots[0].gripper,
+    #             object_geoms=[self.door],
+    #         )
+    #     else:
+    #         raise NotImplementedError
+    #     if self.use_vision_grasp_check:
+    #         is_grasped = grasp_pcd_collision_check(self, obj_idx=obj_idx)
+    #     return is_grasped
 
-    def check_grasp(self):
-        obj_idx = None
-        curr_obj_name = self.curr_obj_name
-        for i in range(len(self.text_plan)):
-            if self.text_plan[i][0] == curr_obj_name:
-                obj_idx = i // 2
-        assert obj_idx is not None
-        is_grasped = self.check_object_grasp(obj_idx=obj_idx)
-        if is_grasped:
-            pos, quat = self.get_object_pose_mp(obj_idx=obj_idx)
-            init_object_pos = self.initial_object_pos[obj_idx]
-            is_grasped = is_grasped and (pos[2] - init_object_pos[2]) > 0.005
-        return is_grasped
+    # def check_grasp(self):
+    #     obj_idx = None
+    #     curr_obj_name = self.curr_obj_name
+    #     for i in range(len(self.text_plan)):
+    #         if self.text_plan[i][0] == curr_obj_name:
+    #             obj_idx = i // 2
+    #     assert obj_idx is not None
+    #     is_grasped = self.check_object_grasp(obj_idx=obj_idx)
+    #     if is_grasped:
+    #         pos, quat = self.get_object_pose_mp(obj_idx=obj_idx)
+    #         init_object_pos = self.initial_object_pos[obj_idx]
+    #         is_grasped = is_grasped and (pos[2] - init_object_pos[2]) > 0.005
+    #     return is_grasped
 
     def get_poses_from_obj_name(self, curr_obj_name):
         if self.env_name.startswith("PickPlace"):

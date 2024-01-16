@@ -29,6 +29,7 @@ class Kitchen_Wrapper(dm_env.Environment):
         path_length=280,
         psl=False,
         camera_name="fixed",
+        use_sam_segmentation=False,
     ):
         self.discount = discount
         env_kwargs = dict(
@@ -48,6 +49,7 @@ class Kitchen_Wrapper(dm_env.Environment):
                 use_vision_pose_estimation=False,
                 teleport_instead_of_mp=True,
                 use_joint_space_mp=False,
+                use_sam_segmentation=use_sam_segmentation
             )
         # self._env.seed(seed)
         self.env_name = env_name
@@ -137,6 +139,7 @@ def make_kitchen(
     camera_name,
     path_length=280,
     psl=False,
+    use_sam_segmentation=False,
 ):
     assert camera_name in ["wrist", "fixed"]
 
@@ -147,6 +150,7 @@ def make_kitchen(
         path_length=path_length,
         psl=psl,
         camera_name=camera_name,
+        use_sam_segmentation=use_sam_segmentation,
     )
     env = ActionDTypeWrapper(env, np.float32)
     env = ActionRepeatWrapper(env, action_repeat, use_metaworld_reward_dict=True)

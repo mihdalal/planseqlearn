@@ -334,12 +334,11 @@ def compute_object_pcd(
     camera_height=480,
     camera_width=640,
     grasp_pose=True,
-    target_obj=False,
-    obj_idx=0,
+    obj_name="",
 ):
     name = env.env_name
     object_pts = []
-    if target_obj:
+    if "bin" in obj_name:
         camera_names = ["agentview", "birdview"]  # "frontview"]
         # need birdview to properly estimate bin position
     else:
@@ -352,13 +351,6 @@ def compute_object_pcd(
             camera_height=camera_height,
             sim=sim,
         )
-        # obj_mask = get_sam_segmentation(
-        #     env,
-        #     camera_name,
-        #     camera_width,
-        #     camera_height,
-        #     obj_idx,
-        # )
         depth_map = get_camera_depth(
             sim=sim,
             camera_name=camera_name,
@@ -381,45 +373,34 @@ def compute_object_pcd(
         # get robot segmentation mask
         geom_ids = np.unique(segmentation_map[:, :, 1])
         object_ids = []
-        object_string = env.get_object_string(obj_idx=obj_idx)
-        if grasp_pose or not target_obj:
-            object_string = env.get_object_string(obj_idx=obj_idx)
-            if "Door" in name:
-                object_string = "handle"
+        object_string = obj_name
+        if "Door" in name:
+            object_string = "handle"
         else:
-            if "NutAssembly" in name:
-                if name.endswith("Square"):
+            if "NutAssembly" in name and "peg" in object_string:
+                if "gold" in object_string:
                     object_string = "peg1"
                 elif name.endswith("Round"):
                     object_string = "peg2"
-                else:
-                    if obj_idx == 0:
-                        object_string = "peg2"
-                    else:
-                        object_string = "peg1"
-            if "PickPlace" in name:
+            if "PickPlace" in name and "bin" in object_string:
                 object_string = "full_bin"
         for i, geom_id in enumerate(geom_ids):
             geom_name = sim.model.geom_id2name(geom_id)
+            #print(f"geom name: {geom_name, object_string}")
             if geom_name is None or geom_name.startswith("Visual"):
                 continue
-            if object_string in geom_name:
-                if "NutAssembly" in name and grasp_pose:
-                    if name.endswith("Square"):
-                        target_geom_id = "g4_visual"
-                    elif name.endswith("Round"):
-                        target_geom_id = "g8_visual"
-                    elif name.endswith("NutAssembly"):
-                        if obj_idx == 0:
-                            target_geom_id = "g8_visual"
-                        else:
-                            target_geom_id = "g4_visual"
-                    if geom_name.endswith(target_geom_id):
-                        object_ids.append(geom_id)
-                else:
+            if "NutAssembly" in name and grasp_pose:
+                if "gold" in obj_name:
+                    target_geom_id = "SquareNut_g4_visual"
+                elif "silver" in obj_name:
+                    target_geom_id = "RoundNut_g8_visual"
+                if geom_name.endswith(target_geom_id):
+                    object_ids.append(geom_id)
+            else:
+                if object_string in geom_name.lower() or geom_name.split('_')[0].lower() in object_string:
                     object_ids.append(geom_id)
         if len(object_ids) > 0:
-            if target_obj and "PickPlace" in name:
+            if "bin" in obj_name and "PickPlace" in name:
                 full_bin_mask = segmentation_map[:, :, 1] == object_ids[0]
                 clust_img, clust_masks = pcv.spatial_clustering(
                     full_bin_mask.astype(np.uint8) * 255,
@@ -427,8 +408,10 @@ def compute_object_pcd(
                     min_cluster_size=5,
                     max_distance=None,
                 )
-                new_obj_idx = env.compute_correct_obj_idx(obj_idx=obj_idx)
-                clust_masks = [clust_masks[i] for i in [0, 2, 1, 3]]
+                # oname = env.text_plan[env.curr_plan_stage - (env.curr_plan_stage % 2)][0]
+                # all_obj_names = [name.lower() for name in ["Milk", "Bread", "Cereal", "Can"] if name in env.valid_obj_names]
+                new_obj_idx = int(obj_name[-1]) #[name for name in enumerate(all_obj_names) if name[1] in oname][0][0]
+                clust_masks = [clust_masks[i] for i in range(4)] #[0, 2, 1, 3]]
                 object_mask = clust_masks[new_obj_idx]
             else:
                 object_mask = np.any(
@@ -460,11 +443,11 @@ def compute_object_pcd(
     # this is a bit of a hack, but necessary since the object may be occluded sometimes
     if len(object_pts) > 0:
         env.cache[
-            (camera_height, camera_width, grasp_pose, target_obj, obj_idx)
+            (camera_height, camera_width, grasp_pose, obj_name)
         ] = object_pts
     else:
         object_pts = env.cache[
-            (camera_height, camera_width, grasp_pose, target_obj, obj_idx)
+            (camera_height, camera_width, grasp_pose, obj_name)
         ]
     object_pointcloud = np.concatenate(object_pts, axis=0)
     object_pcd = o3d.geometry.PointCloud()

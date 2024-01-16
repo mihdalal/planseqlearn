@@ -38,6 +38,7 @@ class Robosuite_Wrapper(dm_env.Environment):
         estimate_orientation=True,
         valid_obj_names=None,
         use_proprio=True,
+        use_sam_segmentation=False,
     ):
         self.discount = discount
         self.env_name = env_name
@@ -102,6 +103,7 @@ class Robosuite_Wrapper(dm_env.Environment):
             use_vision_placement_check=False,
             use_vision_grasp_check=False,
             estimate_orientation=False,
+            use_sam_segmentation=use_sam_segmentation,
         )
 
         if env_name == "Lift":
@@ -121,7 +123,7 @@ class Robosuite_Wrapper(dm_env.Environment):
         elif env_name.startswith("NutAssembly"):
             mp_env_kwargs.update(
                 dict(
-                    vertical_displacement=0.04,
+                    vertical_displacement=0.02,
                     estimate_orientation=True,
                 )
             )
@@ -248,6 +250,7 @@ def make_robosuite(
     estimate_orientation=True,
     valid_obj_names=None,
     use_proprio=True,
+    use_sam_segmentation=False,
 ):
     env = Robosuite_Wrapper(
         env_name=name,
@@ -259,6 +262,7 @@ def make_robosuite(
         estimate_orientation=estimate_orientation,
         valid_obj_names=valid_obj_names,
         use_proprio=use_proprio,
+        use_sam_segmentation=use_sam_segmentation,
     )
     env = ActionDTypeWrapper(env, np.float32)
     env = ActionRepeatWrapper(env, action_repeat, use_metaworld_reward_dict=True)

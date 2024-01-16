@@ -135,6 +135,94 @@ class KitchenPSLEnv(PSLEnv):
         self.original_colors = [
             env.sim.model.geom_rgba[idx].copy() for idx in self.robot_geom_ids
         ]
+        if self.use_sam_segmentation:
+            self.precalculate_poses()
+    
+    def precalculate_poses(self):
+        #self._wrapped_env.reset()
+        # this function is mainly used to precalculate poses
+        # with sam - the reason we are precalculating is because
+        # we are assuming sam is being used for inference with a learned policy
+        # so collisions will be minimal - in this case since sam is 
+        # quite brittle with grounding dino, precalculating enables using the 
+        # same prompts as during testing without issues
+        pos_dict = {}
+        # get poses for kettle, microwave, and slide
+        frame = self.mjpy_sim.render(camera_name="leftview", width=500, height=500)
+        obj_masks, _, _, pred_phrases, _ = get_seg_mask(
+            np.flipud(frame[:, :, ::-1]),
+            self.dino,
+            self.sam,
+            text_prompts=["vertical bar"],
+            box_threshold=0.3,
+            text_threshold=0.25,
+            device="cuda",
+            debug=True,
+            output_dir="sam_outputs",
+        )
+        # list should be [slide cabinet, ___, kettle, ___, ____, microwave]
+        assert len(pred_phrases) == 5
+        slide_mask = obj_masks[0].detach().cpu().numpy()[0, :, :]
+        kettle_mask = obj_masks[2].detach().cpu().numpy()[0, :, :]
+        microwave_mask = obj_masks[-1].detach().cpu().numpy()[0, :, :]
+        depth_map = get_camera_depth(
+            sim=self.mjpy_sim,
+            camera_name="leftview",
+            camera_height=500,
+            camera_width=500,
+        )
+        depth_map = np.expand_dims(
+            CU.get_real_depth_map(sim=self.mjpy_sim, depth_map=depth_map), -1
+        )
+        world_to_camera = CU.get_camera_transform_matrix(
+            sim=self.mjpy_sim,
+            camera_name="leftview",
+            camera_height=500,
+            camera_width=500,
+        )
+        camera_to_world = np.linalg.inv(world_to_camera)
+        slide_pixels = np.argwhere(slide_mask)
+        slide_pointcloud = CU.transform_from_pixels_to_world(
+            pixels=slide_pixels,
+            depth_map=depth_map[..., 0],
+            camera_to_world_transform=camera_to_world,
+        )
+        kettle_pixels = np.argwhere(kettle_mask)
+        kettle_pointcloud = CU.transform_from_pixels_to_world(
+            pixels=kettle_pixels,
+            depth_map=depth_map[..., 0],
+            camera_to_world_transform=camera_to_world,
+        )
+        microwave_pixels = np.argwhere(microwave_mask)
+        microwave_pointcloud = CU.transform_from_pixels_to_world(
+            pixels=microwave_pixels,
+            depth_map=depth_map[..., 0],
+            camera_to_world_transform=camera_to_world,
+        )
+        pos_dict['schandle1'] = np.mean(slide_pointcloud, axis=0)
+        pos_dict['khandle1'] = np.mean(kettle_pointcloud, axis=0) + np.array([0.09, 0., 0.])
+        pos_dict['mchandle1'] = np.mean(microwave_pointcloud, axis=0)
+
+        obj_masks, _, _, pred_phrases, _ = get_seg_mask(
+            np.flipud(frame[:, :, ::-1]),
+            self.dino,
+            self.sam,
+            text_prompts=["small knob"],
+            box_threshold=0.3,
+            text_threshold=0.25,
+            device="cuda",
+            debug=True,
+            output_dir="sam_outputs",
+        )
+        light_mask = obj_masks[-2].detach().cpu().numpy()[0, :, :]
+        light_pixels = np.argwhere(light_mask)
+        light_pointcloud = CU.transform_from_pixels_to_world(
+            pixels=light_pixels,
+            depth_map=depth_map[..., 0],
+            camera_to_world_transform=camera_to_world,
+        )
+        pos_dict['lschandle1'] = np.mean(light_pointcloud, axis=0)
+        self.pos_dict = pos_dict
 
     def get_body_geom_ids_from_robot_bodies(self):
         body_ids = [self.sim.model.body_name2id(body) for body in self.robot_bodies]
@@ -215,6 +303,8 @@ class KitchenPSLEnv(PSLEnv):
         element = self.TASK_ELEMENTS[obj_idx]
         if element == "slide cabinet":
             object_pos = self.get_site_xpos("schandle1")
+            if self.use_sam_segmentation:
+                object_pos = self.pos_dict['schandle1']
             object_quat = np.zeros(4)  # doesn't really matter
         elif element == "top burner":
             object_pos = self.get_site_xpos("tlbhandle")
@@ -239,9 +329,13 @@ class KitchenPSLEnv(PSLEnv):
             object_quat = np.zeros(4)  # doesn't really matter
         elif element == "microwave":
             object_pos = self.get_site_xpos("mchandle1")
+            if self.use_sam_segmentation:
+                object_pos = self.pos_dict['mchandle1']
             object_quat = np.zeros(4)  # doesn't really matter
         elif element == "kettle":
             object_pos = self.get_site_xpos("khandle1")
+            if self.use_sam_segmentation:
+                object_pos = self.pos_dict['khandle1']
             object_quat = np.zeros(4)  # doesn't really matter
         return object_pos, object_quat
 

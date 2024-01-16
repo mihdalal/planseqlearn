@@ -28,6 +28,7 @@ class MoPA_Env_Wrapper(dm_env.Environment):
         discount=1.0,
         horizon=100,
         psl=False,
+        use_sam_segmentation=False,
     ):
         if env_name == "SawyerLift-v0":
             config = LIFT_CONFIG
@@ -45,6 +46,7 @@ class MoPA_Env_Wrapper(dm_env.Environment):
             config = PUSHER_OBSTACLE_CONFIG
             if psl:
                 config["camera_name"] = "eye_in_hand"
+        config['max_episode_steps'] = horizon
         env = gym.make(**config)
         ik_env = gym.make(**config)
         self.name = env_name
@@ -57,6 +59,7 @@ class MoPA_Env_Wrapper(dm_env.Environment):
             use_vision_pose_estimation=False,
             teleport_instead_of_mp=True,
             config=config,
+            use_sam_segmentation=use_sam_segmentation,
         )
         self.discount = discount
         self.dummy_img = self._env.get_image()
@@ -127,10 +130,15 @@ def make_mopa(
     seed,
     horizon=100,
     psl=True,
-    is_eval=False,
+    use_sam_segmentation=False,
 ):
     np.random.seed(seed)
-    env = MoPA_Env_Wrapper(name, horizon=horizon, psl=psl, is_eval=is_eval)
+    env = MoPA_Env_Wrapper(
+        name, 
+        horizon=horizon, 
+        psl=psl,
+        use_sam_segmentation=use_sam_segmentation
+    )
     env = ActionDTypeWrapper(env, np.float32)
     env = ActionRepeatWrapper(
         env,

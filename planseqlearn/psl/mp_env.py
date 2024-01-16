@@ -63,9 +63,9 @@ class PSLEnv(ProxyEnv):
         self.teleport_on_grasp = teleport_on_grasp
         if self.use_sam_segmentation:
             self.dino, self.sam = build_models(
-                config_file="../Grounded-Segment-Anything/GroundingDINO/groundingdino/config/GroundingDINO_SwinT_OGC.py",
-                grounded_checkpoint="../Grounded-Segment-Anything/groundingdino_swint_ogc.pth",
-                sam_checkpoint="../Grounded-Segment-Anything/sam_vit_h_4b8939.pth",
+                config_file="../../Grounded-Segment-Anything/GroundingDINO/groundingdino/config/GroundingDINO_SwinT_OGC.py",
+                grounded_checkpoint="../../Grounded-Segment-Anything/groundingdino_swint_ogc.pth",
+                sam_checkpoint="../../Grounded-Segment-Anything/sam_vit_h_4b8939.pth",
                 sam_hq_checkpoint=None,
                 use_sam_hq=False,
             )
@@ -99,35 +99,45 @@ class PSLEnv(ProxyEnv):
     def get_all_initial_object_poses(self):
         self.initial_object_pos = [self.get_object_pose_mp(obj_idx=0)[0].copy()]
 
+    def get_curr_postcondition(self):
+        if self.text_plan[self.curr_plan_stage][1].lower() == "grasp":
+            return self.named_check_object_grasp(self.text_plan[self.curr_plan_stage][0])
+        elif self.text_plan[self.curr_plan_stage][1].lower() == "place":
+            return self.named_check_object_placement(self.text_plan[self.curr_plan_stage][0])
+        else:
+            raise NotImplementedError("Currently only supporting grasp and place postconditions")
+
     def reset(self, get_intermediate_frames=False, **kwargs):
         self.num_high_level_steps = 0
         self.object_idx = 0
         # reset wrapped env
         obs = self._wrapped_env.reset(**kwargs)
+        if self.text_plan is None:
+            self.text_plan = self.get_hardcoded_text_plan()
+            print(f"Text plan: {self.text_plan}")
+        self.curr_plan_stage = 0
+        self.curr_postcondition = self.get_curr_postcondition()
+
         self.post_reset_burn_in()
-
-        # initialize trajectory variables
-        self.num_high_level_steps = 0
-
+        if hasattr(self, "reset_precompute_sam_poses") and self.use_sam_segmentation:
+            self.reset_precompute_sam_poses()
         # reset position
         self.reset_pos, self.reset_ori = self._eef_xpos.copy(), self._eef_xquat.copy()
         self.reset_qpos, self.reset_qvel = (
             self.sim.data.qpos.copy(),
             self.sim.data.qvel.copy(),
         )
-        self.placement_poses = self.get_placement_poses()
         self.get_all_initial_object_poses()
         self.update_controllers()
+        # go to initial position 
         target_pos, target_quat = self.get_target_pos()
         if self.teleport_instead_of_mp:
             self.set_robot_based_on_ee_pos(
-                target_pos.copy(),
-                target_quat.copy(),
+                target_pos,
+                target_quat,
                 self.reset_qpos,
                 self.reset_qvel,
-                is_grasped=False,
-                obj_idx=self.object_idx,  # first step
-                open_gripper_on_tp=True,
+                obj_name=self.text_plan[0][0],  # first step
             )
         else:
             self.mp_to_point(
@@ -137,52 +147,16 @@ class PSLEnv(ProxyEnv):
                 self.reset_qvel,
                 is_grasped=False,
                 obj_idx=self.object_idx,
-                open_gripper_on_tp=True,
                 get_intermediate_frames=get_intermediate_frames,
             )
         obs = self.get_observation()
-        self.teleport_on_grasp = True
-        self.teleport_on_place = False
-        self.num_high_level_steps += 1
         return obs
 
     def step(self, action, get_intermediate_frames=False, **kwargs):
         o, r, d, i = self._wrapped_env.step(action)
-        is_grasped = self.check_grasp()
-        open_gripper_on_tp = False
-        if self.teleport_on_grasp:
-            take_planner_step = is_grasped
-            if take_planner_step:
-                self.teleport_on_grasp = False
-                self.teleport_on_place = True
-        elif self.teleport_on_place:
-            # object we are checking is the number of high level steps we have taken so far
-            placed = self.check_object_placement(obj_idx=self.object_idx)
-            take_planner_step = (
-                placed
-                and not is_grasped
-                and not self.check_robot_collision(ignore_object_collision=False)
-            )
-            if take_planner_step:
-                self.object_idx += 1
-                self.object_idx = min(self.object_idx, len(self.text_plan) // 2 - 1)
-                if self.num_high_level_steps < len(self.text_plan) - 1:
-                    self.curr_obj_name = self.text_plan[self.num_high_level_steps][0]
-                open_gripper_on_tp = True
-                self.teleport_on_place = False
-                self.teleport_on_grasp = True
-        if take_planner_step:
-            if self.env_name.startswith("NutAssembly") or self.env_name.startswith(
-                "PickPlace"
-            ):
-                for i in range(len(self.placement_poses)):
-                    if i % 2 == 0:
-                        pos, obj_quat = self.get_object_pose_mp(obj_idx=i)
-                        pos += np.array([0.0, 0.0, self.vertical_displacement])
-                        self.compute_hardcoded_orientation(pos, obj_quat)
-            if (self.num_high_level_steps // 2) >= len(self.placement_poses):
-                take_planner_step = False
-        if take_planner_step:
+        take_planner_step = self.curr_postcondition() and (self.curr_plan_stage) != len(self.text_plan) - 1
+        if take_planner_step: # advance plan to next stage using motion planner
+            self.curr_plan_stage += 1
             target_pos, target_quat = self.get_target_pos()
             if self.teleport_instead_of_mp:
                 error = self.set_robot_based_on_ee_pos(
@@ -190,22 +164,19 @@ class PSLEnv(ProxyEnv):
                     target_quat.copy(),
                     self.reset_qpos,
                     self.reset_qvel,
-                    is_grasped=is_grasped,
-                    obj_idx=self.object_idx,
-                    open_gripper_on_tp=open_gripper_on_tp,
+                    obj_name=self.text_plan[self.curr_plan_stage - (self.curr_plan_stage % 2)][0],
                 )
+                print(f"Position after teleporting: {self._eef_xpos}")
             else:
                 error = self.mp_to_point(
                     target_pos.copy(),
                     target_quat.copy(),
                     self.reset_qpos,
                     self.reset_qvel,
-                    is_grasped=is_grasped,
-                    obj_idx=self.object_idx,
-                    open_gripper_on_tp=open_gripper_on_tp,
+                    obj_name=self.text_plan[self.curr_plan_stage - (self.curr_plan_stage % 2)][0],
                     get_intermediate_frames=get_intermediate_frames,
                 )
-            self.num_high_level_steps += 1
+            self.curr_postcondition = self.get_curr_postcondition()
         return o, r, d, i
 
     def construct_mp_problem(

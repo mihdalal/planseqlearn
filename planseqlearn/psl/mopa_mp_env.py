@@ -444,6 +444,73 @@ class MoPAPSLEnv(PSLEnv):
         self.set_robot_colors(self.original_colors)
         self.sim.forward()
 
+    def reset_precompute_sam_poses(self):
+        ENV_KWARGS = {
+            'SawyerLiftObstacle-v0': {
+                'camera_name': 'topview',
+                'text_prompts': ['red can'],
+                'box_threshold': 0.3,
+                'idx': 0, 
+                'offset': np.array([0., 0., 0.])  
+            },
+            'SawyerAssemblyObstacle-v0': {
+                'camera_name': 'topview',
+                'text_prompts': ['four holes'],
+                'box_threshold': 0.4,
+                'idx': 0,
+                'offset': np.array([0., 0., 0.])  
+            },
+            'SawyerPushObstacle-v0': {
+                'camera_name': 'zoomview',
+                'text_prompts': ['robot, small red cube, green spot'],
+                'box_threshold': 0.4,
+                'idx': 1,
+                'offset': np.array([0., 0., 0.06])  
+            },
+        }
+        frame = self.sim.render(
+            camera_name=ENV_KWARGS[self.env_name]['camera_name'], 
+            width=500, 
+            height=500,
+        )
+        obj_masks, _, _, pred_phrases, _ = get_seg_mask(
+            np.flipud(frame[:, :, ::-1]),
+            self.dino,
+            self.sam,
+            text_prompts=ENV_KWARGS[self.env_name]['text_prompts'],
+            box_threshold=ENV_KWARGS[self.env_name]['box_threshold'],
+            text_threshold=0.25,
+            device="cuda",
+            debug=True,
+            output_dir="sam_outputs",
+        )
+        depth_map = get_camera_depth(
+            camera_name=ENV_KWARGS[self.env_name]['camera_name'],
+            camera_width=500,
+            camera_height=500,
+            sim=self.sim,
+        )
+        depth_map = np.expand_dims(
+                CU.get_real_depth_map(sim=self.sim, depth_map=depth_map), -1
+            )
+        object_mask = obj_masks[
+            ENV_KWARGS[self.env_name]['idx']
+        ].detach().cpu().numpy()[0, :, :]
+        world_to_camera = CU.get_camera_transform_matrix(
+            sim=self.sim,
+            camera_name=ENV_KWARGS[self.env_name]['camera_name'],
+            camera_height=500,
+            camera_width=500,
+        )
+        camera_to_world = np.linalg.inv(world_to_camera)
+        object_pixels = np.argwhere(object_mask)
+        object_pointcloud = CU.transform_from_pixels_to_world(
+            pixels=object_pixels,
+            depth_map=depth_map[..., 0],
+            camera_to_world_transform=camera_to_world,
+        )
+        self.sam_object_pose = np.mean(object_pointcloud, axis=0)#+ ENV_KWARGS[self.env_name]['offset']
+
     def get_object_pose(self, **kwargs):
         if self.env_name == "SawyerLiftObstacle-v0" or self.env_name == "SawyerLift-v0":
             start = self.sim.model.body_jntadr[self.sim.model.body_name2id("cube")]
@@ -475,6 +542,8 @@ class MoPAPSLEnv(PSLEnv):
                     camera_height=500,
                     sim=self._wrapped_env.sim,
                 )
+            if self.use_sam_segmentation:
+                object_pos = self.sam_object_pose
             object_pos += np.array([0.0, 0.0, 0.07])
             object_quat = np.array([-0.1268922, 0.21528646, 0.96422245, -0.08846001])
             object_quat /= np.linalg.norm(object_quat)
@@ -498,6 +567,9 @@ class MoPAPSLEnv(PSLEnv):
                     self._wrapped_env.sim,
                 )
                 object_pos += np.array([0, -0.3, 0.45])
+            if self.use_sam_segmentation:
+                object_pos = self.sam_object_pose.copy()
+                object_pos += np.array([-0.12, 0.05, 0.45])
             object_quat = np.array([-0.50258679, -0.61890813, -0.49056324, 0.35172])
             object_quat /= np.linalg.norm(object_quat)
         elif self.env_name == "SawyerPushObstacle-v0":
@@ -506,8 +578,9 @@ class MoPAPSLEnv(PSLEnv):
                 object_pos = get_object_pose_from_seg(
                     self, "cube", "frontview", 500, 500, self._wrapped_env.sim
                 )
-            object_pos += np.array([-0.11, 0.045, 0.11])
-            object_quat = np.array([-0.57194288, 0.00869415, -0.77486997, 0.26903954])
+            if self.use_sam_segmentation:
+                object_pos = self.sam_object_pose
+            object_pos += np.array([-0.14, 0.02, 0.06])
             object_quat = None
         else:
             raise NotImplementedError
