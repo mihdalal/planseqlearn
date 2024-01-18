@@ -345,6 +345,72 @@ class KitchenPSLEnv(PSLEnv):
         object_pos = object_qpos[self.OBS_ELEMENT_INDICES[element] - 9]
         object_quat = np.zeros(4)  # doesn't really matter
         return object_pos, object_quat
+    
+    def named_get_object_pose(self, obj_name):
+        if "slide" in obj_name:
+            object_pos = self.get_site_xpos("schandle1")
+            object_quat = np.zeros(4)  # doesn't really matter
+        elif "top burner" in obj_name:
+            object_pos = self.get_site_xpos("tlbhandle")
+            object_quat = np.zeros(4)  # doesn't really matter
+        elif "bottom left burner" in obj_name:
+            object_pos = self.get_site_xpos("blbhandle")
+            object_quat = np.zeros(4)
+        elif "bottom right burner" in obj_name:
+            object_pos = self.get_site_xpos("brbhandle")
+            object_quat = np.zeros(4)
+        elif "top right burner" in obj_name:
+            object_pos = self.get_site_xpos("trbhandle")
+            object_quat = np.zeros(4)
+        elif "hinge cabinet" in obj_name:
+            object_pos = self.get_site_xpos("hchandle1")
+            object_quat = np.zeros(4)  # doesn't really matter
+        elif "left hinge cabinet" in obj_name:
+            object_pos = self.get_site_xpos("hchandle_left1")
+            object_quat = np.zeros(4)
+        elif "light switch" in obj_name:
+            object_pos = self.get_site_xpos("lshandle1")
+            object_quat = np.zeros(4)  # doesn't really matter
+        elif "microwave" in obj_name:
+            object_pos = self.get_site_xpos("mchandle1")
+            object_quat = np.zeros(4)  # doesn't really matter
+        elif "kettle" in obj_name:
+            object_pos = self.get_site_xpos("khandle1")
+            object_quat = np.zeros(4)  # doesn't really matter
+        return object_pos, object_quat
+    
+    def named_get_object_pose_mp(self, obj_name):
+        if "slide" in obj_name:
+            object_pos = self.get_site_xpos("schandle1")
+            object_quat = np.zeros(4)  # doesn't really matter
+        elif "top burner" in obj_name:
+            object_pos = self.get_site_xpos("tlbhandle")
+            object_quat = np.zeros(4)  # doesn't really matter
+        elif "bottom left burner" in obj_name:
+            object_pos = self.get_site_xpos("blbhandle")
+            object_quat = np.zeros(4)
+        elif "bottom right burner" in obj_name:
+            object_pos = self.get_site_xpos("brbhandle")
+            object_quat = np.zeros(4)
+        elif "top right burner" in obj_name:
+            object_pos = self.get_site_xpos("trbhandle")
+            object_quat = np.zeros(4)
+        elif "hinge cabinet" in obj_name:
+            object_pos = self.get_site_xpos("hchandle1")
+            object_quat = np.zeros(4)  # doesn't really matter
+        elif "left hinge cabinet" in obj_name:
+            object_pos = self.get_site_xpos("hchandle_left1")
+            object_quat = np.zeros(4)
+        elif "light switch" in obj_name:
+            object_pos = self.get_site_xpos("lshandle1")
+            object_quat = np.zeros(4)  # doesn't really matter
+        elif "microwave" in obj_name:
+            object_pos = self.get_site_xpos("mchandle1") + np.array([0, -0.05, 0])
+            object_quat = np.zeros(4)  # doesn't really matter
+        elif "kettle" in obj_name:
+            object_pos = self.get_site_xpos("khandle1")
+            object_quat = np.zeros(4)  # doesn't really matter
+        return object_pos, object_quat 
 
     def get_placement_poses(self):
         return []
@@ -375,8 +441,7 @@ class KitchenPSLEnv(PSLEnv):
         target_quat,
         qpos,
         qvel,
-        is_grasped,
-        obj_idx=0,
+        obj_name="",
         open_gripper_on_tp=False,
     ):
         """
@@ -384,7 +449,10 @@ class KitchenPSLEnv(PSLEnv):
         If grasping an object, ensures the object moves with the arm in a consistent way.
         """
         # cache quantities from prior to setting the state
-        object_pos, object_quat = self.get_object_pose(obj_idx=obj_idx)
+        is_grasped = self.named_check_object_grasp(
+            self.text_plan[self.curr_plan_stage - (self.curr_plan_stage % 2)][0]
+        )()
+        object_pos, object_quat = self.named_get_object_pose(obj_name)
         object_pos = object_pos.copy()
         object_quat = object_quat.copy()
         gripper_qpos = self.sim.data.qpos[7:9].copy()
@@ -418,21 +486,21 @@ class KitchenPSLEnv(PSLEnv):
             progress_thresh=20.0,
             max_steps=1000,
         )
-        if is_grasped:
-            self.sim.data.qpos[7:9] = gripper_qpos
-            self.sim.data.qvel[7:9] = gripper_qvel
+        # if is_grasped:
+        #     self.sim.data.qpos[7:9] = gripper_qpos
+        #     self.sim.data.qvel[7:9] = gripper_qvel
 
-            # compute the transform between the old and new eef poses
-            ee_old_mat = pose2mat((old_eef_xpos, old_eef_xquat))
-            ee_new_mat = pose2mat((self._eef_xpos, self._eef_xquat))
-            transform = ee_new_mat @ np.linalg.inv(ee_old_mat)
+        #     # compute the transform between the old and new eef poses
+        #     ee_old_mat = pose2mat((old_eef_xpos, old_eef_xquat))
+        #     ee_new_mat = pose2mat((self._eef_xpos, self._eef_xquat))
+        #     transform = ee_new_mat @ np.linalg.inv(ee_old_mat)
 
-            # apply the transform to the object
-            new_object_pose = mat2pose(
-                np.dot(transform, pose2mat((object_pos, object_quat)))
-            )
+        #     # apply the transform to the object
+        #     new_object_pose = mat2pose(
+        #         np.dot(transform, pose2mat((object_pos, object_quat)))
+        #     )
 
-        if open_gripper_on_tp:
+        if not is_grasped:
             self.sim.data.qpos[7:9] = np.array([0.04, 0.04])
             self.sim.data.qvel[7:9] = np.zeros(2)
             self.sim.forward()
@@ -629,6 +697,28 @@ class KitchenPSLEnv(PSLEnv):
     def process_state_frames(self, frames):
         raise NotImplementedError
 
+    def get_hardcoded_text_plan(self):
+        if "microwave" in self.env_name:
+            return [("microwave handle", "grasp")]
+        if "slide" in self.env_name:
+            return [("slide", "grasp")]
+        if "kettle" in self.env_name:
+            return [("kettle", "grasp")]
+        if "light" in self.env_name:
+            return [("light", "grasp")]
+        if "tlb" in self.env_name:
+            return [("top left burner", "grasp")]
+
+    def named_check_object_grasp(self, obj_name):
+        if self.use_vision_grasp_check:
+            raise NotImplementedError
+        else:
+            def check_object_grasp():
+                if "microwave" in obj_name:
+                    return False
+                    #return self.update_info(dict())["microwave success"]
+            return check_object_grasp 
+        
     def get_image(self):
         im = self.sim.render(
             width=960,
@@ -704,62 +794,62 @@ class KitchenPSLEnv(PSLEnv):
             open_gripper_on_tp=not is_grasped,
         )
 
-    def step(self, action, get_intermediate_frames=False, **kwargs):
-        o, r, d, i = self._wrapped_env.step(action)
-        take_planner_step = r > 0  # if succeeded at subtask, jump to next subtask
-        if take_planner_step:
-            target_pos, target_quat = self.get_target_pos()
-            if self.teleport_instead_of_mp:
-                error = self.set_robot_based_on_ee_pos(
-                    target_pos,
-                    target_quat,
-                    self.reset_qpos,
-                    self.reset_qvel,
-                    is_grasped=False,
-                    obj_idx=0,
-                    open_gripper_on_tp=True,
-                )
-                o = self.get_observation()
-            else:
-                error = self.mp_to_point(
-                    target_pos,
-                    target_quat,
-                    self.reset_qpos,
-                    self.reset_qvel,
-                    is_grasped=False,
-                    obj_idx=0,
-                    open_gripper_on_tp=True,
-                    get_intermediate_frames=get_intermediate_frames,
-                )
-                o = self.get_observation()
-            self.num_high_level_steps += 1
-        info = {}
-        if "microwave" in self.env_name:
-            info["microwave_success"] = i["microwave success"]
-            info["microwave_distance_to_goal"] = i["microwave distance to goal"]
-        if "hinge" in self.env_name:
-            info["hinge_success"] = i["hinge cabinet success"]
-            info["distance_to_goal"] = i["hinge cabinet distance to goal"]
-        if "tlb" in self.env_name:
-            info["tlb_success"] = i["top burner success"]
-            info["tlb_distance_to_goal"] = i["top burner distance to goal"]
-        if "trb" in self.env_name:
-            info["trb_success"] = i["top right burner success"]
-            info["trb_distance_to_goal"] = i["top right burner distance to goal"]
-        if "blb" in self.env_name:
-            info["blb_success"] = i["bottom left burner success"]
-            info["blb_distance_to_goal"] = i["bottom left burner distance to goal"]
-        if "brb" in self.env_name:
-            info["brb_success"] = i["bottom right burner success"]
-            info["brb_distance_to_goal"] = i["bottom right burner distance to goal"]
-        if "kettle" in self.env_name:
-            info["kettle_success"] = i["kettle success"]
-            info["kettle_distance_to_goal"] = i["kettle distance to goal"]
-        if "light" in self.env_name:
-            info["light_success"] = i["light switch success"]
-            info["light_distance_to_goal"] = i["light switch distance to goal"]
-        if "slider" in self.env_name:
-            info["slider_success"] = i["slide cabinet success"]
-            info["slider_distance_to_goal"] = i["slide cabinet distance to goal"]
-        info["score"] = i["score"]
-        return o, r, d, info
+    # def step(self, action, get_intermediate_frames=False, **kwargs):
+    #     o, r, d, i = self._wrapped_env.step(action)
+    #     take_planner_step = r > 0  # if succeeded at subtask, jump to next subtask
+    #     if take_planner_step:
+    #         target_pos, target_quat = self.get_target_pos()
+    #         if self.teleport_instead_of_mp:
+    #             error = self.set_robot_based_on_ee_pos(
+    #                 target_pos,
+    #                 target_quat,
+    #                 self.reset_qpos,
+    #                 self.reset_qvel,
+    #                 is_grasped=False,
+    #                 obj_idx=0,
+    #                 open_gripper_on_tp=True,
+    #             )
+    #             o = self.get_observation()
+    #         else:
+    #             error = self.mp_to_point(
+    #                 target_pos,
+    #                 target_quat,
+    #                 self.reset_qpos,
+    #                 self.reset_qvel,
+    #                 is_grasped=False,
+    #                 obj_idx=0,
+    #                 open_gripper_on_tp=True,
+    #                 get_intermediate_frames=get_intermediate_frames,
+    #             )
+    #             o = self.get_observation()
+    #         self.num_high_level_steps += 1
+    #     info = {}
+    #     # if "microwave" in self.env_name:
+    #     #     info["microwave_success"] = i["microwave success"]
+    #     #     info["microwave_distance_to_goal"] = i["microwave distance to goal"]
+    #     # if "hinge" in self.env_name:
+    #     #     info["hinge_success"] = i["hinge cabinet success"]
+    #     #     info["distance_to_goal"] = i["hinge cabinet distance to goal"]
+    #     # if "tlb" in self.env_name:
+    #     #     info["tlb_success"] = i["top burner success"]
+    #     #     info["tlb_distance_to_goal"] = i["top burner distance to goal"]
+    #     # if "trb" in self.env_name:
+    #     #     info["trb_success"] = i["top right burner success"]
+    #     #     info["trb_distance_to_goal"] = i["top right burner distance to goal"]
+    #     # if "blb" in self.env_name:
+    #     #     info["blb_success"] = i["bottom left burner success"]
+    #     #     info["blb_distance_to_goal"] = i["bottom left burner distance to goal"]
+    #     # if "brb" in self.env_name:
+    #     #     info["brb_success"] = i["bottom right burner success"]
+    #     #     info["brb_distance_to_goal"] = i["bottom right burner distance to goal"]
+    #     # if "kettle" in self.env_name:
+    #     #     info["kettle_success"] = i["kettle success"]
+    #     #     info["kettle_distance_to_goal"] = i["kettle distance to goal"]
+    #     # if "light" in self.env_name:
+    #     #     info["light_success"] = i["light switch success"]
+    #     #     info["light_distance_to_goal"] = i["light switch distance to goal"]
+    #     # if "slider" in self.env_name:
+    #     #     info["slider_success"] = i["slide cabinet success"]
+    #     #     info["slider_distance_to_goal"] = i["slide cabinet distance to goal"]
+    #     # info["score"] = i["score"]
+    #     return o, r, d, info

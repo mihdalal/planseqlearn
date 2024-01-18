@@ -2,6 +2,7 @@ import numpy as np
 from robosuite.utils.transform_utils import *
 from planseqlearn.psl.sam_utils import build_models
 from rlkit.envs.wrappers import ProxyEnv as RlkitProxyEnv
+import sys
 
 try:
     from ompl import base as ob
@@ -97,7 +98,10 @@ class PSLEnv(ProxyEnv):
         raise NotImplementedError
 
     def get_all_initial_object_poses(self):
-        self.initial_object_pos = [self.get_object_pose_mp(obj_idx=0)[0].copy()]
+        self.initial_object_pos_dict = {}
+        for obj_name, action in self.text_plan:
+            if action == "grasp":
+                self.initial_object_pos_dict[obj_name] = self.named_get_object_pose_mp(obj_name)[0].copy()
 
     def get_curr_postcondition(self):
         if self.text_plan[self.curr_plan_stage][1].lower() == "grasp":
@@ -145,8 +149,7 @@ class PSLEnv(ProxyEnv):
                 target_quat,
                 self.reset_qpos,
                 self.reset_qvel,
-                is_grasped=False,
-                obj_idx=self.object_idx,
+                obj_name=self.text_plan[0][0],
                 get_intermediate_frames=get_intermediate_frames,
             )
         obs = self.get_observation()
@@ -190,8 +193,7 @@ class PSLEnv(ProxyEnv):
         og_qpos,
         og_qvel,
         is_grasped,
-        open_gripper_on_tp,
-        obj_idx,
+        obj_name,
         check_valid,
         backtrack_movement_fraction=0.001,
     ):
@@ -225,6 +227,7 @@ class PSLEnv(ProxyEnv):
                         goal_pos=target_pos,
                         qpos=qpos,
                         qvel=qvel,
+                        obj_name=obj_name,
                     )
                     target_angles = self.compute_ik(
                         target_pos, target_quat, qpos, qvel, og_qpos, og_qvel
@@ -237,8 +240,7 @@ class PSLEnv(ProxyEnv):
                         qvel=qvel,
                         movement_fraction=backtrack_movement_fraction,
                         is_grasped=is_grasped,
-                        obj_idx=obj_idx,
-                        ignore_object_collision=is_grasped,
+                        obj_name=obj_name,
                     )
                 for i in range(7):
                     goal()[i] = target_angles[i]
@@ -306,13 +308,11 @@ class PSLEnv(ProxyEnv):
                     pos[3:],
                     qpos,
                     qvel,
-                    is_grasped=is_grasped,
-                    open_gripper_on_tp=open_gripper_on_tp,
-                    obj_idx=obj_idx,
+                    obj_name=obj_name,
                 )
         return start, goal, si
 
-    def get_mp_waypoints(self, path, qpos, qvel, is_grasped, obj_idx):
+    def get_mp_waypoints(self, path, qpos, qvel, is_grasped, obj_name):
         waypoint_imgs, waypoint_masks = [], []
         for i, state in enumerate(path):
             if self.use_joint_space_mp:
@@ -320,9 +320,7 @@ class PSLEnv(ProxyEnv):
                     state,
                     qpos,
                     qvel,
-                    is_grasped=is_grasped,
-                    obj_idx=obj_idx,
-                    open_gripper_on_tp=not is_grasped,
+                    obj_name=obj_name
                 )
             else:
                 self.set_robot_based_on_ee_pos(
@@ -330,9 +328,7 @@ class PSLEnv(ProxyEnv):
                     state[3:],
                     qpos,
                     qvel,
-                    is_grasped=is_grasped,
-                    obj_idx=obj_idx,
-                    open_gripper_on_tp=not is_grasped,
+                    obj_name=obj_name,
                 )
             if hasattr(self, "get_vid_image"):
                 im = self.get_vid_image()
@@ -352,11 +348,14 @@ class PSLEnv(ProxyEnv):
         qpos,
         qvel,
         is_grasped=False,
-        obj_idx=0,
+        obj_name="",
         open_gripper_on_tp=False,
         planning_time=20.0,
         get_intermediate_frames=False,
     ):
+        is_grasped = self.named_check_object_grasp(
+            self.text_plan[self.curr_plan_stage - (self.curr_plan_stage % 2)][0]
+        )()
         if target_pos is None:
             return -np.inf
         get_intermediate_frames = True
@@ -385,8 +384,7 @@ class PSLEnv(ProxyEnv):
                     qpos,
                     qvel,
                     is_grasped=is_grasped,
-                    obj_idx=obj_idx,
-                    ignore_object_collision=is_grasped,
+                    obj_name=obj_name 
                 )
                 return valid
             else:
@@ -408,13 +406,11 @@ class PSLEnv(ProxyEnv):
                         quat,
                         qpos,
                         qvel,
-                        is_grasped=is_grasped,
-                        obj_idx=obj_idx,
-                        open_gripper_on_tp=open_gripper_on_tp,
+                        obj_name=obj_name,
                     )
                     valid = not self.check_robot_collision(
                         ignore_object_collision=is_grasped,
-                        obj_idx=obj_idx,
+                        obj_name=obj_name,
                     )
                 return valid
 
@@ -428,8 +424,7 @@ class PSLEnv(ProxyEnv):
             og_qpos=og_qpos,
             og_qvel=og_qvel,
             is_grasped=is_grasped,
-            open_gripper_on_tp=not is_grasped,
-            obj_idx=obj_idx,
+            obj_name=obj_name,
             check_valid=isStateValid,
         )
 
@@ -478,17 +473,18 @@ class PSLEnv(ProxyEnv):
                         ]
                     )
                 converted_path.append(new_state)
-            converted_path = converted_path[1:]
+            #converted_path = converted_path[1:]
             print(f"Length of converted path: {len(converted_path)}")
             if get_intermediate_frames:
                 waypoint_imgs, waypoint_masks = self.get_mp_waypoints(
-                    converted_path, qpos, qvel, is_grasped, obj_idx
+                    converted_path, qpos, qvel, is_grasped, obj_name=obj_name
                 )
             self._wrapped_env.reset()
             self.sim.data.qpos[:] = og_qpos.copy()
             self.sim.data.qvel[:] = og_qvel.copy()
             self.sim.forward()
             self.update_mp_controllers()
+            self.break_mp = False
             self.set_robot_colors(np.array([0.1, 0.3, 0.7, 1.0]))
             for state_idx, state in enumerate(converted_path):
                 state_frames = []
