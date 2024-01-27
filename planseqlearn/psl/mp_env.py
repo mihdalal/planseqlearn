@@ -21,6 +21,8 @@ class PSLEnv(ProxyEnv):
         self,
         env,
         env_name,
+        # llm
+        text_plan,
         # mp
         teleport_instead_of_mp=True,
         teleport_on_grasp=True,
@@ -31,9 +33,6 @@ class PSLEnv(ProxyEnv):
         use_sam_segmentation=False,
         use_vision_grasp_check=False,
         use_vision_placement_check=False,
-        # llm
-        use_llm_plan=False,
-        text_plan=None,
         **kwargs,
     ):
         """
@@ -75,6 +74,17 @@ class PSLEnv(ProxyEnv):
         # trajectory information
         self.num_high_level_steps = 0
         self.object_idx = 0
+    
+    def set_robot_colors(self, colors):
+        if type(colors) is np.ndarray:
+            colors = [colors] * len(self.robot_geom_ids)
+        for idx, geom_id in enumerate(self.robot_geom_ids):
+            self.sim.model.geom_rgba[geom_id] = colors[idx]
+        self.sim.forward()
+
+    def reset_robot_colors(self):
+        self.set_robot_colors(self.original_colors)
+        self.sim.forward()
 
     def get_observation(self):
         raise NotImplementedError
@@ -103,7 +113,7 @@ class PSLEnv(ProxyEnv):
             if action == "grasp":
                 self.initial_object_pos_dict[obj_name] = self.named_get_object_pose_mp(obj_name)[0].copy()
 
-    def get_curr_postcondition(self):
+    def get_curr_postcondition_function(self):
         if self.text_plan[self.curr_plan_stage][1].lower() == "grasp":
             return self.named_check_object_grasp(self.text_plan[self.curr_plan_stage][0])
         elif self.text_plan[self.curr_plan_stage][1].lower() == "place":
@@ -116,16 +126,13 @@ class PSLEnv(ProxyEnv):
         self.object_idx = 0
         # reset wrapped env
         obs = self._wrapped_env.reset(**kwargs)
-        if self.text_plan is None:
-            self.text_plan = self.get_hardcoded_text_plan()
-            print(f"Text plan: {self.text_plan}")
         self.curr_plan_stage = 0
-        self.curr_postcondition = self.get_curr_postcondition()
+        self.curr_postcondition = self.get_curr_postcondition_function()
 
         self.post_reset_burn_in()
         if hasattr(self, "reset_precompute_sam_poses") and self.use_sam_segmentation:
             self.reset_precompute_sam_poses()
-        # reset position
+        # reset 
         self.reset_pos, self.reset_ori = self._eef_xpos.copy(), self._eef_xquat.copy()
         self.reset_qpos, self.reset_qvel = (
             self.sim.data.qpos.copy(),
@@ -157,8 +164,9 @@ class PSLEnv(ProxyEnv):
 
     def step(self, action, get_intermediate_frames=False, **kwargs):
         o, r, d, i = self._wrapped_env.step(action)
-        take_planner_step = self.curr_postcondition() and (self.curr_plan_stage) != len(self.text_plan) - 1
-        if take_planner_step: # advance plan to next stage using motion planner
+        curr_plan_stage_finished = \
+            self.curr_postcondition(info=i) and (self.curr_plan_stage) != len(self.text_plan) - 1
+        if curr_plan_stage_finished: # advance plan to next stage using motion planner
             self.curr_plan_stage += 1
             target_pos, target_quat = self.get_target_pos()
             if self.teleport_instead_of_mp:
@@ -169,7 +177,6 @@ class PSLEnv(ProxyEnv):
                     self.reset_qvel,
                     obj_name=self.text_plan[self.curr_plan_stage - (self.curr_plan_stage % 2)][0],
                 )
-                print(f"Position after teleporting: {self._eef_xpos}")
             else:
                 error = self.mp_to_point(
                     target_pos.copy(),
@@ -179,7 +186,7 @@ class PSLEnv(ProxyEnv):
                     obj_name=self.text_plan[self.curr_plan_stage - (self.curr_plan_stage % 2)][0],
                     get_intermediate_frames=get_intermediate_frames,
                 )
-            self.curr_postcondition = self.get_curr_postcondition()
+            self.curr_postcondition = self.get_curr_postcondition_function()
         return o, r, d, i
 
     def construct_mp_problem(

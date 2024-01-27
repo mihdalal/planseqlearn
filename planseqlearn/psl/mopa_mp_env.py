@@ -425,23 +425,12 @@ class MoPAPSLEnv(PSLEnv):
             self.sim.model.geom_rgba[idx].copy() for idx in self.robot_geom_ids
         ]
         self.retry = False
-
-    def get_hardcoded_text_plan(self):
-        if self.env_name == "SawyerAssemblyObstacle-v0":
-            return [("empty hole", "place")]
-        if self.env_name == "SawyerLiftObstacle-v0":
-            return [("red can", "grasp")]
-        if self.env_name == "SawyerPushObstacle-v0":
-            return [("red cube", "grasp")]
     
-    def get_curr_postcondition():
-        pass 
-    
-    def named_get_object_pose_mp(self, obj_name):
+    def get_mp_target_pose(self, obj_name):
+        if self.use_sam_segmentation:
+            object_pos = self.sam_object_pose[obj_name]
         if "can" in obj_name:
-            if self.use_sam_segmentation:
-                object_pos = self.sam_object_pose[obj_name]
-            elif self.use_vision_pose_estimation:
+            if self.use_vision_pose_estimation and not self.use_sam_segmentation:
                 object_pos = get_object_pose_from_seg(
                     env=self,
                     object_string="cube",
@@ -450,15 +439,13 @@ class MoPAPSLEnv(PSLEnv):
                     camera_height=500,
                     sim=self._wrapped_env.sim,
                 )
-            else:
-                object_pos, _ = self.named_get_object_pose(obj_name)
+            elif not self.use_vision_pose_estimation:
+                object_pos, _ = self.get_sim_object_pose(obj_name)
             object_pos += np.array([0.0, 0.0, 0.07])
             object_quat = np.array([-0.1268922, 0.21528646, 0.96422245, -0.08846001])
             object_quat /= np.linalg.norm(object_quat)
         if "hole" in obj_name:
-            if self.use_sam_segmentation:
-                object_pos = self.sam_object_pose[obj_name]
-            elif self.use_vision_pose_estimation:
+            if self.use_vision_pose_estimation and not self.use_sam_segmentation:
                 object_pos = get_object_pose_from_seg(
                     self,
                     "4_part4_mesh",
@@ -468,25 +455,23 @@ class MoPAPSLEnv(PSLEnv):
                     self._wrapped_env.sim,
                 )
                 object_pos += np.array([0., -0.3, 0.45])
-            else:
+            elif not self.use_vision_pose_estimation:
                 object_pos = get_site_pose(self._wrapped_env, "hole")[0]
                 object_pos += np.array([-0.12, 0.05, 0.45])
             object_quat = np.array([-0.50258679, -0.61890813, -0.49056324, 0.35172])
             object_quat /= np.linalg.norm(object_quat)
         if "cube" in obj_name:
-            if self.use_sam_segmentation:
-                object_pos = self.sam_object_pose[obj_name] 
-            elif self.use_vision_pose_estimation:
+            if self.use_vision_pose_estimation and not self.use_sam_segmentation:
                 object_pos = get_object_pose_from_seg(
                     self, "cube", "frontview", 500, 500, self._wrapped_env.sim
                 ) 
-            else:
-                object_pos, _ = self.named_get_object_pose(obj_name)
+            elif not self.use_vision_pose_estimation:
+                object_pos, _ = self.get_sim_object_pose(obj_name)
             object_pos += np.array([-0.14, 0.02, 0.06])
             object_quat = None  
         return object_pos, object_quat 
     
-    def named_get_object_pose(self, obj_name):
+    def get_sim_object_pose(self, obj_name):
         if "can" in obj_name:
             start = self.sim.model.body_jntadr[self.sim.model.body_name2id("cube")]
             object_pos = self.sim.model.body_jntadr[self.sim.model.body_name2id("cube")]
@@ -508,43 +493,28 @@ class MoPAPSLEnv(PSLEnv):
             self, self.allowed_collision_pairs, self.env_name, **args, **kwargs
         )
 
-    def set_robot_colors(self, colors):
-        if type(colors) is np.ndarray:
-            colors = [colors] * len(self.robot_geom_ids)
-        for idx, geom_id in enumerate(self.robot_geom_ids):
-            self.sim.model.geom_rgba[geom_id] = colors[idx]
-        self.sim.forward()
-
-    def reset_robot_colors(self):
-        self.set_robot_colors(self.original_colors)
-        self.sim.forward()
-
     def reset_precompute_sam_poses(self):
-        ENV_KWARGS = {
-            'SawyerLiftObstacle-v0': {
-                'camera_name': 'topview',
-                'text_prompts': ['red can'],
-                'box_threshold': 0.3,
-                'idx': 0, 
-                'offset': np.array([0., 0., 0.])  
-            },
-            'SawyerAssemblyObstacle-v0': {
-                'camera_name': 'topview',
-                'text_prompts': ['four holes'],
-                'box_threshold': 0.4,
-                'idx': 0,
-                'offset': np.array([0., 0., 0.42])  
-            },
-            'SawyerPushObstacle-v0': {
-                'camera_name': 'zoomview',
-                'text_prompts': ['robot, small red cube, green spot'],
-                'box_threshold': 0.4,
-                'idx': 1,
-                'offset': np.array([0., 0., 0.0])  
-            },
-        }
+        if "can" in obj_name:
+            text_prompts = ["red can"]
+            box_threshold = 0.3
+            idx = 0
+            offset = np.zeros(3)
+            camera_name = "topview"
+        if "hole" in obj_name:
+            text_prompts = ["four holes"]
+            box_threshold = 0.4
+            idx = 0
+            offset = np.array([0., 0., 0.42])
+            camera_name = "topview"
+        if "cube" in obj_name:
+            text_prompts = ["robot, small red cube, green spot"]
+            box_threshold = 0.4
+            idx = 1
+            offset = np.zeros(3)
+            camera_name = "zoomview"
+
         frame = self.sim.render(
-            camera_name=ENV_KWARGS[self.env_name]['camera_name'], 
+            camera_name=camera_name,
             width=500, 
             height=500,
         )
@@ -553,15 +523,15 @@ class MoPAPSLEnv(PSLEnv):
             np.flipud(frame),
             self.dino,
             self.sam,
-            text_prompts=ENV_KWARGS[self.env_name]['text_prompts'],
-            box_threshold=ENV_KWARGS[self.env_name]['box_threshold'],
+            text_prompts=text_prompts, 
+            box_threshold=box_threshold,
             text_threshold=0.25,
             device="cuda",
             debug=True,
             output_dir="sam_outputs",
         )
         depth_map = get_camera_depth(
-            camera_name=ENV_KWARGS[self.env_name]['camera_name'],
+            camera_name=camera_name,
             camera_width=500,
             camera_height=500,
             sim=self.sim,
@@ -570,11 +540,11 @@ class MoPAPSLEnv(PSLEnv):
                 CU.get_real_depth_map(sim=self.sim, depth_map=depth_map), -1
             )
         object_mask = obj_masks[
-            ENV_KWARGS[self.env_name]['idx']
+            idx 
         ].detach().cpu().numpy()[0, :, :]
         world_to_camera = CU.get_camera_transform_matrix(
             sim=self.sim,
-            camera_name=ENV_KWARGS[self.env_name]['camera_name'],
+            camera_name=camera_name,
             camera_height=500,
             camera_width=500,
         )
@@ -586,13 +556,10 @@ class MoPAPSLEnv(PSLEnv):
             camera_to_world_transform=camera_to_world,
         )
         self.sam_object_pose = dict()
-        self.sam_object_pose[self.text_plan[0][0]] = np.mean(object_pointcloud, axis=0) + ENV_KWARGS[self.env_name]['offset']
-
-    def get_placement_poses(self, **kwargs):
-        return [(None, None)]
+        self.sam_object_pose[self.text_plan[0][0]] = np.mean(object_pointcloud, axis=0) + offset
 
     def get_target_pos(self):
-        pos, obj_quat = self.named_get_object_pose_mp(self.text_plan[self.curr_plan_stage][0])
+        pos, obj_quat = self.get_mp_target_pose(self.text_plan[self.curr_plan_stage][0])
         return pos, obj_quat 
 
     def get_curr_postcondition(self):
@@ -604,12 +571,12 @@ class MoPAPSLEnv(PSLEnv):
             raise NotImplementedError("Currently only supporting grasp and place postconditions")
 
     def named_check_object_grasp(self, obj_name):
-        def check_grasp():
+        def check_grasp(*args, **kwargs):
             return self._check_success()
         return check_grasp 
     
     def named_check_object_placement(self, obj_name):
-        def check_placement():
+        def check_placement(*args, **kwargs):
             return self._check_success()
         return check_placement
 
@@ -714,7 +681,7 @@ class MoPAPSLEnv(PSLEnv):
         gripper_qvel = self.sim.data.qvel[self.ref_gripper_joint_pos_indexes].copy()
         old_eef_xpos, old_eef_xquat = get_site_pose(self, self.config["ik_target"])
 
-        object_pose, object_quat = self.named_get_object_pose(obj_name)
+        object_pose, object_quat = self.get_sim_object_pose(obj_name)
 
         target_cart = np.clip(
             target_pos,
@@ -815,7 +782,7 @@ class MoPAPSLEnv(PSLEnv):
         qvel,
         obj_name="",
     ):
-        object_pos, object_quat = self.named_get_object_pose(obj_name)
+        object_pos, object_quat = self.get_sim_object_pose(obj_name)
         gripper_qpos = self.sim.data.qpos[self.ref_gripper_joint_pos_indexes].copy()
         gripper_qvel = self.sim.data.qvel[self.ref_gripper_joint_pos_indexes].copy()
         old_eef_xpos, old_eef_xquat = get_site_pose(self, self.config["ik_target"])

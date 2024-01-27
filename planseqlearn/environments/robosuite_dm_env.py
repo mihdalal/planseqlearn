@@ -37,6 +37,7 @@ class Robosuite_Wrapper(dm_env.Environment):
         vertical_displacement=0.08,
         estimate_orientation=True,
         valid_obj_names=None,
+        text_plan=None,
         use_proprio=True,
         use_sam_segmentation=False,
     ):
@@ -92,7 +93,7 @@ class Robosuite_Wrapper(dm_env.Environment):
         )
         # Base dictionary for common parameters
         mp_env_kwargs = dict(
-            teleport_instead_of_mp=True,
+            teleport_instead_of_mp=False,
             mp_bounds_low=(-1.45, -1.25, 0.45),
             mp_bounds_high=(0.45, 0.85, 2.25),
             backtrack_movement_fraction=0.001,
@@ -103,6 +104,7 @@ class Robosuite_Wrapper(dm_env.Environment):
             use_vision_placement_check=False,
             use_vision_grasp_check=False,
             estimate_orientation=False,
+            text_plan=
             use_sam_segmentation=use_sam_segmentation,
         )
 
@@ -250,6 +252,7 @@ def make_robosuite(
     estimate_orientation=True,
     valid_obj_names=None,
     use_proprio=True,
+    text_plan=None,
     use_sam_segmentation=False,
 ):
     env = Robosuite_Wrapper(
@@ -262,6 +265,7 @@ def make_robosuite(
         estimate_orientation=estimate_orientation,
         valid_obj_names=valid_obj_names,
         use_proprio=use_proprio,
+        text_plan=text_plan,
         use_sam_segmentation=use_sam_segmentation,
     )
     env = ActionDTypeWrapper(env, np.float32)

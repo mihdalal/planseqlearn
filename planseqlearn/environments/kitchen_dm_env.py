@@ -17,8 +17,6 @@ from planseqlearn.environments.wrappers import (
     get_env_observation_spec,
 )
 from planseqlearn.psl.kitchen_mp_env import KitchenPSLEnv
-from d4rl.kitchen.env_dict import ALL_KITCHEN_ENVIRONMENTS
-
 
 class Kitchen_Wrapper(dm_env.Environment):
     def __init__(
@@ -32,16 +30,16 @@ class Kitchen_Wrapper(dm_env.Environment):
         use_sam_segmentation=False,
     ):
         self.discount = discount
-        env_kwargs = dict(
-            dense=False,
-            image_obs=True,
-            action_scale=1,
-            control_mode="end_effector",
-            frame_skip=40,
-            max_path_length=path_length,
-        )
-        # do preprocessing
-        self._env = ALL_KITCHEN_ENVIRONMENTS[env_name](**env_kwargs)
+        # env_kwargs = dict(
+        #     dense=False,
+        #     image_obs=True,
+        #     action_scale=1,
+        #     frame_skip=40,
+        #     max_path_length=path_length,
+        # )
+        # # do preprocessing
+        # self._env = ALL_KITCHEN_ENVIRONMENTS[env_name](**env_kwargs)
+        self._env = gym.make(env_name)
         if psl:
             self._env = KitchenPSLEnv(
                 self._env,

@@ -26,7 +26,7 @@ def set_robot_based_on_ee_pos(
         env.text_plan[env.curr_plan_stage - (env.curr_plan_stage % 2)][0]
     )()
     # cache quantities from prior to setting the state
-    object_pose = env.named_get_object_pose(obj_name)
+    object_pose = env.get_sim_object_pose(obj_name)
     gripper_qpos = env.sim.data.qpos[7:9].copy()
     gripper_qvel = env.sim.data.qvel[7:9].copy()
     old_eef_xquat = env._eef_xquat.copy()
@@ -178,16 +178,6 @@ class MetaworldPSLEnv(PSLEnv):
                 geom_ids.append(geom_id)
         return body_ids, geom_ids
 
-    def get_hardcoded_text_plan(self):
-        if self.env_name == "assembly-v2":
-            return [("green wrench", "grasp"), ("small maroon peg", "place")]
-        if self.env_name == "hammer-v2":
-            return [("small red hammer handle", "grasp"), ("gray nail on wooden box", "place")]
-        if self.env_name == "bin-picking-v2":
-            return [("small green cube", "grasp"), ("blue bin", "place")]
-        if self.env_name == "disassemble-v2":
-            return [("green wrench handle", "grasp")]
-
     def get_image(self):
         im = self.sim.render(
             camera_name="corner",
@@ -198,20 +188,7 @@ class MetaworldPSLEnv(PSLEnv):
     
     def reset_precompute_sam_poses(self):
         self.sam_object_pose = {}
-        if self.env_name == "assembly-v2":
-            frame = self.sim.render(camera_name="corner", width=500, height=500)
-            obj_masks, _, _, pred_phrases, _ = get_seg_mask(
-                frame[:, :, ::-1],
-                self.dino,
-                self.sam,
-                text_prompts=["robot, green wrench"],
-                box_threshold=0.4,
-                text_threshold=0.25,
-                device="cuda",
-                debug=True,
-                output_dir="sam_outputs",
-            )
-            object_mask = obj_masks[-1].cpu().detach().numpy()[0, :, :]
+        if "maroon peg" in obj_name:
             obj_masks, _, _, pred_phrases, _ = get_seg_mask(
                 frame[:, :, ::-1],
                 self.dino,
@@ -241,21 +218,14 @@ class MetaworldPSLEnv(PSLEnv):
                 camera_width=500,
             )
             camera_to_world = np.linalg.inv(world_to_camera)
-            object_pixels = np.argwhere(object_mask)
             placement_pixels = np.argwhere(placement_mask)
-            object_pointcloud = CU.transform_from_pixels_to_world(
-                pixels=object_pixels,
-                depth_map=depth_map[..., 0],
-                camera_to_world_transform=camera_to_world,
-            )
             placement_pointcloud = CU.transform_from_pixels_to_world(
                 pixels=placement_pixels,
                 depth_map=depth_map[..., 0],
                 camera_to_world_transform=camera_to_world,
             )
-            self.sam_object_pose["green wrench"] = np.mean(object_pointcloud, axis=0) + np.array([0.03, 0.0, -0.25])
-            self.sam_object_pose["small maroon peg"] = np.mean(placement_pointcloud, axis=0) + np.array([0.13, 0.0, -0.05])
-        if self.env_name == "disassemble-v2":
+            self.sam_object_pose[obj_name] = np.mean(placement_pointcloud, axis=0) + np.array([0.13, 0.0, -0.05])
+        if "wrench" in obj_name:
             frame = self.sim.render(camera_name="topview", width=500, height=500)
             obj_masks, _, _, pred_phrases, _ = get_seg_mask(
                 frame[:, :, ::-1],
@@ -293,8 +263,8 @@ class MetaworldPSLEnv(PSLEnv):
                 depth_map=depth_map[..., 0],
                 camera_to_world_transform=camera_to_world,
             )
-            self.sam_object_pose["green wrench handle"] = np.mean(object_pointcloud, axis=0) + np.array([0.0, 0.0, 0.06])
-        if self.env_name == "hammer-v2":
+            self.sam_object_pose[obj_name] = np.mean(object_pointcloud, axis=0) + np.array([0.0, 0.0, 0.06])
+        if "hammer" in obj_name:
             frame = self.sim.render(camera_name="corner3", width=500, height=500)
             obj_masks, _, _, pred_phrases, _ = get_seg_mask(
                 frame[:, :, ::-1],
@@ -351,9 +321,48 @@ class MetaworldPSLEnv(PSLEnv):
                 depth_map=depth_map[..., 0],
                 camera_to_world_transform=camera_to_world,
             )
-            self.sam_object_pose["small red hammer handle"] = np.mean(object_pointcloud, axis=0) + np.array([0.09, 0.0, 0.05])
+            self.sam_object_pose[obj_name] = np.mean(object_pointcloud, axis=0) + np.array([0.09, 0.0, 0.05])
             self.sam_object_pose["gray nail on wooden box"] = np.mean(placement_pointcloud, axis=0) + np.array([-0.05, -0.2, 0.05])
-        if self.env_name == "bin-picking-v2":
+        if "nail" in obj_name:
+            frame = self.sim.render(camera_name="corner3", width=500, height=500)
+            obj_masks, _, _, pred_phrases, _ = get_seg_mask(
+                frame[:, :, ::-1],
+                self.dino,
+                self.sam,
+                text_prompts=["robot, gray nail on wooden box"],
+                box_threshold=0.4,
+                text_threshold=0.25,
+                device="cuda",
+                debug=True,
+                output_dir="sam_outputs",
+            )
+            placement_mask = obj_masks[-1].cpu().detach().numpy()[0, :, :]
+            depth_map = get_camera_depth(
+                camera_name="corner",
+                camera_width=500,
+                camera_height=500,
+                sim=self.sim,
+            )
+            depth_map = np.flipud(np.expand_dims(
+                CU.get_real_depth_map(sim=self.sim, depth_map=depth_map), -1
+            ))
+
+            # get camera matrices
+            world_to_camera = CU.get_camera_transform_matrix(
+                sim=self.sim,
+                camera_name="corner",
+                camera_height=500,
+                camera_width=500,
+            )
+            camera_to_world = np.linalg.inv(world_to_camera)
+            placement_pixels = np.argwhere(placement_mask)
+            placement_pointcloud = CU.transform_from_pixels_to_world(
+                pixels=placement_pixels,
+                depth_map=depth_map[..., 0],
+                camera_to_world_transform=camera_to_world,
+            )
+            self.sam_object_pose[obj_name] = np.mean(placement_pointcloud, axis=0) + np.array([-0.05, -0.2, 0.05])
+        if "cube" in obj_name:
             frame = self.sim.render(camera_name="topview", width=500, height=500)
             obj_masks, _, _, pred_phrases, _ = get_seg_mask(
                 frame[:, :, ::-1],
@@ -367,9 +376,35 @@ class MetaworldPSLEnv(PSLEnv):
                 output_dir="sam_outputs",
             )
             object_mask = obj_masks[-1].cpu().detach().numpy()[0, :, :]
-            frame2 = self.sim.render(camera_name="corner3", width=500, height=500)
+            depth_map = np.flipud(get_camera_depth(
+                camera_name="corner",
+                camera_width=500,
+                camera_height=500,
+                sim=self.sim,
+            ))
+            depth_map = np.expand_dims(
+                CU.get_real_depth_map(sim=self.sim, depth_map=depth_map), -1
+            )
+
+            # get camera matrices
+            world_to_camera = CU.get_camera_transform_matrix(
+                sim=self.sim,
+                camera_name="corner",
+                camera_height=500,
+                camera_width=500,
+            )
+            camera_to_world = np.linalg.inv(world_to_camera)
+            object_pixels = np.argwhere(object_mask)
+            object_pointcloud = CU.transform_from_pixels_to_world(
+                pixels=object_pixels,
+                depth_map=depth_map[..., 0],
+                camera_to_world_transform=camera_to_world,
+            )
+            self.sam_object_pose[obj_name] = np.mean(object_pointcloud, axis=0) + np.array([0.0, 0.0, 0.02])
+        if "bin" in obj_name:
+            frame = self.sim.render(camera_name="corner3", width=500, height=500)
             obj_masks, _, _, pred_phrases, _ = get_seg_mask(
-                frame2[:, :, ::-1],
+                frame[:, :, ::-1],
                 self.dino,
                 self.sam,
                 text_prompts=["robot, blue bin"],
@@ -398,79 +433,13 @@ class MetaworldPSLEnv(PSLEnv):
                 camera_width=500,
             )
             camera_to_world = np.linalg.inv(world_to_camera)
-            object_pixels = np.argwhere(object_mask)
             placement_pixels = np.argwhere(placement_mask)
-            object_pointcloud = CU.transform_from_pixels_to_world(
-                pixels=object_pixels,
-                depth_map=depth_map[..., 0],
-                camera_to_world_transform=camera_to_world,
-            )
             placement_pointcloud = CU.transform_from_pixels_to_world(
                 pixels=placement_pixels,
                 depth_map=depth_map[..., 0],
                 camera_to_world_transform=camera_to_world,
             )
-            self.sam_object_pose["small green cube"] = np.mean(object_pointcloud, axis=0) + np.array([0.0, 0.0, 0.02])
-            self.sam_object_pose["blue bin"] = np.mean(placement_pointcloud, axis=0) + np.array([0, 0, 0.15])
-
-    def get_placement_pose(self):
-        placement_quat = None
-        if not self.use_vision_pose_estimation:
-            if self.env_name == "assembly-v2":
-                placement_pos = self.sim.data.body_xpos[
-                    self.sim.model.body_name2id("peg")
-                ] + np.array([0.13, 0.0, 0.15])
-            elif self.env_name == "bin-picking-v2":
-                placement_pos = self._target_pos + np.array([0, 0, 0.15])
-            elif self.env_name == "disassemble-v2":
-                placement_pos = None
-            elif self.env_name == "hammer-v2":
-                placement_pos = self._wrapped_env._get_pos_objects()[3:] + np.array(
-                    [-0.05, -0.20, 0.05]
-                )
-        else:
-            object_name = (
-                self.text_plan[1][0]
-                if self.use_llm_plan
-                else self.hardcoded_text_plan[1][0]
-            )
-            if self.env_name == "disassemble-v2":
-                placement_pos = None
-            elif self.env_name == "hammer-v2":
-                if not self.use_sam_segmentation:
-                    placement_pos = get_geom_pose_from_seg(
-                        self, 53, ["corner2", "topview", "corner3"], 500, 500, self.sim
-                    )
-                    placement_pos += np.array([-0.15, -0.15, 0.0])
-                else:
-                    placement_pos = get_pose_from_sam_segmentation(
-                        self, object_name, "corner"
-                    )
-                    placement_pos += np.array([-0.15, -0.15, 0.0])
-            elif self.env_name == "bin-picking-v2":
-                if not self.use_sam_segmentation:
-                    placement_pos = get_geom_pose_from_seg(
-                        self, 44, ["corner", "corner2"], 500, 500, self.sim
-                    )
-                else:
-                    placement_pos = get_pose_from_sam_segmentation(
-                        self, object_name, "corner3"
-                    )
-                placement_pos += np.array([0.03, 0.03, 0.10])
-            elif self.env_name == "assembly-v2":
-                if not self.use_sam_segmentation:
-                    placement_pos = get_geom_pose_from_seg(
-                        self, 49, ["corner", "corner2"], 500, 500, self.sim
-                    )
-                else:
-                    placement_pos = get_pose_from_sam_segmentation(
-                        self, object_name, "corner"
-                    )
-                placement_pos += np.array([0.13, 0.0, 0.15])
-        return placement_pos, placement_quat
-
-    def get_placement_poses(self):
-        return [self.get_placement_pose()]
+            self.sam_object_pose[obj_name] = np.mean(placement_pointcloud, axis=0) + np.array([0, 0, 0.15])
 
     @property
     def observation_space(self):
@@ -481,7 +450,7 @@ class MetaworldPSLEnv(PSLEnv):
         return self._wrapped_env.action_space
 
     def named_check_object_grasp(self, obj_name):
-        def check_object_grasp():
+        def check_object_grasp(*args, **kwargs):
             if "wrench" in obj_name:
                 obj_str = "asmbly_peg"
             elif "hammer" in obj_name:
@@ -519,14 +488,16 @@ class MetaworldPSLEnv(PSLEnv):
             if obj_str == "hammer":
                 return body_grasp 
             else:
-                height_diff = abs(self.named_get_object_pose(obj_name)[0][2] - self.initial_object_pos_dict[obj_name][2])
+                height_diff = abs(self.get_sim_object_pose(obj_name)[0][2] - self.initial_object_pos_dict[obj_name][2])
                 return body_grasp and height_diff > 0.03
         return check_object_grasp
     
     def named_check_object_placement(self, obj_name): # not necessary 
-        return lambda : False
+        def check_object_placement(*args, **kwargs):
+            return False
+        return check_object_placement
     
-    def named_get_object_pose(self, obj_name):
+    def get_sim_object_pose(self, obj_name):
         if self.env_name == "hammer-v2":
             if "hammer" in obj_name:
                 object_pos = self._get_pos_objects()[:3] + np.array([0.0, 0.0, 0.016])
@@ -541,7 +512,7 @@ class MetaworldPSLEnv(PSLEnv):
                 object_quat = self._get_quat_objects().copy()
         return object_pos, object_quat 
 
-    def named_get_object_pose_mp(self, obj_name):
+    def get_mp_target_pose(self, obj_name):
         if self.env_name == "assembly-v2":
             if "wrench" in obj_name:
                 object_pos = self._get_pos_objects().copy() + np.array([0.03, 0.0, 0.05])
@@ -581,7 +552,7 @@ class MetaworldPSLEnv(PSLEnv):
         self.initial_object_pos_dict = {}
         for obj_name, action in self.text_plan:
             if action == "grasp":
-                self.initial_object_pos_dict[obj_name] = self.named_get_object_pose_mp(obj_name)[0].copy()
+                self.initial_object_pos_dict[obj_name] = self.get_mp_target_pose(obj_name)[0].copy()
 
     def get_observation(self):
         return self._get_obs()
@@ -631,7 +602,7 @@ class MetaworldPSLEnv(PSLEnv):
         self._set_obj_pose(np.concatenate((object_pos, object_quat)))
 
     def get_target_pos(self):
-        pos, obj_quat = self.named_get_object_pose_mp(self.text_plan[self.curr_plan_stage][0])
+        pos, obj_quat = self.get_mp_target_pose(self.text_plan[self.curr_plan_stage][0])
         quat = self._eef_xquat.copy()
         return pos, quat 
 
@@ -753,17 +724,6 @@ class MetaworldPSLEnv(PSLEnv):
     @property
     def _eef_xquat(self):
         return self.get_endeff_quat()
-
-    def set_robot_colors(self, colors):
-        if type(colors) is np.ndarray:
-            colors = [colors] * len(self.robot_geom_ids)
-        for idx, geom_id in enumerate(self.robot_geom_ids):
-            self.sim.model.geom_rgba[geom_id] = colors[idx]
-        self.sim.forward()
-
-    def reset_robot_colors(self):
-        self.set_robot_colors(self.original_colors)
-        self.sim.forward()
 
     def update_controllers(self, *args, **kwargs):
         pass
