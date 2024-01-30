@@ -40,6 +40,7 @@ class Robosuite_Wrapper(dm_env.Environment):
         text_plan=None,
         use_proprio=True,
         use_sam_segmentation=False,
+        use_mp=False,
     ):
         self.discount = discount
         self.env_name = env_name
@@ -93,18 +94,18 @@ class Robosuite_Wrapper(dm_env.Environment):
         )
         # Base dictionary for common parameters
         mp_env_kwargs = dict(
-            teleport_instead_of_mp=False,
+            teleport_instead_of_mp=not use_mp,
             mp_bounds_low=(-1.45, -1.25, 0.45),
             mp_bounds_high=(0.45, 0.85, 2.25),
             backtrack_movement_fraction=0.001,
             grip_ctrl_scale=0.0025,
             planning_time=20,
             controller_configs=controller_configs,
-            use_vision_pose_estimation=False,
+            use_vision_pose_estimation=True,
             use_vision_placement_check=False,
-            use_vision_grasp_check=False,
+            use_joint_space_mp=True,
             estimate_orientation=False,
-            text_plan=
+            text_plan=text_plan,
             use_sam_segmentation=use_sam_segmentation,
         )
 
@@ -254,6 +255,7 @@ def make_robosuite(
     use_proprio=True,
     text_plan=None,
     use_sam_segmentation=False,
+    use_mp=False,
 ):
     env = Robosuite_Wrapper(
         env_name=name,
@@ -267,6 +269,7 @@ def make_robosuite(
         use_proprio=use_proprio,
         text_plan=text_plan,
         use_sam_segmentation=use_sam_segmentation,
+        use_mp=use_mp,
     )
     env = ActionDTypeWrapper(env, np.float32)
     env = ActionRepeatWrapper(env, action_repeat, use_metaworld_reward_dict=True)

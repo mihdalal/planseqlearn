@@ -22,32 +22,26 @@ class Kitchen_Wrapper(dm_env.Environment):
     def __init__(
         self,
         env_name: str,
+        text_plan,
         discount=1.0,
         seed=None,
         path_length=280,
         psl=False,
         camera_name="fixed",
         use_sam_segmentation=False,
+        use_mp=False,
     ):
         self.discount = discount
-        # env_kwargs = dict(
-        #     dense=False,
-        #     image_obs=True,
-        #     action_scale=1,
-        #     frame_skip=40,
-        #     max_path_length=path_length,
-        # )
-        # # do preprocessing
-        # self._env = ALL_KITCHEN_ENVIRONMENTS[env_name](**env_kwargs)
         self._env = gym.make(env_name)
         if psl:
             self._env = KitchenPSLEnv(
                 self._env,
                 env_name,
                 use_vision_pose_estimation=False,
-                teleport_instead_of_mp=True,
+                teleport_instead_of_mp=not use_mp,
                 use_joint_space_mp=False,
-                use_sam_segmentation=use_sam_segmentation
+                use_sam_segmentation=use_sam_segmentation,
+                text_plan=text_plan,
             )
         # self._env.seed(seed)
         self.env_name = env_name
@@ -135,9 +129,11 @@ def make_kitchen(
     discount,
     seed,
     camera_name,
+    text_plan,
     path_length=280,
     psl=False,
     use_sam_segmentation=False,
+    use_mp=False,
 ):
     assert camera_name in ["wrist", "fixed"]
 
@@ -149,6 +145,8 @@ def make_kitchen(
         psl=psl,
         camera_name=camera_name,
         use_sam_segmentation=use_sam_segmentation,
+        text_plan=text_plan,
+        use_mp=use_mp,
     )
     env = ActionDTypeWrapper(env, np.float32)
     env = ActionRepeatWrapper(env, action_repeat, use_metaworld_reward_dict=True)

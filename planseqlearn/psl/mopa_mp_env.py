@@ -300,8 +300,27 @@ class MoPAWrapper(ProxyEnv):
                 terminal = True
             return success
         elif self.env_name == "SawyerPushObstacle-v0":
-            self._wrapped_env.compute_reward(None)
-            success = self._wrapped_env._success
+            success = False 
+            right_gripper, left_gripper = (
+                self.sim.data.get_site_xpos("right_eef"),
+                self.sim.data.get_site_xpos("left_eef"),
+            )
+            gripper_site_pos = (right_gripper + left_gripper) / 2.0
+            cube_pos = np.array(self.sim.data.body_xpos[self.cube_body_id])
+            target_pos = self.sim.data.body_xpos[self.target_id]
+            gripper_to_cube = np.linalg.norm(cube_pos - gripper_site_pos)
+            cube_to_target = np.linalg.norm(cube_pos[:2] - target_pos[:2])
+            reward_push = 0.0
+            reward_reach = 0.0
+            if gripper_to_cube < 0.1:
+                reward_reach += 0.1 * (1 - np.tanh(10 * gripper_to_cube))
+
+            if cube_to_target < 0.1:
+                reward_push += 0.5 * (1 - np.tanh(5 * cube_to_target))
+            info = dict(reward_reach=reward_reach, reward_push=reward_push)
+            if cube_to_target < 0.06:
+                success = True 
+
             return success
 
     @property
@@ -429,7 +448,15 @@ class MoPAPSLEnv(PSLEnv):
     def get_mp_target_pose(self, obj_name):
         if self.use_sam_segmentation:
             object_pos = self.sam_object_pose[obj_name]
-        if "can" in obj_name:
+            if "can" in obj_name:
+                object_quat = np.array([-0.1268922, 0.21528646, 0.96422245, -0.08846001])
+                object_quat /= np.linalg.norm(object_quat)
+            elif "hole" in obj_name:
+                object_quat = np.array([-0.50258679, -0.61890813, -0.49056324, 0.35172])
+                object_quat /= np.linalg.norm(object_quat)
+            else:
+                object_quat = None 
+        elif "can" in obj_name:
             if self.use_vision_pose_estimation and not self.use_sam_segmentation:
                 object_pos = get_object_pose_from_seg(
                     env=self,
@@ -444,7 +471,7 @@ class MoPAPSLEnv(PSLEnv):
             object_pos += np.array([0.0, 0.0, 0.07])
             object_quat = np.array([-0.1268922, 0.21528646, 0.96422245, -0.08846001])
             object_quat /= np.linalg.norm(object_quat)
-        if "hole" in obj_name:
+        elif "hole" in obj_name:
             if self.use_vision_pose_estimation and not self.use_sam_segmentation:
                 object_pos = get_object_pose_from_seg(
                     self,
@@ -460,13 +487,14 @@ class MoPAPSLEnv(PSLEnv):
                 object_pos += np.array([-0.12, 0.05, 0.45])
             object_quat = np.array([-0.50258679, -0.61890813, -0.49056324, 0.35172])
             object_quat /= np.linalg.norm(object_quat)
-        if "cube" in obj_name:
+        elif "cube" in obj_name:
             if self.use_vision_pose_estimation and not self.use_sam_segmentation:
                 object_pos = get_object_pose_from_seg(
                     self, "cube", "frontview", 500, 500, self._wrapped_env.sim
                 ) 
             elif not self.use_vision_pose_estimation:
                 object_pos, _ = self.get_sim_object_pose(obj_name)
+            print(f"object pos: {object_pos}")
             object_pos += np.array([-0.14, 0.02, 0.06])
             object_quat = None  
         return object_pos, object_quat 
@@ -494,69 +522,70 @@ class MoPAPSLEnv(PSLEnv):
         )
 
     def reset_precompute_sam_poses(self):
-        if "can" in obj_name:
-            text_prompts = ["red can"]
-            box_threshold = 0.3
-            idx = 0
-            offset = np.zeros(3)
-            camera_name = "topview"
-        if "hole" in obj_name:
-            text_prompts = ["four holes"]
-            box_threshold = 0.4
-            idx = 0
-            offset = np.array([0., 0., 0.42])
-            camera_name = "topview"
-        if "cube" in obj_name:
-            text_prompts = ["robot, small red cube, green spot"]
-            box_threshold = 0.4
-            idx = 1
-            offset = np.zeros(3)
-            camera_name = "zoomview"
+        for obj_name, _ in self.text_plan:
+            if "can" in obj_name:
+                text_prompts = ["red can"]
+                box_threshold = 0.3
+                idx = 0
+                offset = np.zeros(3)
+                camera_name = "topview"
+            if "hole" in obj_name:
+                text_prompts = ["four holes"]
+                box_threshold = 0.4
+                idx = 0
+                offset = np.array([0., 0., 0.42])
+                camera_name = "topview"
+            if "cube" in obj_name:
+                text_prompts = ["robot, small red cube, green spot"]
+                box_threshold = 0.4
+                idx = 1
+                offset = np.array([-0.15, 0., 0.12])
+                camera_name = "zoomview"
 
-        frame = self.sim.render(
-            camera_name=camera_name,
-            width=500, 
-            height=500,
-        )
-        frame = frame[:, :, ::-1] if "Lift" not in self.env_name else frame 
-        obj_masks, _, _, pred_phrases, _ = get_seg_mask(
-            np.flipud(frame),
-            self.dino,
-            self.sam,
-            text_prompts=text_prompts, 
-            box_threshold=box_threshold,
-            text_threshold=0.25,
-            device="cuda",
-            debug=True,
-            output_dir="sam_outputs",
-        )
-        depth_map = get_camera_depth(
-            camera_name=camera_name,
-            camera_width=500,
-            camera_height=500,
-            sim=self.sim,
-        )
-        depth_map = np.expand_dims(
-                CU.get_real_depth_map(sim=self.sim, depth_map=depth_map), -1
+            frame = self.sim.render(
+                camera_name=camera_name,
+                width=500, 
+                height=500,
             )
-        object_mask = obj_masks[
-            idx 
-        ].detach().cpu().numpy()[0, :, :]
-        world_to_camera = CU.get_camera_transform_matrix(
-            sim=self.sim,
-            camera_name=camera_name,
-            camera_height=500,
-            camera_width=500,
-        )
-        camera_to_world = np.linalg.inv(world_to_camera)
-        object_pixels = np.argwhere(object_mask)
-        object_pointcloud = CU.transform_from_pixels_to_world(
-            pixels=object_pixels,
-            depth_map=depth_map[..., 0],
-            camera_to_world_transform=camera_to_world,
-        )
-        self.sam_object_pose = dict()
-        self.sam_object_pose[self.text_plan[0][0]] = np.mean(object_pointcloud, axis=0) + offset
+            frame = frame[:, :, ::-1] if "Lift" not in self.env_name else frame 
+            obj_masks, _, _, pred_phrases, _ = get_seg_mask(
+                np.flipud(frame),
+                self.dino,
+                self.sam,
+                text_prompts=text_prompts, 
+                box_threshold=box_threshold,
+                text_threshold=0.25,
+                device="cuda",
+                debug=True,
+                output_dir="sam_outputs",
+            )
+            depth_map = get_camera_depth(
+                camera_name=camera_name,
+                camera_width=500,
+                camera_height=500,
+                sim=self.sim,
+            )
+            depth_map = np.expand_dims(
+                    CU.get_real_depth_map(sim=self.sim, depth_map=depth_map), -1
+                )
+            object_mask = obj_masks[
+                idx 
+            ].detach().cpu().numpy()[0, :, :]
+            world_to_camera = CU.get_camera_transform_matrix(
+                sim=self.sim,
+                camera_name=camera_name,
+                camera_height=500,
+                camera_width=500,
+            )
+            camera_to_world = np.linalg.inv(world_to_camera)
+            object_pixels = np.argwhere(object_mask)
+            object_pointcloud = CU.transform_from_pixels_to_world(
+                pixels=object_pixels,
+                depth_map=depth_map[..., 0],
+                camera_to_world_transform=camera_to_world,
+            )
+            self.sam_object_pose = dict()
+            self.sam_object_pose[self.text_plan[0][0]] = np.mean(object_pointcloud, axis=0) + offset
 
     def get_target_pos(self):
         pos, obj_quat = self.get_mp_target_pose(self.text_plan[self.curr_plan_stage][0])

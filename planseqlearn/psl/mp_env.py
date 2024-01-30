@@ -2,8 +2,9 @@ import numpy as np
 from robosuite.utils.transform_utils import *
 from planseqlearn.psl.sam_utils import build_models
 from rlkit.envs.wrappers import ProxyEnv as RlkitProxyEnv
+from collections import OrderedDict
 import sys
-
+sys.path.insert(0, "/home/tarunc/Desktop/research/contact_graspnet/ompl/py-bindings")
 try:
     from ompl import base as ob
     from ompl import geometric as og
@@ -28,10 +29,8 @@ class PSLEnv(ProxyEnv):
         teleport_on_grasp=True,
         use_joint_space_mp=True,
         # vision
-        use_pcd_collision_check=False,
         use_vision_pose_estimation=False,
         use_sam_segmentation=False,
-        use_vision_grasp_check=False,
         use_vision_placement_check=False,
         **kwargs,
     ):
@@ -42,10 +41,8 @@ class PSLEnv(ProxyEnv):
             teleport_instead_of_mp (bool): Whether to teleport instead of motion planning.
             teleport_on_grasp (bool): Whether to teleport on grasp.
             use_joint_space_mp (bool): Whether to use joint space motion planning instead of end-effector space motion planning.
-            use_pcd_collision_check (bool): Whether to use point cloud collision checking instead of simulator collision checking.
             use_vision_pose_estimation (bool): Whether to use vision pose estimation.
             use_sam_segmentation (bool): Whether to use SAM for segmentation or the simulator.
-            use_vision_grasp_check (bool): Whether to use vision-based grasp checking.
             use_vision_placement_check (bool): Whether to use vision-based placement checking.
             use_llm_plan (bool): Whether to use LLM high-level plan.
             text_plan (list): Text plan.
@@ -55,10 +52,8 @@ class PSLEnv(ProxyEnv):
         # mp and teleporting
         self.teleport_instead_of_mp = teleport_instead_of_mp
         self.use_joint_space_mp = use_joint_space_mp
-        self.use_pcd_collision_check = use_pcd_collision_check
         self.use_vision_pose_estimation = use_vision_pose_estimation
         self.use_sam_segmentation = use_sam_segmentation
-        self.use_vision_grasp_check = use_vision_grasp_check
         self.use_vision_placement_check = use_vision_placement_check
         self.teleport_on_grasp = teleport_on_grasp
         if self.use_sam_segmentation:
@@ -69,7 +64,6 @@ class PSLEnv(ProxyEnv):
                 sam_hq_checkpoint=None,
                 use_sam_hq=False,
             )
-        self.use_llm_plan = use_llm_plan
         self.text_plan = text_plan
         # trajectory information
         self.num_high_level_steps = 0
@@ -111,7 +105,7 @@ class PSLEnv(ProxyEnv):
         self.initial_object_pos_dict = {}
         for obj_name, action in self.text_plan:
             if action == "grasp":
-                self.initial_object_pos_dict[obj_name] = self.named_get_object_pose_mp(obj_name)[0].copy()
+                self.initial_object_pos_dict[obj_name] = self.get_mp_target_pose(obj_name)[0].copy()
 
     def get_curr_postcondition_function(self):
         if self.text_plan[self.curr_plan_stage][1].lower() == "grasp":
@@ -159,7 +153,10 @@ class PSLEnv(ProxyEnv):
                 obj_name=self.text_plan[0][0],
                 get_intermediate_frames=get_intermediate_frames,
             )
-        obs = self.get_observation()
+        try:
+            obs = self.get_observation()
+        except:
+            obs = OrderedDict() # doesn't matter since all training is with vision
         return obs
 
     def step(self, action, get_intermediate_frames=False, **kwargs):
@@ -225,6 +222,7 @@ class PSLEnv(ProxyEnv):
             for i in range(7):
                 goal()[i] = target_angles[i]
             goal_valid = check_valid(goal())
+            # do manual check
             if not goal_valid:
                 if self.env_name.startswith("Sawyer"):
                     target_pos, target_quat = self.backtracking_search_from_goal_pos(
@@ -357,12 +355,13 @@ class PSLEnv(ProxyEnv):
         is_grasped=False,
         obj_name="",
         open_gripper_on_tp=False,
-        planning_time=20.0,
+        planning_time=50.0,
         get_intermediate_frames=False,
     ):
-        is_grasped = self.named_check_object_grasp(
-            self.text_plan[self.curr_plan_stage - (self.curr_plan_stage % 2)][0]
-        )()
+        if "place" in self.text_plan[self.curr_plan_stage][1]:
+            is_grasped = self.named_check_object_grasp(self.text_plan[self.curr_plan_stage - 1][0])()
+        else:
+            is_grasped = self.named_check_object_grasp(self.text_plan[self.curr_plan_stage][0])()
         if target_pos is None:
             return -np.inf
         get_intermediate_frames = True
@@ -420,7 +419,6 @@ class PSLEnv(ProxyEnv):
                         obj_name=obj_name,
                     )
                 return valid
-
         start, goal, si = self.construct_mp_problem(
             target_pos=target_pos,
             target_quat=target_quat,

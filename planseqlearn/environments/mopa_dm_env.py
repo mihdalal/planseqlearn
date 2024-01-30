@@ -25,10 +25,12 @@ class MoPA_Env_Wrapper(dm_env.Environment):
     def __init__(
         self,
         env_name,
+        text_plan,
         discount=1.0,
         horizon=100,
         psl=False,
         use_sam_segmentation=False,
+        use_mp=False,
     ):
         if env_name == "SawyerLift-v0":
             config = LIFT_CONFIG
@@ -57,8 +59,9 @@ class MoPA_Env_Wrapper(dm_env.Environment):
             ik_env=ik_env,
             teleport_on_grasp=True,
             use_vision_pose_estimation=False,
-            teleport_instead_of_mp=False,
+            teleport_instead_of_mp=not use_mp,
             config=config,
+            text_plan=text_plan,
             use_sam_segmentation=use_sam_segmentation,
         )
         self.discount = discount
@@ -128,16 +131,20 @@ def make_mopa(
     frame_stack,
     action_repeat,
     seed,
+    text_plan,
     horizon=100,
     psl=True,
     use_sam_segmentation=False,
+    use_mp=False,
 ):
     np.random.seed(seed)
     env = MoPA_Env_Wrapper(
         name, 
         horizon=horizon, 
         psl=psl,
-        use_sam_segmentation=use_sam_segmentation
+        use_sam_segmentation=use_sam_segmentation,
+        text_plan=text_plan,
+        use_mp=use_mp,
     )
     env = ActionDTypeWrapper(env, np.float32)
     env = ActionRepeatWrapper(

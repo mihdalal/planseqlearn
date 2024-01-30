@@ -57,154 +57,15 @@ def apply_controller(controller, action, robot, policy_step):
     # Apply joint torque control
     robot.sim.data.ctrl[robot._ref_joint_actuator_indexes] = torques
 
-
 def check_robot_string(string):
     if string is None:
         return False
     return string.startswith("robot") or string.startswith("gripper")
 
-
 def check_string(string, other_string):
     if string is None:
         return False
     return string.startswith(other_string)
-
-
-def pcd_collision_check(
-    env,
-    target_angles,
-    gripper_qpos,
-    is_grasped,
-):
-    xyz, object_pts = env.xyz, env.object_pcd
-    robot = env.robot
-    joints = [
-        "panda_joint1",
-        "panda_joint2",
-        "panda_joint3",
-        "panda_joint4",
-        "panda_joint5",
-        "panda_joint6",
-        "panda_joint7",
-        "panda_finger_joint1",
-        "panda_finger_joint2",
-    ]
-    combined = []
-    qpos = np.concatenate([target_angles, gripper_qpos])
-    base_xpos = env.sim.data.body_xpos[env.sim.model.body_name2id("robot0_link0")]
-    fk = robot.collision_trimesh_fk(dict(zip(joints, qpos)))
-    link_fk = robot.link_fk(dict(zip(joints, qpos)))
-    mesh_base_xpos = link_fk[robot.links[0]][:3, 3]
-    for mesh, pose in fk.items():
-        pose[:3, 3] = pose[:3, 3] + (base_xpos - mesh_base_xpos)
-        homogenous_vertices = np.concatenate(
-            [mesh.vertices, np.ones((mesh.vertices.shape[0], 1))], axis=1
-        ).astype(np.float32)
-        transformed = np.matmul(pose.astype(np.float32), homogenous_vertices.T).T[:, :3]
-        mesh_new = trimesh.Trimesh(transformed, mesh.faces)
-        combined.append(mesh_new)
-
-    combined_mesh = trimesh.util.concatenate(combined)
-    robot_mesh = combined_mesh.as_open3d
-    # transform object pcd by amount rotated/moved by eef link
-    # compute the transform between the old and new eef poses
-
-    # note: this is just to get the forward kinematics using the sim,
-    # faster/easier that way than using trimesh fk
-    # implementation detail, not important
-    old_eef_xquat = env._eef_xquat.copy()
-    old_eef_xpos = env._eef_xpos.copy()
-    old_qpos = env.sim.data.qpos.copy()
-
-    env.robots[0].set_robot_joint_positions(target_angles)
-
-    ee_old_mat = pose2mat((old_eef_xpos, old_eef_xquat))
-    ee_new_mat = pose2mat((env._eef_xpos, env._eef_xquat))
-    transform = ee_new_mat @ np.linalg.inv(ee_old_mat)
-
-    env.robots[0].set_robot_joint_positions(old_qpos[:7])
-
-    # Create a scene and add the triangle mesh
-
-    if is_grasped:
-        object_pts = object_pts @ transform[:3, :3].T + transform[:3, 3]
-        object_pcd = o3d.geometry.PointCloud()
-        object_pcd.points = o3d.utility.Vector3dVector(object_pts)
-        hull, _ = object_pcd.compute_convex_hull()
-        # compute pcd distance to xyz
-        pcd = o3d.geometry.PointCloud()
-        pcd.points = o3d.utility.Vector3dVector(xyz)
-        scene = o3d.t.geometry.RaycastingScene()
-        _ = scene.add_triangles(
-            o3d.t.geometry.TriangleMesh.from_legacy(hull + robot_mesh)
-        )  # we do not need the geometry ID for mesh
-        occupancy = scene.compute_occupancy(xyz.astype(np.float32), nthreads=32)
-        collision = sum(occupancy.numpy()) > 5
-    else:
-        scene = o3d.t.geometry.RaycastingScene()
-        _ = scene.add_triangles(
-            o3d.t.geometry.TriangleMesh.from_legacy(robot_mesh)
-        )  # we do not need the geometry ID for mesh
-        occupancy = scene.compute_occupancy(xyz.astype(np.float32), nthreads=32)
-        collision = sum(occupancy.numpy()) > 5
-    return collision
-
-
-def grasp_pcd_collision_check(
-    env,
-    obj_idx=0,
-):
-    xyz = compute_object_pcd(
-        env,
-        obj_idx=obj_idx,
-        grasp_pose=False,
-        target_obj=False,
-        camera_height=256,
-        camera_width=256,
-    )
-    robot = env.robot
-    joints = [
-        "panda_joint1",
-        "panda_joint2",
-        "panda_joint3",
-        "panda_joint4",
-        "panda_joint5",
-        "panda_joint6",
-        "panda_joint7",
-        "panda_finger_joint1",
-        "panda_finger_joint2",
-    ]
-    combined = []
-
-    # compute floating gripper mesh at the correct pose
-    base_xpos = env.sim.data.body_xpos[env.sim.model.body_name2id("robot0_link0")]
-    link_fk = robot.link_fk(dict(zip(joints, env.sim.data.qpos[:9])))
-    mesh_base_xpos = link_fk[robot.links[0]][:3, 3]
-    combined = []
-    for link in robot.links[-2:]:
-        pose = link_fk[link]
-        pose[:3, 3] = pose[:3, 3] + (base_xpos - mesh_base_xpos)
-        homogenous_vertices = np.concatenate(
-            [
-                link.collision_mesh.vertices,
-                np.ones((link.collision_mesh.vertices.shape[0], 1)),
-            ],
-            axis=1,
-        )
-        transformed = np.matmul(pose, homogenous_vertices.T).T[:, :3]
-        mesh_new = trimesh.Trimesh(transformed, link.collision_mesh.faces)
-        combined.append(mesh_new)
-    robot_mesh = trimesh.util.concatenate(combined).as_open3d
-
-    # Create a scene and add the triangle mesh
-    scene = o3d.t.geometry.RaycastingScene()
-    _ = scene.add_triangles(
-        o3d.t.geometry.TriangleMesh.from_legacy(robot_mesh)
-    )  # we do not need the geometry ID for mesh
-    sdf = scene.compute_signed_distance(xyz.astype(np.float32), nthreads=32).numpy()
-    collision = np.any(sdf < 0.001)
-    return collision
-
 
 class RobosuitePSLEnv(PSLEnv):
     def __init__(
@@ -1154,7 +1015,7 @@ class RobosuitePSLEnv(PSLEnv):
         is_grasped = self.named_check_object_grasp(
             self.text_plan[self.curr_plan_stage - (self.curr_plan_stage % 2)][0]
         )()
-        object_pos, object_quat = self.get_mp_target_pose(obj_name) #self.get_object_pose(obj_idx=obj_idx)
+        object_pos, object_quat = self.get_sim_object_pose(obj_name)
         object_pos = object_pos.copy()
         object_quat = object_quat.copy()
         gripper_qpos = self.sim.data.qpos[7:9].copy()
@@ -1215,12 +1076,8 @@ class RobosuitePSLEnv(PSLEnv):
         qvel,
         obj_name="",
     ):
-        is_grasped = self.named_check_object_grasp(
-            self.text_plan[self.curr_plan_stage - (self.curr_plan_stage % 2)][0]
-        )()
-        object_pos, object_quat = self.get_sim_object_pose(
-            obj_name=obj_name
-        )
+        is_grasped = self.named_check_object_grasp(self.text_plan[self.curr_plan_stage - (self.curr_plan_stage % 2)][0])()
+        object_pos, object_quat = self.get_sim_object_pose(obj_name=obj_name)
         object_pos = object_pos.copy()
         object_quat = object_quat.copy()
         gripper_qpos = self.sim.data.qpos[7:9].copy()
@@ -1340,12 +1197,14 @@ class RobosuitePSLEnv(PSLEnv):
         else:
             return curr_angles
 
-    def check_robot_collision(self, ignore_object_collision, obj_name=""):
+    def check_robot_collision(self, ignore_object_collision, obj_name="", verbose=False):
         obj_string = self.get_object_string(obj_name=obj_name)
         d = self.sim.data
         for coni in range(d.ncon):
             con1 = self.sim.model.geom_id2name(d.contact[coni].geom1)
             con2 = self.sim.model.geom_id2name(d.contact[coni].geom2)
+            if verbose:
+                print(f"con1: {con1}, con2: {con2}")
             if check_robot_string(con1) ^ check_robot_string(con2):
                 if (
                     check_string(con1, obj_string)
@@ -1406,38 +1265,35 @@ class RobosuitePSLEnv(PSLEnv):
         return check_object_placement                 
         
     def named_check_object_grasp(self, obj_name):
-        if self.use_vision_grasp_check: # using vision
-            raise NotImplementedError
-        else: # hardcoded 
-            def check_object_grasp(*args, **kwargs):
-                if self.env_name.endswith("Lift"):
+        def check_object_grasp(*args, **kwargs):
+            if self.env_name.endswith("Lift"):
+                is_grasped = self._check_grasp(
+                    gripper=self.robots[0].gripper,
+                    object_geoms=self.cube,
+                )
+            if self.env_name.endswith("PickPlace"):
+                all_obj_names = [name.lower() for name in ["Milk", "Bread", "Cereal", "Can"] if name in self.valid_obj_names]
+                new_obj_idx = [name for name in enumerate(all_obj_names) if name[1] in obj_name][0][0]
+                is_grasped = self._check_grasp(
+                    gripper=self.robots[0].gripper,
+                    object_geoms=self.objects[new_obj_idx],
+                )
+            if self.env_name.startswith("NutAssembly"):
+                if "gold" in obj_name:
                     is_grasped = self._check_grasp(
                         gripper=self.robots[0].gripper,
-                        object_geoms=self.cube,
+                        object_geoms=[g for g in self.nuts[0].contact_geoms],
                     )
-                if self.env_name.endswith("PickPlace"):
-                    all_obj_names = [name.lower() for name in ["Milk", "Bread", "Cereal", "Can"] if name in self.valid_obj_names]
-                    new_obj_idx = [name for name in enumerate(all_obj_names) if name[1] in obj_name][0][0]
+                if "silver" in obj_name:
                     is_grasped = self._check_grasp(
                         gripper=self.robots[0].gripper,
-                        object_geoms=self.objects[new_obj_idx],
+                        object_geoms=[g for g in self.nuts[1].contact_geoms],
                     )
-                if self.env_name.startswith("NutAssembly"):
-                    if "gold" in obj_name:
-                        is_grasped = self._check_grasp(
-                            gripper=self.robots[0].gripper,
-                            object_geoms=[g for g in self.nuts[0].contact_geoms],
-                        )
-                    if "silver" in obj_name:
-                        is_grasped = self._check_grasp(
-                            gripper=self.robots[0].gripper,
-                            object_geoms=[g for g in self.nuts[1].contact_geoms],
-                        )
-                initial_object_pos = self.initial_object_pos_dict[obj_name]
-                pos, quat = self.get_mp_target_pose(obj_name)
-                is_grasped = is_grasped and (pos[2] - initial_object_pos[2]) > 0.005
-                return is_grasped
-            return check_object_grasp 
+            initial_object_pos = self.initial_object_pos_dict[obj_name]
+            pos, quat = self.get_mp_target_pose(obj_name)
+            is_grasped = is_grasped and (pos[2] - initial_object_pos[2]) > 0.005
+            return is_grasped
+        return check_object_grasp 
 
     def get_observation(self):
         di = self._wrapped_env._get_observations(force_update=True)
@@ -1453,21 +1309,12 @@ class RobosuitePSLEnv(PSLEnv):
         qvel,
         is_grasped,
         obj_name="",
-        ignore_object_collision=False,
     ):
-        if self.use_pcd_collision_check:
-            raise NotImplementedError
-        else:
-            self.set_robot_based_on_joint_angles(
-                joint_pos,
-                qpos,
-                qvel,
-                obj_name=obj_name,
-            )
-            valid = not self.check_robot_collision(
-                ignore_object_collision=ignore_object_collision,
-                obj_name=obj_name,
-            )
+        self.set_robot_based_on_joint_angles(joint_pos, qpos, qvel, obj_name=obj_name)
+        valid = not self.check_robot_collision(
+            ignore_object_collision=is_grasped,
+            obj_name=obj_name,
+        )
         return valid
 
     def get_joint_bounds(self):

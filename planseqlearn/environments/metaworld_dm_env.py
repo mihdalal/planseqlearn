@@ -40,6 +40,7 @@ class MT_Wrapper(dm_env.Environment):
     def __init__(
         self,
         env_name: str,
+        text_plan,
         discount=1.0,
         seed=None,
         proprioceptive_state=True,
@@ -64,6 +65,7 @@ class MT_Wrapper(dm_env.Environment):
             max_path_length=200,
             use_vision_pose_estimation=False,
             use_sam_segmentation=use_sam_segmentation,
+            text_plan=text_plan,
         )
         self.psl = psl
         self.mp_env_kwargs = mp_env_kwargs
@@ -179,6 +181,7 @@ def make_metaworld(
     discount,
     seed,
     camera_name,
+    text_plan,
     psl=False,
     use_mp=False,
     use_sam_segmentation=False,
@@ -191,6 +194,7 @@ def make_metaworld(
         psl=psl,
         use_mp=use_mp,
         use_sam_segmentation=use_sam_segmentation,
+        text_plan=text_plan,
     )
 
     env = ActionDTypeWrapper(env, np.float32)

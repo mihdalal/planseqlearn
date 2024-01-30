@@ -149,7 +149,6 @@ class KitchenPSLEnv(PSLEnv):
         pos_dict['schandle1'] = np.mean(slide_pointcloud, axis=0)
         pos_dict['khandle1'] = np.mean(kettle_pointcloud, axis=0) + np.array([0.09, 0., 0.])
         pos_dict['mchandle1'] = np.mean(microwave_pointcloud, axis=0)
-
         obj_masks, _, _, pred_phrases, _ = get_seg_mask(
             np.flipud(frame[:, :, ::-1]),
             self.dino,
@@ -169,7 +168,39 @@ class KitchenPSLEnv(PSLEnv):
             camera_to_world_transform=camera_to_world,
         )
         pos_dict['lschandle1'] = np.mean(light_pointcloud, axis=0)
-        self.pos_dict = pos_dict
+
+        frame = self.mjpy_sim.render(camera_name="leftview", width=500, height=500)
+        obj_masks, _, _, pred_phrases, _ = get_seg_mask(
+            np.flipud(frame[:, :, :]),
+            self.dino,
+            self.sam,
+            text_prompts=["red tips"],
+            box_threshold=0.3,
+            text_threshold=0.25,
+            device="cuda",
+            debug=True,
+            output_dir="sam_outputs",
+        )
+        burner_mask = obj_masks[6].detach().cpu().numpy()[0, :, :]
+        burner_pixels = np.argwhere(burner_mask)
+        burner_pointcloud = CU.transform_from_pixels_to_world(
+            pixels=burner_pixels,
+            depth_map=depth_map[..., 0],
+            camera_to_world_transform=camera_to_world,
+        )
+        pos_dict['tlbhandle'] = np.mean(light_pointcloud, axis=0) + np.array([0.05, 0., 0.])
+        self.sam_object_pose = {}
+        for obj_name, _ in self.text_plan:
+            if "microwave" in obj_name:
+                self.sam_object_pose[obj_name] = pos_dict['mchandle1']
+            if "light" in obj_name:
+                self.sam_object_pose[obj_name] = pos_dict['lschandle1']
+            if "kettle" in obj_name:
+                self.sam_object_pose[obj_name] = pos_dict['khandle1']
+            if "slide" in obj_name:
+                self.sam_object_pose[obj_name] = pos_dict['schandle1']
+            if "top burner" in obj_name:
+                self.sam_object_pose[obj_name] = pos_dict['tlbhandle']
 
     def get_body_geom_ids_from_robot_bodies(self):
         body_ids = [self.sim.model.body_name2id(body) for body in self.robot_bodies]
@@ -267,7 +298,7 @@ class KitchenPSLEnv(PSLEnv):
         elif "left hinge cabinet" in obj_name:
             object_pos = self.get_site_xpos("hchandle_left1")
             object_quat = np.zeros(4)
-        elif "light switch" in obj_name:
+        elif "light" in obj_name:
             object_pos = self.get_site_xpos("lshandle1")
             object_quat = np.zeros(4)  # doesn't really matter
         elif "microwave" in obj_name:
@@ -294,13 +325,13 @@ class KitchenPSLEnv(PSLEnv):
         elif "top right burner" in obj_name:
             object_pos = self.get_site_xpos("trbhandle")
             object_quat = np.zeros(4)
-        elif "hinge cabinet" in obj_name:
-            object_pos = self.get_site_xpos("hchandle1")
-            object_quat = np.zeros(4)  # doesn't really matter
         elif "left hinge cabinet" in obj_name:
             object_pos = self.get_site_xpos("hchandle_left1")
+            object_quat = np.zeros(4)  # doesn't really matter
+        elif "hinge cabinet" in obj_name:
+            object_pos = self.get_site_xpos("hchandle_1")
             object_quat = np.zeros(4)
-        elif "light switch" in obj_name:
+        elif "light" in obj_name:
             object_pos = self.get_site_xpos("lshandle1")
             object_quat = np.zeros(4)  # doesn't really matter
         elif "microwave" in obj_name:
@@ -309,6 +340,9 @@ class KitchenPSLEnv(PSLEnv):
         elif "kettle" in obj_name:
             object_pos = self.get_site_xpos("khandle1")
             object_quat = np.zeros(4)  # doesn't really matter
+        if self.use_sam_segmentation:
+            object_pos = self.sam_object_pose[obj_name] + np.array([0., -0.05, 0])
+            object_quat = np.zeros(4)
         return object_pos, object_quat 
 
     def get_target_pos(self):
@@ -574,25 +608,22 @@ class KitchenPSLEnv(PSLEnv):
         raise NotImplementedError
 
     def named_check_object_grasp(self, obj_name):
-        if self.use_vision_grasp_check:
-            raise NotImplementedError
-        else:
-            def check_object_grasp(info={}, *args, **kwargs):
-                # copy code from https://github.com/mihdalal/d4rl/blob/primitives/d4rl/kitchen/kitchen_envs.py
-                if info != {}:
-                    for obj in self.tasks_to_complete:
-                        if "microwave" in obj and "microwave" in obj_name:
-                            return False 
-                        if "burner" in obj and "top burner" in obj_name:
-                            return False 
-                        if "light" in obj and "light" in obj_name:
-                            return False 
-                        if "slide" in obj and "slide" in obj_name:
-                            return False 
-                        if "kettle" in obj and "kettle" in obj_name:
-                            return False
-                return True
-            return check_object_grasp 
+        def check_object_grasp(info={}, *args, **kwargs):
+            # copy code from https://github.com/mihdalal/d4rl/blob/primitives/d4rl/kitchen/kitchen_envs.py
+            if info != {}:
+                for obj in self.tasks_to_complete:
+                    if "microwave" in obj and "microwave" in obj_name:
+                        return False 
+                    if "burner" in obj and "top burner" in obj_name:
+                        return False 
+                    if "light" in obj and "light" in obj_name:
+                        return False 
+                    if "slide" in obj and "slide" in obj_name:
+                        return False 
+                    if "kettle" in obj and "kettle" in obj_name:
+                        return False
+            return True
+        return check_object_grasp 
         
     def get_image(self):
         im = self.sim.render(

@@ -41,11 +41,11 @@ ROBOSUITE_PLANS = {
         ("cereal box", "grasp"),
         ("bin2", "place")
     ],
-    "PickPlaceCerealMilk": [
+    "PickPlaceCanBread": [
         ("red can", "grasp"),
-        ("bin1", "place"),
+        ("bin2", "place"),
         ("bread", "grasp"),
-        ("bin2", "place")
+        ("bin1", "place")
     ]
 }
 
@@ -55,7 +55,7 @@ MOPA_PLANS = {
     ],
     "SawyerLiftObstacle-v0": [
         ("red can", "grasp")
-    ]
+    ],
     "SawyerPushObstacle-v0": [
         ("red cube", "grasp")
     ]
