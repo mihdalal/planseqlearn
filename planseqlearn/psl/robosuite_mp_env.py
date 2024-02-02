@@ -157,414 +157,125 @@ class RobosuitePSLEnv(PSLEnv):
             ]
         )
         self.retry = False
-    
-    def reset_precompute_sam_poses(self):
-        self.sam_object_pose = {}
-        peg_segmented = False
-        bin_segmented = False
-        for obj_name, action in self.text_plan:
-            if "cube" in obj_name:
-                frame = self.sim.render(camera_name="frontview", width=500, height=500)
-                obj_masks, _, _, pred_phrases, _ = get_seg_mask(
-                    np.flipud(frame[:, :, ::-1]),
-                    self.dino,
-                    self.sam,
-                    text_prompts=["small red cube"],
-                    box_threshold=0.35,
-                    text_threshold=0.25,
-                    device="cuda",
-                    debug=True,
-                    output_dir="sam_outputs",
-                )
-                object_mask = obj_masks[-1].cpu().detach().numpy()[0, :, :]
-                depth_map = get_camera_depth(
-                    camera_name="frontview",
-                    camera_width=500,
-                    camera_height=500,
-                    sim=self.sim,
-                )
-                depth_map = np.expand_dims(
-                    CU.get_real_depth_map(sim=self.sim, depth_map=depth_map), -1
-                )
-                world_to_camera = CU.get_camera_transform_matrix(
-                    sim=self.sim,
-                    camera_name="frontview",
-                    camera_height=500,
-                    camera_width=500,
-                )
-                camera_to_world = np.linalg.inv(world_to_camera)
-                object_pixels = np.argwhere(object_mask)
-                object_pointcloud = CU.transform_from_pixels_to_world(
-                    pixels=object_pixels,
-                    depth_map=depth_map[..., 0],
-                    camera_to_world_transform=camera_to_world,
-                )
-                self.sam_object_pose[obj_name] = np.mean(object_pointcloud, axis=0)
-            elif "door" in obj_name:
-                frame = self.sim.render(camera_name="frontview", width=500, height=500)
-                obj_masks, _, _, pred_phrases, _ = get_seg_mask(
-                    np.flipud(frame[:, :, ::-1]),
-                    self.dino,
-                    self.sam,
-                    text_prompts=["black door"],
-                    box_threshold=0.30,
-                    text_threshold=0.25,
-                    device="cuda",
-                    debug=True,
-                    output_dir="sam_outputs",
-                )
-                object_mask = obj_masks[-1].cpu().detach().numpy()[0, :, :]
-                depth_map = get_camera_depth(
-                    camera_name="frontview",
-                    camera_width=500,
-                    camera_height=500,
-                    sim=self.sim,
-                )
-                depth_map = np.expand_dims(
-                    CU.get_real_depth_map(sim=self.sim, depth_map=depth_map), -1
-                )
-                world_to_camera = CU.get_camera_transform_matrix(
-                    sim=self.sim,
-                    camera_name="frontview",
-                    camera_height=500,
-                    camera_width=500,
-                )
-                camera_to_world = np.linalg.inv(world_to_camera)
-                object_pixels = np.argwhere(object_mask)
-                object_pointcloud = CU.transform_from_pixels_to_world(
-                    pixels=object_pixels,
-                    depth_map=depth_map[..., 0],
-                    camera_to_world_transform=camera_to_world,
-                )
-                self.sam_object_pose["door"] = np.mean(object_pointcloud, axis=0) + np.array([0., 0.08, 0.07])
-            elif "gold" in obj_name and "nut" in obj_name:
-                frame = self.sim.render(camera_name="agentview", width=500, height=500)
-                obj_masks, _, _, pred_phrases, _ = get_seg_mask(
-                    np.flipud(frame[:, :, ::-1]),
-                    self.dino,
-                    self.sam,
-                    text_prompts=["gold square key"],
-                    box_threshold=0.30,
-                    text_threshold=0.25,
-                    device="cuda",
-                    debug=True,
-                    output_dir="sam_outputs",
-                )
-                object_mask = obj_masks[-1].cpu().detach().numpy()[0, :, :]
-                placement_mask = obj_masks[1].cpu().detach().numpy()[0, :, :]
-                depth_map = get_camera_depth(
-                    camera_name="agentview",
-                    camera_width=500,
-                    camera_height=500,
-                    sim=self.sim,
-                )
-                depth_map = np.expand_dims(
-                    CU.get_real_depth_map(sim=self.sim, depth_map=depth_map), -1
-                )
-                world_to_camera = CU.get_camera_transform_matrix(
-                    sim=self.sim,
-                    camera_name="agentview",
-                    camera_height=500,
-                    camera_width=500,
-                )
-                camera_to_world = np.linalg.inv(world_to_camera)
-                object_pixels = np.argwhere(object_mask)
-                placement_pixels = np.argwhere(placement_mask)
-                object_pointcloud = CU.transform_from_pixels_to_world(
-                    pixels=object_pixels,
-                    depth_map=depth_map[..., 0],
-                    camera_to_world_transform=camera_to_world,
-                )
-                placement_pointcloud = CU.transform_from_pixels_to_world(
-                    pixels=placement_pixels,
-                    depth_map=depth_map[..., 0],
-                    camera_to_world_transform=camera_to_world,
-                )
-                self.sam_object_pose["gold square nut"] = np.mean(object_pointcloud, axis=0)
-                self.sam_object_pose["gold peg"] = np.mean(placement_pointcloud, axis=0)
-            elif "silver" in obj_name and "nut" in obj_name:
-                frame = self.sim.render(camera_name="agentview", width=500, height=500)
-                obj_masks, _, _, pred_phrases, _ = get_seg_mask(
-                    np.flipud(frame[:, :, ::-1]),
-                    self.dino,
-                    self.sam,
-                    text_prompts=["silver round nut"],
-                    box_threshold=0.3,
-                    text_threshold=0.25,
-                    device="cuda",
-                    debug=True,
-                    output_dir="sam_outputs",
-                )
-                object_mask = obj_masks[1].cpu().detach().numpy()[0, :, :]
-                placement_mask = obj_masks[-1].cpu().detach().numpy()[0, :, :]
-                depth_map = get_camera_depth(
-                    camera_name="agentview",
-                    camera_width=500,
-                    camera_height=500,
-                    sim=self.sim,
-                )
-                depth_map = np.expand_dims(
-                    CU.get_real_depth_map(sim=self.sim, depth_map=depth_map), -1
-                )
-                world_to_camera = CU.get_camera_transform_matrix(
-                    sim=self.sim,
-                    camera_name="agentview",
-                    camera_height=500,
-                    camera_width=500,
-                )
-                camera_to_world = np.linalg.inv(world_to_camera)
-                object_pixels = np.argwhere(object_mask)
-                placement_pixels = np.argwhere(placement_mask)
-                object_pointcloud = CU.transform_from_pixels_to_world(
-                    pixels=object_pixels,
-                    depth_map=depth_map[..., 0],
-                    camera_to_world_transform=camera_to_world,
-                )
-                placement_pointcloud = CU.transform_from_pixels_to_world(
-                    pixels=object_pixels,
-                    depth_map=depth_map[..., 0],
-                    camera_to_world_transform=camera_to_world,
-                )
-                self.sam_object_pose["silver round nut"] = np.mean(object_pointcloud, axis=0)
-                self.sam_object_pose["silver peg"] = np.mean(placement_pointcloud, axis=0)
-            elif "can" in obj_name:
-                frame = self.sim.render(camera_name="agentview", width=500, height=500)
-                obj_masks, _, _, pred_phrases, _ = get_seg_mask(
-                    np.flipud(frame[:, :, ::-1]),
-                    self.dino,
-                    self.sam,
-                    text_prompts=["red can"],
-                    box_threshold=0.30,
-                    text_threshold=0.25,
-                    device="cuda",
-                    debug=True,
-                    output_dir="sam_outputs",
-                )
-                object_mask = obj_masks[-1].cpu().detach().numpy()[0, :, :]
-                depth_map = get_camera_depth(
-                    camera_name="agentview",
-                    camera_width=500,
-                    camera_height=500,
-                    sim=self.sim,
-                )
-                depth_map = np.expand_dims(
-                    CU.get_real_depth_map(sim=self.sim, depth_map=depth_map), -1
-                )
-                world_to_camera = CU.get_camera_transform_matrix(
-                    sim=self.sim,
-                    camera_name="agentview",
-                    camera_height=500,
-                    camera_width=500,
-                )
-                camera_to_world = np.linalg.inv(world_to_camera)
-                object_pixels = np.argwhere(object_mask)
-                object_pointcloud = CU.transform_from_pixels_to_world(
-                    pixels=object_pixels,
-                    depth_map=depth_map[..., 0],
-                    camera_to_world_transform=camera_to_world,
-                )
-                self.sam_object_pose["red can"] = np.mean(object_pointcloud, axis=0) 
-            elif "cereal" in obj_name:
-                frame = self.sim.render(camera_name="robot0_robotview", width=500, height=500)
-                obj_masks, _, _, pred_phrases, _ = get_seg_mask(
-                    np.flipud(frame[:, :, ::-1]),
-                    self.dino,
-                    self.sam,
-                    text_prompts=["red cereal box"],
-                    box_threshold=0.30,
-                    text_threshold=0.25,
-                    device="cuda",
-                    debug=True,
-                    output_dir="sam_outputs",
-                )
-                object_mask = obj_masks[0].cpu().detach().numpy()[0, :, :]
-                depth_map = get_camera_depth(
-                    camera_name="robot0_robotview",
-                    camera_width=500,
-                    camera_height=500,
-                    sim=self.sim,
-                )
-                depth_map = np.expand_dims(
-                    CU.get_real_depth_map(sim=self.sim, depth_map=depth_map), -1
-                )
-                world_to_camera = CU.get_camera_transform_matrix(
-                    sim=self.sim,
-                    camera_name="robot0_robotview",
-                    camera_height=500,
-                    camera_width=500,
-                )
-                camera_to_world = np.linalg.inv(world_to_camera)
-                object_pixels = np.argwhere(object_mask)
-                object_pointcloud = CU.transform_from_pixels_to_world(
-                    pixels=object_pixels,
-                    depth_map=depth_map[..., 0],
-                    camera_to_world_transform=camera_to_world,
-                )
-                self.sam_object_pose["cereal box"] = np.mean(object_pointcloud, axis=0)
-            elif "bread" in obj_name:
-                frame = self.sim.render(camera_name="robot0_robotview", width=500, height=500)
-                obj_masks, _, _, pred_phrases, _ = get_seg_mask(
-                    np.flipud(frame[:, :, ::-1]),
-                    self.dino,
-                    self.sam,
-                    text_prompts=["small brown box"],
-                    box_threshold=0.30,
-                    text_threshold=0.25,
-                    device="cuda",
-                    debug=True,
-                    output_dir="sam_outputs",
-                )
-                object_mask = obj_masks[0].cpu().detach().numpy()[0, :, :]
-                depth_map = get_camera_depth(
-                    camera_name="robot0_robotview",
-                    camera_width=500,
-                    camera_height=500,
-                    sim=self.sim,
-                )
-                depth_map = np.expand_dims(
-                    CU.get_real_depth_map(sim=self.sim, depth_map=depth_map), -1
-                )
-                world_to_camera = CU.get_camera_transform_matrix(
-                    sim=self.sim,
-                    camera_name="robot0_robotview",
-                    camera_height=500,
-                    camera_width=500,
-                )
-                camera_to_world = np.linalg.inv(world_to_camera)
-                object_pixels = np.argwhere(object_mask)
-                object_pointcloud = CU.transform_from_pixels_to_world(
-                    pixels=object_pixels,
-                    depth_map=depth_map[..., 0],
-                    camera_to_world_transform=camera_to_world,
-                )
-                self.sam_object_pose["bread"] = np.mean(object_pointcloud, axis=0) 
-            elif "milk" in obj_name:
-                frame = self.sim.render(camera_name="agentview", width=500, height=500)
-                obj_masks, _, _, pred_phrases, _ = get_seg_mask(
-                    np.flipud(frame[:, :, ::-1]),
-                    self.dino,
-                    self.sam,
-                    text_prompts=["robot, white milk carton"],
-                    box_threshold=0.30,
-                    text_threshold=0.25,
-                    device="cuda",
-                    debug=True,
-                    output_dir="sam_outputs",
-                )
-                object_mask = obj_masks[1].cpu().detach().numpy()[0, :, :]
-                depth_map = get_camera_depth(
-                    camera_name="agentview",
-                    camera_width=500,
-                    camera_height=500,
-                    sim=self.sim,
-                )
-                depth_map = np.expand_dims(
-                    CU.get_real_depth_map(sim=self.sim, depth_map=depth_map), -1
-                )
-                world_to_camera = CU.get_camera_transform_matrix(
-                    sim=self.sim,
-                    camera_name="agentview",
-                    camera_height=500,
-                    camera_width=500,
-                )
-                camera_to_world = np.linalg.inv(world_to_camera)
-                object_pixels = np.argwhere(object_mask)
-                object_pointcloud = CU.transform_from_pixels_to_world(
-                    pixels=object_pixels,
-                    depth_map=depth_map[..., 0],
-                    camera_to_world_transform=camera_to_world,
-                )
-                self.sam_object_pose["milk carton"] = np.mean(object_pointcloud, axis=0)
-            # placement for nut assembly
-            if "peg" in obj_name and not peg_segmented:
-                peg_segmented = True 
-                frame = self.sim.render(camera_name="robot0_robotview", width=500, height=500)
-                obj_masks, _, _, pred_phrases, _ = get_seg_mask(
-                    np.flipud(frame[:, :, ::-1]),
-                    self.dino,
-                    self.sam,
-                    text_prompts=["tall cylinder"],
-                    box_threshold=0.4,
-                    text_threshold=0.25,
-                    device="cuda",
-                    debug=True,
-                    output_dir="sam_outputs",
-                )
-                gold_mask = obj_masks[0].cpu().detach().numpy()[0, :, :]
-                silver_mask = obj_masks[1].cpu().detach().numpy()[0, :, :]
-                depth_map = get_camera_depth(
-                    camera_name="robot0_robotview",
-                    camera_width=500,
-                    camera_height=500,
-                    sim=self.sim,
-                )
-                depth_map = np.expand_dims(
-                    CU.get_real_depth_map(sim=self.sim, depth_map=depth_map), -1
-                )
-                world_to_camera = CU.get_camera_transform_matrix(
-                    sim=self.sim,
-                    camera_name="robot0_robotview",
-                    camera_height=500,
-                    camera_width=500,
-                )
-                camera_to_world = np.linalg.inv(world_to_camera)
-                gold_pixels = np.argwhere(gold_mask)
-                gold_pointcloud = CU.transform_from_pixels_to_world(
-                    pixels=gold_pixels,
-                    depth_map=depth_map[..., 0],
-                    camera_to_world_transform=camera_to_world,
-                )
-                silver_pixels = np.argwhere(gold_mask)
-                silver_pointcloud = CU.transform_from_pixels_to_world(
-                    pixels=silver_pixels,
-                    depth_map=depth_map[..., 0],
-                    camera_to_world_transform=camera_to_world,
-                )
-                self.sam_object_pose['gold peg'] = np.mean(gold_pointcloud, axis=0)
-                self.sam_object_pose['silver peg'] = np.mean(silver_pointcloud, axis=0)
-            # placement for pick place
-            if "bin" in obj_name and not bin_segmented:
-                bin_segmented = True 
-                frame = self.sim.render(camera_name="birdview", width=500, height=500)
-                obj_masks, _, _, pred_phrases, _ = get_seg_mask(
-                    np.flipud(frame[:, :, ::-1]),
-                    self.dino,
-                    self.sam,
-                    text_prompts=["grid"],
-                    box_threshold=0.4,
-                    text_threshold=0.25,
-                    device="cuda",
-                    debug=True,
-                    output_dir="sam_outputs",
-                )
-                object_mask = obj_masks[0].cpu().detach().numpy()[0, :, :]
-                depth_map = get_camera_depth(
-                    camera_name="birdview",
-                    camera_width=500,
-                    camera_height=500,
-                    sim=self.sim,
-                )
-                depth_map = np.expand_dims(
-                    CU.get_real_depth_map(sim=self.sim, depth_map=depth_map), -1
-                )
-                world_to_camera = CU.get_camera_transform_matrix(
-                    sim=self.sim,
-                    camera_name="birdview",
-                    camera_height=500,
-                    camera_width=500,
-                )
-                camera_to_world = np.linalg.inv(world_to_camera)
-                object_pixels = np.argwhere(object_mask)
-                object_pointcloud = CU.transform_from_pixels_to_world(
-                    pixels=object_pixels,
-                    depth_map=depth_map[..., 0],
-                    camera_to_world_transform=camera_to_world,
-                )
-                bin_center = np.mean(object_pointcloud, axis=0)
-                self.sam_object_pose["bin1"] = bin_center + np.array([-0.075, -0.13, -0.04])
-                self.sam_object_pose["bin2"] = bin_center + np.array([-0.075, 0.13, -0.04])
-                self.sam_object_pose["bin3"] = bin_center + np.array([0.075, -0.13, -0.04])
-                self.sam_object_pose["bin4"] = bin_center + np.array([-0.075, 0.13, -0.04])
+
+    def get_sam_kwargs(self, obj_name):
+        offset_map = {
+            '1': np.array([-0.075, -0.16, 0.9]),
+            '2': np.array([0.075, -0.16, 0.9]),
+            '3': np.array([-0.075, 0.16, 0.9]),
+            '4': np.array([-0.075, 0.16, 0.9]),
+        }
+        if "cube" in obj_name:
+            return {
+                "camera_name": "frontview",
+                "text_prompts": ["small red cube"],
+                "idx": -1,
+                "offset": np.zeros(3),
+                "box_threshold": 0.35,
+                "flip_channel": True,
+                "flip_image": True,
+            }
+        elif "door" in obj_name:
+            return {
+                "camera_name": "frontview",
+                "text_prompts": ["black door"],
+                "idx": -1,
+                "offset": np.zeros(3),
+                "box_threshold": 0.3,
+                "flip_channel": True,
+                "flip_image": True,
+            }
+        elif "gold" in obj_name and "nut" in obj_name:
+            return {
+                "camera_name": "agentview",
+                "text_prompts": ["gold square key"],
+                "idx": -1,
+                "offset": np.zeros(3),
+                "box_threshold": 0.3,
+                "flip_channel": True,
+                "flip_image": True,
+            }
+        elif "gold" in obj_name:
+            return {
+                "camera_name": "robot0_robotview",
+                "text_prompts": ["tall cylinder"],
+                "idx": 0,
+                "offset": np.zeros(3),
+                "box_threshold": 0.4,
+                "flip_channel": True,
+                "flip_image": True,
+            }
+        elif "silver" in obj_name and "nut" in obj_name:
+            return {
+                "camera_name": "agentview",
+                "text_prompts": ["silver round nut"],
+                "idx": 1,
+                "offset": np.zeros(3),
+                "box_threshold": 0.3,
+                "flip_channel": True,
+                "flip_image": True,
+            }
+        elif "silver" in obj_name:
+            return {
+                "camera_name": "robot0_robotview",
+                "text_prompts": ["tall cylinder"],
+                "idx": 1,
+                "offset": np.zeros(3),
+                "box_threshold": 0.4,
+                "flip_channel": True,
+                "flip_image": True,
+            }
+        elif "can" in obj_name:
+            return {
+                "camera_name": "agentview",
+                "text_prompts": ["red can"],
+                "idx": -1,
+                "offset": np.zeros(3),
+                "box_threshold": 0.3,
+                "flip_channel": True,
+                "flip_image": True,
+            }
+        elif "bread" in obj_name:
+            return {
+                "camera_name": "robot0_robotview",
+                "text_prompts": ["small brown box"],
+                "idx": 0,
+                "offset": np.zeros(3),
+                "box_threshold": 0.4,
+                "flip_channel": True,
+                "flip_image": True,
+                "flip_dm": False,
+            }
+        elif "cereal" in obj_name:
+            return {
+                "camera_name": "robot0_robotview",
+                "text_prompts": ["red cereal box"],
+                "idx": 0,
+                "offset": np.zeros(3),
+                "box_threshold": 0.3,
+                "flip_channel": True,
+                "flip_image": True,
+            }
+        elif "milk" in obj_name:
+            return {
+                "camera_name": "agentview",
+                "text_prompts": ["robot, white milk carton"],
+                "idx": 1,
+                "offset": np.zeros(3),
+                "box_threshold": 0.3,
+                "flip_channel": True,
+                "flip_image": True,
+            }
+        elif "bin" in obj_name:
+            return {
+                "camera_name": "birdview",
+                "text_prompts": ["grid"],
+                "idx": 1,
+                "offset": offset_map[obj_name[-1]],
+                "box_threshold": 0.4,
+                "flip_channel": True,
+                "flip_image": True,
+            }
 
     def get_body_geom_ids_from_robot_bodies(self):
         body_ids = [self.sim.model.body_name2id(body) for body in self.robot_bodies]
@@ -726,7 +437,10 @@ class RobosuitePSLEnv(PSLEnv):
     def get_mp_target_pose(self, obj_name):
         if self.use_sam_segmentation:
             object_pos = self.sam_object_pose[obj_name].copy()
-            object_quat = self.get_sim_object_pose(obj_name)[1].copy()
+            if "grasp" in self.text_plan[self.curr_plan_stage][1]:
+                object_quat = self.get_sim_object_pose(obj_name)[1].copy()
+            else:
+                object_quat = self.reset_ori 
         elif self.use_vision_pose_estimation:
             object_pcd = compute_object_pcd(self, obj_name=obj_name)
             object_pos = np.mean(object_pcd, axis=0)
@@ -1290,7 +1004,7 @@ class RobosuitePSLEnv(PSLEnv):
                         object_geoms=[g for g in self.nuts[1].contact_geoms],
                     )
             initial_object_pos = self.initial_object_pos_dict[obj_name]
-            pos, quat = self.get_mp_target_pose(obj_name)
+            pos, quat = self.get_sim_object_pose(obj_name)
             is_grasped = is_grasped and (pos[2] - initial_object_pos[2]) > 0.005
             return is_grasped
         return check_object_grasp 

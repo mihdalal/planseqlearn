@@ -21,268 +21,6 @@ def get_camera_depth(sim, camera_name, camera_height, camera_width):
         camera_name=camera_name, height=camera_height, width=camera_width, depth=True
     )[1][::-1]
 
-
-def get_sam_segmentation(env, camera_name, camera_width, camera_height, geom, **kwargs):
-    # metaworld environments
-    frame = env.sim.render(
-        camera_name=camera_name, width=camera_width, height=camera_height
-    )
-    if env.env_name == "assembly-v2":
-        if env.sim.model.body_id2name(env.sim.model.geom_bodyid[geom]) == "asmbly_peg":
-            obj_masks, _, _, pred_phrases, _ = get_seg_mask(
-                frame[:, :, ::-1],
-                env.dino,
-                env.sam,
-                text_prompts=["green wrench on table"],
-                box_threshold=0.3,
-                text_threshold=0.25,
-                device="cuda",
-                debug=False,
-                output_dir="sam_outputs",
-            )
-            obj_mask = None
-            for i in range(len(pred_phrases)):
-                if "green wrench" in pred_phrases[i]:
-                    obj_mask = obj_masks[i].cpu().detach().numpy()
-            assert obj_mask is not None, "Unable to segment wrench"
-        elif env.sim.model.body_id2name(env.sim.model.geom_bodyid[geom]) == "peg":
-            obj_masks, _, _, pred_phrases, _ = get_seg_mask(
-                frame[:, :, ::-1],
-                env.dino,
-                env.sam,
-                text_prompts=["small maroon peg", "robot", "table", "wrench"],
-                box_threshold=0.3,
-                text_threshold=0.25,
-                device="cuda",
-                debug=True,
-                output_dir="sam_outputs",
-            )
-            obj_mask = None
-            for i in range(len(pred_phrases)):
-                if "small maroon peg" in pred_phrases[i]:
-                    obj_mask = obj_masks[i].cpu().detach().numpy()
-            assert obj_mask is not None, "Unable to segment peg"
-        else:
-            raise NotImplementedError
-    if env.env_name == "disassemble-v2":
-        if env.sim.model.body_name2id(env.sim.model.geom_bodyid[geom]) == "asmbly_peg":
-            obj_masks, _, _, pred_phases, _ = get_seg_mask(
-                frame[:, :, ::-1],
-                env.dino,
-                env.sam,
-                text_prompts=["green wrench on table"],
-                box_threshold=0.3,
-                text_threshold=0.25,
-                device="cuda",
-                debug=False,
-                output_dir="sam_outputs",
-            )
-            obj_mask = None
-            for i in range(len(pred_phrases)):
-                if "green wrench" in pred_phrases[i]:
-                    obj_mask = np.transpose(obj_masks[i], (1, 2, 0))
-            assert obj_mask is not None, "Unable to segment wrench"
-    if env.env_name == "hammer-v2":
-        pass
-    if env.env_name == "bin-picking-v2":
-        obj_masks, _, _, pred_phrases, _ = get_seg_mask(
-            frame[:, :, ::-1],
-            env.dino,
-            env.sam,
-            text_prompts=["green cube in red bin"],
-            box_threshold=0.3,
-            text_threshold=0.25,
-            device="cuda",
-            debug=False,
-            output_dir="sam_outputs",
-        )
-        obj_mask = None
-        for i in range(len(pred_phrases)):
-            if "green cube" in pred_phrases[i]:
-                obj_mask = obj_masks[i].cpu().detach().numpy()
-        assert obj_mask is not None, "Unable to segment wrench"
-    # robosuite environments
-    if env.env_name == "Lift":
-        obj_masks, _, _, pred_phrases, _ = get_seg_mask(
-            frame[:, :, ::-1],
-            env.dino,
-            env.sam,
-            text_prompts=["red cube on table"],
-            box_threshold=0.3,
-            text_threshold=0.25,
-            device="cuda",
-            debug=False,
-            output_dir="sam_outputs",
-        )
-        obj_mask = None
-        for i in range(len(pred_phrases)):
-            if "red cube" in pred_phrases[i]:
-                obj_mask = obj_masks[i].cpu().detach().numpy()
-        assert obj_mask is not None, "Unable to segment wrench"
-
-    if env.env_name == "PickPlaceBread":
-        obj_masks, _, _, pred_phrases, _ = get_seg_mask(
-            np.flipud(frame[:, :, ::-1]),
-            env.dino,
-            env.sam,
-            text_prompts=["brown package in bin"],
-            box_threshold=0.3,
-            text_threshold=0.25,
-            device="cuda",
-            debug=True,
-            output_dir="sam_outputs",
-        )
-        obj_mask = None
-        for i in range(len(pred_phrases)):
-            if "package" in pred_phrases[i]:
-                obj_mask = np.transpose(obj_masks[i].cpu().detach().numpy(), (1, 2, 0))
-
-    if env.env_name == "PickPlaceMilk":
-        obj_masks, _, _, pred_phrases, _ = get_seg_mask(
-            np.flipud(frame[:, :, ::-1]),
-            env.dino,
-            env.sam,
-            text_prompts=["milk carton in bin"],
-            box_threshold=0.3,
-            text_threshold=0.25,
-            device="cuda",
-            debug=True,
-            output_dir="sam_outputs",
-        )
-        obj_mask = None
-        for i in range(len(pred_phrases)):
-            if "milk" in pred_phrases[i]:
-                obj_mask = np.transpose(obj_masks[i].cpu().detach().numpy(), (1, 2, 0))
-
-    if env.env_name == "PickPlaceCan":
-        obj_masks, _, _, pred_phrases, _ = get_seg_mask(
-            np.flipud(frame[:, :, ::-1]),
-            env.dino,
-            env.sam,
-            text_prompts=["red can in bin"],
-            box_threshold=0.3,
-            text_threshold=0.25,
-            device="cuda",
-            debug=True,
-            output_dir="sam_outputs",
-        )
-        obj_mask = None
-        for i in range(len(pred_phrases)):
-            if "can" in pred_phrases[i]:
-                obj_mask = np.transpose(obj_masks[i].cpu().detach().numpy(), (1, 2, 0))
-
-    if env.env_name == "PickPlaceCereal":
-        obj_masks, _, _, pred_phrases, _ = get_seg_mask(
-            np.flipud(frame[:, :, ::-1]),
-            env.dino,
-            env.sam,
-            text_prompts=["red cereal box in bin"],
-            box_threshold=0.3,
-            text_threshold=0.25,
-            device="cuda",
-            debug=True,
-            output_dir="sam_outputs",
-        )
-        obj_mask = None
-        for i in range(len(pred_phrases)):
-            if "cereal" in pred_phrases[i]:
-                obj_mask = np.transpose(obj_masks[i].cpu().detach().numpy(), (1, 2, 0))
-
-    if env.env_name == "Door":
-        obj_masks, _, _, pred_phrases, _ = get_seg_mask(
-            np.flipud(frame[:, :, ::-1]),
-            env.dino,
-            env.sam,
-            text_prompts=["door handle"],
-            box_threshold=0.3,
-            text_threshold=0.25,
-            device="cuda",
-            debug=True,
-            output_dir="sam_outputs",
-        )
-        obj_mask = None
-        for i in range(len(pred_phrases)):
-            if "handle" in pred_phrases[i]:
-                obj_mask = np.transpose(obj_masks[i].cpu().detach().numpy(), (1, 2, 0))
-
-    if env.env_name == "NutAssemblySquare":
-        obj_masks, _, _, pred_phrases, _ = get_seg_mask(
-            np.flipud(frame[:, :, ::-1]),
-            env.dino,
-            env.sam,
-            text_prompts=["small brown square with hole"],
-            box_threshold=0.3,
-            text_threshold=0.25,
-            device="cuda",
-            debug=True,
-            output_dir="sam_outputs",
-        )
-        obj_mask = None
-        for i in range(len(pred_phrases)):
-            if "square with hole" in pred_phrases[i]:
-                obj_mask = np.transpose(obj_masks[i].cpu().detach().numpy(), (1, 2, 0))
-
-    if env.env_name == "NutAssemblyRound":
-        obj_masks, _, _, pred_phrases, _ = get_seg_mask(
-            np.flipud(frame[:, :, ::-1]),
-            env.dino,
-            env.sam,
-            text_prompts=["small silver circle with hole"],
-            box_threshold=0.3,
-            text_threshold=0.25,
-            device="cuda",
-            debug=True,
-            output_dir="sam_outputs",
-        )
-        obj_mask = None
-        for i in range(len(pred_phrases)):
-            if "square with hole" in pred_phrases[i]:
-                obj_mask = np.transpose(obj_masks[i].cpu().detach().numpy(), (1, 2, 0))
-    # mopa environments
-    if env.env_name == "SawyerLiftObstacle-v0":
-        obj_masks, _, _, pred_phrases, _ = get_seg_mask(
-            np.flipud(frame[:, :, ::-1]),
-            env.dino,
-            env.sam,
-            text_prompts=["red cylinder and robot"],
-            box_threshold=0.3,
-            text_threshold=0.25,
-            device="cuda",
-            debug=True,
-            output_dir="sam_outputs",
-        )
-        obj_mask = None
-        for i in range(len(pred_phrases)):
-            if "red cylinder" in pred_phrases[i]:
-                obj_mask = np.transpose(obj_masks[i].cpu().detach().numpy(), (1, 2, 0))
-        assert obj_mask is not None, "Unable to segment red cylinder"
-
-    if env.env_name == "SawyerAssemblyObstacle-v0":
-        raise NotImplementedError
-
-    if env.env_name == "SawyerPushObstacle-v0":
-        obj_masks, _, _, pred_phrases, _ = get_seg_mask(
-            np.flipud(frame[:, :, ::-1]),
-            env.dino,
-            env.sam,
-            text_prompts=["small red cube in front of green circle"],
-            box_threshold=0.3,
-            text_threshold=0.25,
-            device="cuda",
-            debug=True,
-            output_dir="sam_outputs",
-        )
-        obj_mask = None
-        for i in range(len(pred_phrases)):
-            if "red cube" in pred_phrases[i]:
-                obj_mask = np.transpose(obj_masks[i].cpu().detach().numpy(), (1, 2, 0))
-        assert obj_mask is not None, "Unable to segment cube"
-
-    if obj_mask is None:
-        return np.zeros((1, camera_height, camera_width))
-    return obj_mask
-
-
 def get_geom_pose_from_seg(env, geom, camera_names, camera_width, camera_height, sim):
     pointclouds = []
     for camera_name in camera_names:
@@ -325,8 +63,54 @@ def get_geom_pose_from_seg(env, geom, camera_names, camera_width, camera_height,
             camera_to_world_transform=camera_to_world,
         )
         pointclouds.append(obj_pointcloud)
-    print(f"Position: {np.mean(np.concatenate(pointclouds, axis=0), axis = 0)}")
     return np.mean(np.concatenate(pointclouds, axis=0), axis=0)
+
+def reset_precompute_sam_poses(env):
+    env.sam_object_pose = {}
+    for obj_name, action in env.text_plan:
+        sam_kwargs = env.get_sam_kwargs(obj_name)
+        frame = env.sim.render(camera_name=sam_kwargs["camera_name"], width=500, height=500)
+        if sam_kwargs.get("flip_channel", True):
+            frame = frame[:, :, ::-1]
+        if sam_kwargs.get("flip_image", True):
+            frame = np.flipud(frame)
+        obj_masks, _, _, pred_phrases, _ = get_seg_mask(
+            frame,
+            env.dino,
+            env.sam,
+            text_prompts=sam_kwargs["text_prompts"],
+            box_threshold=sam_kwargs["box_threshold"],
+            text_threshold=0.25,
+            device="cuda",
+            debug=True,
+            output_dir="sam_outputs",
+        )
+        object_mask = obj_masks[sam_kwargs["idx"]].cpu().detach().numpy()[0, :, :]
+        depth_map = get_camera_depth(
+            camera_name=sam_kwargs["camera_name"],
+            camera_width=500,
+            camera_height=500,
+            sim=env.sim,
+        )
+        depth_map = np.expand_dims(
+            CU.get_real_depth_map(sim=env.sim, depth_map=depth_map), -1
+        )
+        if sam_kwargs.get("flip_dm", True):
+            depth_map = np.flipud(depth_map)
+        world_to_camera = CU.get_camera_transform_matrix(
+            sim=env.sim,
+            camera_name=sam_kwargs["camera_name"],
+            camera_height=500,
+            camera_width=500,
+        )
+        camera_to_world = np.linalg.inv(world_to_camera)
+        object_pixels = np.argwhere(object_mask)
+        object_pointcloud = CU.transform_from_pixels_to_world(
+            pixels=object_pixels,
+            depth_map=depth_map[..., 0],
+            camera_to_world_transform=camera_to_world,
+        )
+        env.sam_object_pose[obj_name] = np.mean(object_pointcloud, axis=0) + sam_kwargs["offset"]
 
 
 def compute_object_pcd(
@@ -386,7 +170,6 @@ def compute_object_pcd(
                 object_string = "full_bin"
         for i, geom_id in enumerate(geom_ids):
             geom_name = sim.model.geom_id2name(geom_id)
-            #print(f"geom name: {geom_name, object_string}")
             if geom_name is None or geom_name.startswith("Visual"):
                 continue
             if "NutAssembly" in name and grasp_pose:
@@ -408,9 +191,7 @@ def compute_object_pcd(
                     min_cluster_size=5,
                     max_distance=None,
                 )
-                # oname = env.text_plan[env.curr_plan_stage - (env.curr_plan_stage % 2)][0]
-                # all_obj_names = [name.lower() for name in ["Milk", "Bread", "Cereal", "Can"] if name in env.valid_obj_names]
-                new_obj_idx = int(obj_name[-1]) #[name for name in enumerate(all_obj_names) if name[1] in oname][0][0]
+                new_obj_idx = int(obj_name[-1])
                 clust_masks = [clust_masks[i] for i in range(4)] #[0, 2, 1, 3]]
                 object_mask = clust_masks[new_obj_idx]
             else:

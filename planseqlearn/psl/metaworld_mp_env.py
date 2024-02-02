@@ -184,261 +184,71 @@ class MetaworldPSLEnv(PSLEnv):
         )
         return im
     
-    def reset_precompute_sam_poses(self):
-        self.sam_object_pose = {}
-        for obj_name, _ in self.text_plan:
-            if "maroon peg" in obj_name:
-                obj_masks, _, _, pred_phrases, _ = get_seg_mask(
-                    frame[:, :, ::-1],
-                    self.dino,
-                    self.sam,
-                    text_prompts=["robot, small maroon peg"],
-                    box_threshold=0.45,
-                    text_threshold=0.25,
-                    device="cuda",
-                    debug=True,
-                    output_dir="sam_outputs",
-                )
-                placement_mask = obj_masks[-1].cpu().detach().numpy()[0, :, :]
-                depth_map = get_camera_depth(
-                    camera_name="corner",
-                    camera_width=500,
-                    camera_height=500,
-                    sim=self.sim,
-                )
-                depth_map = np.flipud(np.expand_dims(
-                    CU.get_real_depth_map(sim=self.sim, depth_map=depth_map), -1
-                ))
-                # get camera matrices
-                world_to_camera = CU.get_camera_transform_matrix(
-                    sim=self.sim,
-                    camera_name="corner",
-                    camera_height=500,
-                    camera_width=500,
-                )
-                camera_to_world = np.linalg.inv(world_to_camera)
-                placement_pixels = np.argwhere(placement_mask)
-                placement_pointcloud = CU.transform_from_pixels_to_world(
-                    pixels=placement_pixels,
-                    depth_map=depth_map[..., 0],
-                    camera_to_world_transform=camera_to_world,
-                )
-                self.sam_object_pose[obj_name] = np.mean(placement_pointcloud, axis=0) + np.array([0.13, 0.0, -0.05])
-            if "wrench" in obj_name:
-                frame = self.sim.render(camera_name="topview", width=500, height=500)
-                obj_masks, _, _, pred_phrases, _ = get_seg_mask(
-                    frame[:, :, ::-1],
-                    self.dino,
-                    self.sam,
-                    text_prompts=["robot, green wrench handle"],
-                    box_threshold=0.4,
-                    text_threshold=0.25,
-                    device="cuda",
-                    debug=True,
-                    output_dir="sam_outputs",
-                )
-                object_mask = obj_masks[1].cpu().detach().numpy()[0, :, :]
-                depth_map = get_camera_depth(
-                    camera_name="topview",
-                    camera_width=500,
-                    camera_height=500,
-                    sim=self.sim,
-                )
-                depth_map = np.expand_dims(
-                    CU.get_real_depth_map(sim=self.sim, depth_map=depth_map), -1
-                )
-
-                # get camera matrices
-                world_to_camera = CU.get_camera_transform_matrix(
-                    sim=self.sim,
-                    camera_name="topview",
-                    camera_height=500,
-                    camera_width=500,
-                )
-                camera_to_world = np.linalg.inv(world_to_camera)
-                object_pixels = np.argwhere(object_mask)
-                object_pointcloud = CU.transform_from_pixels_to_world(
-                    pixels=object_pixels,
-                    depth_map=depth_map[..., 0],
-                    camera_to_world_transform=camera_to_world,
-                )
-                self.sam_object_pose[obj_name] = np.mean(object_pointcloud, axis=0) + np.array([0.0, 0.0, 0.06])
-            if "hammer" in obj_name:
-                frame = self.sim.render(camera_name="corner3", width=500, height=500)
-                obj_masks, _, _, pred_phrases, _ = get_seg_mask(
-                    frame[:, :, ::-1],
-                    self.dino,
-                    self.sam,
-                    text_prompts=["robot, small red hammer handle"],
-                    box_threshold=0.35,
-                    text_threshold=0.25,
-                    device="cuda",
-                    debug=True,
-                    output_dir="sam_outputs",
-                )
-                object_mask = np.flipud(obj_masks[-1].cpu().detach().numpy()[0, :, :])
-                frame2 = self.sim.render(camera_name="corner3", width=500, height=500)
-                obj_masks, _, _, pred_phrases, _ = get_seg_mask(
-                    frame2[:, :, ::-1],
-                    self.dino,
-                    self.sam,
-                    text_prompts=["robot, gray nail on wooden box"],
-                    box_threshold=0.4,
-                    text_threshold=0.25,
-                    device="cuda",
-                    debug=True,
-                    output_dir="sam_outputs",
-                )
-                placement_mask = obj_masks[-1].cpu().detach().numpy()[0, :, :]
-                depth_map = get_camera_depth(
-                    camera_name="corner",
-                    camera_width=500,
-                    camera_height=500,
-                    sim=self.sim,
-                )
-                depth_map = np.flipud(np.expand_dims(
-                    CU.get_real_depth_map(sim=self.sim, depth_map=depth_map), -1
-                ))
-
-                # get camera matrices
-                world_to_camera = CU.get_camera_transform_matrix(
-                    sim=self.sim,
-                    camera_name="corner",
-                    camera_height=500,
-                    camera_width=500,
-                )
-                camera_to_world = np.linalg.inv(world_to_camera)
-                object_pixels = np.argwhere(object_mask)
-                placement_pixels = np.argwhere(placement_mask)
-                object_pointcloud = CU.transform_from_pixels_to_world(
-                    pixels=object_pixels,
-                    depth_map=depth_map[..., 0],
-                    camera_to_world_transform=camera_to_world,
-                )
-                placement_pointcloud = CU.transform_from_pixels_to_world(
-                    pixels=placement_pixels,
-                    depth_map=depth_map[..., 0],
-                    camera_to_world_transform=camera_to_world,
-                )
-                self.sam_object_pose[obj_name] = np.mean(object_pointcloud, axis=0) + np.array([0.09, 0.0, 0.05])
-                self.sam_object_pose["gray nail on wooden box"] = np.mean(placement_pointcloud, axis=0) + np.array([-0.05, -0.2, 0.05])
-            if "nail" in obj_name:
-                frame = self.sim.render(camera_name="corner3", width=500, height=500)
-                obj_masks, _, _, pred_phrases, _ = get_seg_mask(
-                    frame[:, :, ::-1],
-                    self.dino,
-                    self.sam,
-                    text_prompts=["robot, gray nail on wooden box"],
-                    box_threshold=0.4,
-                    text_threshold=0.25,
-                    device="cuda",
-                    debug=True,
-                    output_dir="sam_outputs",
-                )
-                placement_mask = obj_masks[-1].cpu().detach().numpy()[0, :, :]
-                depth_map = get_camera_depth(
-                    camera_name="corner",
-                    camera_width=500,
-                    camera_height=500,
-                    sim=self.sim,
-                )
-                depth_map = np.flipud(np.expand_dims(
-                    CU.get_real_depth_map(sim=self.sim, depth_map=depth_map), -1
-                ))
-
-                # get camera matrices
-                world_to_camera = CU.get_camera_transform_matrix(
-                    sim=self.sim,
-                    camera_name="corner",
-                    camera_height=500,
-                    camera_width=500,
-                )
-                camera_to_world = np.linalg.inv(world_to_camera)
-                placement_pixels = np.argwhere(placement_mask)
-                placement_pointcloud = CU.transform_from_pixels_to_world(
-                    pixels=placement_pixels,
-                    depth_map=depth_map[..., 0],
-                    camera_to_world_transform=camera_to_world,
-                )
-                self.sam_object_pose[obj_name] = np.mean(placement_pointcloud, axis=0) + np.array([-0.05, -0.2, 0.05])
-            if "cube" in obj_name:
-                frame = self.sim.render(camera_name="topview", width=500, height=500)
-                obj_masks, _, _, pred_phrases, _ = get_seg_mask(
-                    frame[:, :, ::-1],
-                    self.dino,
-                    self.sam,
-                    text_prompts=["robot, small green cube"],
-                    box_threshold=0.35,
-                    text_threshold=0.25,
-                    device="cuda",
-                    debug=True,
-                    output_dir="sam_outputs",
-                )
-                object_mask = obj_masks[-1].cpu().detach().numpy()[0, :, :]
-                depth_map = np.flipud(get_camera_depth(
-                    camera_name="corner",
-                    camera_width=500,
-                    camera_height=500,
-                    sim=self.sim,
-                ))
-                depth_map = np.expand_dims(
-                    CU.get_real_depth_map(sim=self.sim, depth_map=depth_map), -1
-                )
-
-                # get camera matrices
-                world_to_camera = CU.get_camera_transform_matrix(
-                    sim=self.sim,
-                    camera_name="corner",
-                    camera_height=500,
-                    camera_width=500,
-                )
-                camera_to_world = np.linalg.inv(world_to_camera)
-                object_pixels = np.argwhere(object_mask)
-                object_pointcloud = CU.transform_from_pixels_to_world(
-                    pixels=object_pixels,
-                    depth_map=depth_map[..., 0],
-                    camera_to_world_transform=camera_to_world,
-                )
-                self.sam_object_pose[obj_name] = np.mean(object_pointcloud, axis=0) + np.array([0.0, 0.0, 0.02])
-            if "bin" in obj_name:
-                frame = self.sim.render(camera_name="corner3", width=500, height=500)
-                obj_masks, _, _, pred_phrases, _ = get_seg_mask(
-                    frame[:, :, ::-1],
-                    self.dino,
-                    self.sam,
-                    text_prompts=["robot, blue bin"],
-                    box_threshold=0.4,
-                    text_threshold=0.25,
-                    device="cuda",
-                    debug=True,
-                    output_dir="sam_outputs",
-                )
-                placement_mask = obj_masks[-1].cpu().detach().numpy()[0, :, :]
-                depth_map = np.flipud(get_camera_depth(
-                    camera_name="corner",
-                    camera_width=500,
-                    camera_height=500,
-                    sim=self.sim,
-                ))
-                depth_map = np.expand_dims(
-                    CU.get_real_depth_map(sim=self.sim, depth_map=depth_map), -1
-                )
-
-                # get camera matrices
-                world_to_camera = CU.get_camera_transform_matrix(
-                    sim=self.sim,
-                    camera_name="corner",
-                    camera_height=500,
-                    camera_width=500,
-                )
-                camera_to_world = np.linalg.inv(world_to_camera)
-                placement_pixels = np.argwhere(placement_mask)
-                placement_pointcloud = CU.transform_from_pixels_to_world(
-                    pixels=placement_pixels,
-                    depth_map=depth_map[..., 0],
-                    camera_to_world_transform=camera_to_world,
-                )
-                self.sam_object_pose[obj_name] = np.mean(placement_pointcloud, axis=0) + np.array([0, 0, 0.15])
+    def get_sam_kwargs(self, obj_name):
+        if "maroon peg" in obj_name:
+            return {
+                "text_prompts": ["robot, small maroon peg"],
+                "box_threshold": 0.45,
+                "camera_name": "corner",
+                "idx": -1,
+                "offset": np.array([0.13, 0.0, -0.05]),
+                "flip_dm": True,
+                "flip_channel": True,
+                "flip_image": False,
+            }
+        if "wrench" in obj_name:
+            return {
+                "text_prompts": ["robot, green wrench handle"],
+                "box_threshold": 0.4,
+                "camera_name": "topview",
+                "idx": 1,
+                "offset": np.array([0.0, 0.0, 0.06]),
+                "flip_dm": True,
+                "flip_channel": True,
+                "flip_image": False,
+            }
+        if "hammer" in obj_name:
+            return {
+                "text_prompts": ["robot, small red hammer handle"],
+                "box_threshold": 0.35,
+                "camera_name": "corner3",
+                "idx": -1,
+                "offset": np.array([0.09, 0.0, 0.05]),
+                "flip_dm": True,
+                "flip_channel": True,
+                "flip_image": False,
+            }
+        if "nail" in obj_name:
+            return {
+                "text_prompts": ["robot, gray nail on wooden box"],
+                "box_threshold": 0.4,
+                "camera_name": "corner",
+                "idx": -1,
+                "offset": np.array([-0.05, -0.2, 0.05]),
+                "flip_dm": True,
+                "flip_channel": True,
+                "flip_image": False,
+            }
+        if "cube" in obj_name:
+            return {
+                "text_prompts": ["robot, small green cube"],
+                "box_threshold": 0.35,
+                "camera_name": "topview",
+                "idx": -1,
+                "offset": np.array([0.0, 0.0, 0.02]),
+                "flip_dm": True,
+                "flip_channel": True,
+                "flip_image": False,
+            }
+        if "bin" in obj_name:
+            return {
+                "text_prompts": ["robot, blue bin"],
+                "box_threshold": 0.4,
+                "camera_name": "corner3",
+                "idx": -1,
+                "offset": np.array([0, 0, 0.15]),
+                "flip_dm": True,
+            }
 
     @property
     def observation_space(self):

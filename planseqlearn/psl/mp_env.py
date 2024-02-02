@@ -1,10 +1,11 @@
 import numpy as np
 from robosuite.utils.transform_utils import *
+from planseqlearn.psl.vision_utils import reset_precompute_sam_poses
 from planseqlearn.psl.sam_utils import build_models
 from rlkit.envs.wrappers import ProxyEnv as RlkitProxyEnv
 from collections import OrderedDict
 import sys
-sys.path.insert(0, "/home/tarunc/Desktop/research/contact_graspnet/ompl/py-bindings")
+
 try:
     from ompl import base as ob
     from ompl import geometric as og
@@ -124,8 +125,8 @@ class PSLEnv(ProxyEnv):
         self.curr_postcondition = self.get_curr_postcondition_function()
 
         self.post_reset_burn_in()
-        if hasattr(self, "reset_precompute_sam_poses") and self.use_sam_segmentation:
-            self.reset_precompute_sam_poses()
+        if self.use_sam_segmentation:
+            reset_precompute_sam_poses(self)
         # reset 
         self.reset_pos, self.reset_ori = self._eef_xpos.copy(), self._eef_xquat.copy()
         self.reset_qpos, self.reset_qvel = (
@@ -479,7 +480,6 @@ class PSLEnv(ProxyEnv):
                     )
                 converted_path.append(new_state)
             #converted_path = converted_path[1:]
-            print(f"Length of converted path: {len(converted_path)}")
             if get_intermediate_frames:
                 waypoint_imgs, waypoint_masks = self.get_mp_waypoints(
                     converted_path, qpos, qvel, is_grasped, obj_name=obj_name

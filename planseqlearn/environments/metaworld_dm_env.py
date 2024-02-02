@@ -47,6 +47,7 @@ class MT_Wrapper(dm_env.Environment):
         psl=False,
         use_mp=False,
         use_sam_segmentation=False,
+        use_vision_pose_estimation=False,
     ):
         self.discount = discount
         self.mt = metaworld.MT1(env_name, seed=seed)
@@ -63,7 +64,7 @@ class MT_Wrapper(dm_env.Environment):
             planning_time=20,
             teleport_on_grasp=True,
             max_path_length=200,
-            use_vision_pose_estimation=False,
+            use_vision_pose_estimation=use_vision_pose_estimation,
             use_sam_segmentation=use_sam_segmentation,
             text_plan=text_plan,
         )
@@ -195,6 +196,7 @@ def make_metaworld(
         use_mp=use_mp,
         use_sam_segmentation=use_sam_segmentation,
         text_plan=text_plan,
+        use_vision_pose_estimation=use_vision_pose_estimation,
     )
 
     env = ActionDTypeWrapper(env, np.float32)

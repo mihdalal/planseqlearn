@@ -520,72 +520,41 @@ class MoPAPSLEnv(PSLEnv):
         return check_collisions(
             self, self.allowed_collision_pairs, self.env_name, **args, **kwargs
         )
-
-    def reset_precompute_sam_poses(self):
-        for obj_name, _ in self.text_plan:
-            if "can" in obj_name:
-                text_prompts = ["red can"]
-                box_threshold = 0.3
-                idx = 0
-                offset = np.zeros(3)
-                camera_name = "topview"
-            if "hole" in obj_name:
-                text_prompts = ["four holes"]
-                box_threshold = 0.4
-                idx = 0
-                offset = np.array([0., 0., 0.42])
-                camera_name = "topview"
-            if "cube" in obj_name:
-                text_prompts = ["robot, small red cube, green spot"]
-                box_threshold = 0.4
-                idx = 1
-                offset = np.array([-0.15, 0., 0.12])
-                camera_name = "zoomview"
-
-            frame = self.sim.render(
-                camera_name=camera_name,
-                width=500, 
-                height=500,
-            )
-            frame = frame[:, :, ::-1] if "Lift" not in self.env_name else frame 
-            obj_masks, _, _, pred_phrases, _ = get_seg_mask(
-                np.flipud(frame),
-                self.dino,
-                self.sam,
-                text_prompts=text_prompts, 
-                box_threshold=box_threshold,
-                text_threshold=0.25,
-                device="cuda",
-                debug=True,
-                output_dir="sam_outputs",
-            )
-            depth_map = get_camera_depth(
-                camera_name=camera_name,
-                camera_width=500,
-                camera_height=500,
-                sim=self.sim,
-            )
-            depth_map = np.expand_dims(
-                    CU.get_real_depth_map(sim=self.sim, depth_map=depth_map), -1
-                )
-            object_mask = obj_masks[
-                idx 
-            ].detach().cpu().numpy()[0, :, :]
-            world_to_camera = CU.get_camera_transform_matrix(
-                sim=self.sim,
-                camera_name=camera_name,
-                camera_height=500,
-                camera_width=500,
-            )
-            camera_to_world = np.linalg.inv(world_to_camera)
-            object_pixels = np.argwhere(object_mask)
-            object_pointcloud = CU.transform_from_pixels_to_world(
-                pixels=object_pixels,
-                depth_map=depth_map[..., 0],
-                camera_to_world_transform=camera_to_world,
-            )
-            self.sam_object_pose = dict()
-            self.sam_object_pose[self.text_plan[0][0]] = np.mean(object_pointcloud, axis=0) + offset
+    
+    def get_sam_kwargs(self, obj_name):
+        if "can" in obj_name:
+            return {
+                "text_prompts": ["red can"],
+                "box_threshold": 0.3,
+                "idx": 0,
+                "offset": np.zeros(3),
+                "camera_name": "topview",
+                "flip_image": True,
+                "flip_channel": True,
+                "flip_dm": True,
+            }
+        if "hole" in obj_name:
+            return {
+                "text_prompts": ["four holes"],
+                "box_threshold": 0.4,
+                "idx": 0,
+                "offset": np.array([0., 0., 0.42]),
+                "camera_name": "topview",
+                "flip_image": True,
+                "flip_channel": True,
+                "flip_dm": True,
+            }
+        if "cube" in obj_name:
+            return {
+                "text_prompts": ["robot, small red cube, green spot"],
+                "box_threshold": 0.4,
+                "idx": 1,
+                "offset": np.array([-0.15, 0., 0.12]),
+                "camera_name": "zoomview",
+                "flip_image": True,
+                "flip_channel": True,
+                "flip_dm": True,
+            }
 
     def get_target_pos(self):
         pos, obj_quat = self.get_mp_target_pose(self.text_plan[self.curr_plan_stage][0])
@@ -757,8 +726,8 @@ class MoPAPSLEnv(PSLEnv):
             new_object_pose = mat2pose(
                 np.dot(transform, pose2mat((object_pose[:3], object_pose[3:])))
             )
-            # if "Lift" in self.env_name:
-            #     set_object_pose(self, "cube", new_object_pose[0], new_object_pose[1])
+            if "Lift" in self.env_name:
+                set_object_pose(self, "cube", new_object_pose[0], new_object_pose[1])
             self.sim.forward()
 
         return result.err_norm

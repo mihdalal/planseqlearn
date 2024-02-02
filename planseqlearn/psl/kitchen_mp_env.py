@@ -82,125 +82,63 @@ class KitchenPSLEnv(PSLEnv):
         self.original_colors = [
             env.sim.model.geom_rgba[idx].copy() for idx in self.robot_geom_ids
         ]
-        if self.use_sam_segmentation:
-            self.precalculate_poses()
-    
-    def precalculate_poses(self):
-        #self._wrapped_env.reset()
-        # this function is mainly used to precalculate poses
-        # with sam - the reason we are precalculating is because
-        # we are assuming sam is being used for inference with a learned policy
-        # so collisions will be minimal - in this case since sam is 
-        # quite brittle with grounding dino, precalculating enables using the 
-        # same prompts as during testing without issues
-        pos_dict = {}
-        # get poses for kettle, microwave, and slide
-        frame = self.mjpy_sim.render(camera_name="leftview", width=500, height=500)
-        obj_masks, _, _, pred_phrases, _ = get_seg_mask(
-            np.flipud(frame[:, :, ::-1]),
-            self.dino,
-            self.sam,
-            text_prompts=["vertical bar"],
-            box_threshold=0.3,
-            text_threshold=0.25,
-            device="cuda",
-            debug=True,
-            output_dir="sam_outputs",
-        )
-        # list should be [slide cabinet, ___, kettle, ___, ____, microwave]
-        assert len(pred_phrases) == 5
-        slide_mask = obj_masks[0].detach().cpu().numpy()[0, :, :]
-        kettle_mask = obj_masks[2].detach().cpu().numpy()[0, :, :]
-        microwave_mask = obj_masks[-1].detach().cpu().numpy()[0, :, :]
-        depth_map = get_camera_depth(
-            sim=self.mjpy_sim,
-            camera_name="leftview",
-            camera_height=500,
-            camera_width=500,
-        )
-        depth_map = np.expand_dims(
-            CU.get_real_depth_map(sim=self.mjpy_sim, depth_map=depth_map), -1
-        )
-        world_to_camera = CU.get_camera_transform_matrix(
-            sim=self.mjpy_sim,
-            camera_name="leftview",
-            camera_height=500,
-            camera_width=500,
-        )
-        camera_to_world = np.linalg.inv(world_to_camera)
-        slide_pixels = np.argwhere(slide_mask)
-        slide_pointcloud = CU.transform_from_pixels_to_world(
-            pixels=slide_pixels,
-            depth_map=depth_map[..., 0],
-            camera_to_world_transform=camera_to_world,
-        )
-        kettle_pixels = np.argwhere(kettle_mask)
-        kettle_pointcloud = CU.transform_from_pixels_to_world(
-            pixels=kettle_pixels,
-            depth_map=depth_map[..., 0],
-            camera_to_world_transform=camera_to_world,
-        )
-        microwave_pixels = np.argwhere(microwave_mask)
-        microwave_pointcloud = CU.transform_from_pixels_to_world(
-            pixels=microwave_pixels,
-            depth_map=depth_map[..., 0],
-            camera_to_world_transform=camera_to_world,
-        )
-        pos_dict['schandle1'] = np.mean(slide_pointcloud, axis=0)
-        pos_dict['khandle1'] = np.mean(kettle_pointcloud, axis=0) + np.array([0.09, 0., 0.])
-        pos_dict['mchandle1'] = np.mean(microwave_pointcloud, axis=0)
-        obj_masks, _, _, pred_phrases, _ = get_seg_mask(
-            np.flipud(frame[:, :, ::-1]),
-            self.dino,
-            self.sam,
-            text_prompts=["small knob"],
-            box_threshold=0.3,
-            text_threshold=0.25,
-            device="cuda",
-            debug=True,
-            output_dir="sam_outputs",
-        )
-        light_mask = obj_masks[-2].detach().cpu().numpy()[0, :, :]
-        light_pixels = np.argwhere(light_mask)
-        light_pointcloud = CU.transform_from_pixels_to_world(
-            pixels=light_pixels,
-            depth_map=depth_map[..., 0],
-            camera_to_world_transform=camera_to_world,
-        )
-        pos_dict['lschandle1'] = np.mean(light_pointcloud, axis=0)
 
-        frame = self.mjpy_sim.render(camera_name="leftview", width=500, height=500)
-        obj_masks, _, _, pred_phrases, _ = get_seg_mask(
-            np.flipud(frame[:, :, :]),
-            self.dino,
-            self.sam,
-            text_prompts=["red tips"],
-            box_threshold=0.3,
-            text_threshold=0.25,
-            device="cuda",
-            debug=True,
-            output_dir="sam_outputs",
-        )
-        burner_mask = obj_masks[6].detach().cpu().numpy()[0, :, :]
-        burner_pixels = np.argwhere(burner_mask)
-        burner_pointcloud = CU.transform_from_pixels_to_world(
-            pixels=burner_pixels,
-            depth_map=depth_map[..., 0],
-            camera_to_world_transform=camera_to_world,
-        )
-        pos_dict['tlbhandle'] = np.mean(light_pointcloud, axis=0) + np.array([0.05, 0., 0.])
-        self.sam_object_pose = {}
-        for obj_name, _ in self.text_plan:
-            if "microwave" in obj_name:
-                self.sam_object_pose[obj_name] = pos_dict['mchandle1']
-            if "light" in obj_name:
-                self.sam_object_pose[obj_name] = pos_dict['lschandle1']
-            if "kettle" in obj_name:
-                self.sam_object_pose[obj_name] = pos_dict['khandle1']
-            if "slide" in obj_name:
-                self.sam_object_pose[obj_name] = pos_dict['schandle1']
-            if "top burner" in obj_name:
-                self.sam_object_pose[obj_name] = pos_dict['tlbhandle']
+    def get_sam_kwargs(self, obj_name):
+        if "microwave" in obj_name:
+            return {
+                "camera_name": "leftview",
+                "text_prompts": ["vertical bar"],
+                "idx": -1,
+                "offset": np.zeros(3),
+                "box_threshold": 0.3,
+                "flip_image": True,
+                "flip_channel": True,
+                "flip_dm": False,
+            }
+        if "slide" in obj_name:
+            return {
+                "camera_name": "leftview",
+                "text_prompts": ["vertical bar"],
+                "idx": 0,
+                "offset": np.zeros(3),
+                "box_threshold": 0.3,
+                "flip_image": True,
+                "flip_channel": True,
+                "flip_dm": False,
+            }
+        if "top burner" in obj_name:
+            return {
+                "camera_name": "leftview",
+                "text_prompts": ["red tips"],
+                "idx": 6,
+                "offset": np.array([0.05, 0., 0.]),
+                "box_threshold": 0.3,
+                "flip_image": True,
+                "flip_channel": True,
+                "flip_dm": False,
+            }
+        if "kettle" in obj_name:
+            return {
+                "camera_name": "leftview",
+                "text_prompts": ["vertical bar"],
+                "idx": 2,
+                "offset": np.array([0.09, 0., 0.]),
+                "box_threshold": 0.3,
+                "flip_image": True,
+                "flip_channel": True,
+                "flip_dm": False,
+            }
+        if "light" in obj_name: 
+            return {
+                "camera_name": "leftview",
+                "text_prompts": ["small knob"],
+                "idx": -2,
+                "offset": np.zeros(3),
+                "box_threshold": 0.3,
+                "flip_image": True,
+                "flip_channel": True,
+                "flip_dm": False,
+            }
 
     def get_body_geom_ids_from_robot_bodies(self):
         body_ids = [self.sim.model.body_name2id(body) for body in self.robot_bodies]
@@ -451,7 +389,6 @@ class KitchenPSLEnv(PSLEnv):
         self.sim.data.qpos[:7] = joint_pos
         self.sim.forward()
         assert (self.sim.data.qpos[:7] - joint_pos).sum() < 1e-10
-        # error = np.linalg.norm(env._eef_xpos - pos[:3])
 
         if is_grasped:
             self.sim.data.qpos[7:9] = gripper_qpos

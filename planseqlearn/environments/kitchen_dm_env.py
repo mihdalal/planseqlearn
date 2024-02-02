@@ -32,7 +32,17 @@ class Kitchen_Wrapper(dm_env.Environment):
         use_mp=False,
     ):
         self.discount = discount
-        self._env = gym.make(env_name)
+        env_kwargs = dict(
+            dense=False,
+            image_obs=True,
+            action_scale=1,
+            control_mode="end_effector",
+            frame_skip=40,
+            max_path_length=path_length,
+        )
+        # do preprocessing
+        from d4rl.kitchen.env_dict import ALL_KITCHEN_ENVIRONMENTS
+        self._env = ALL_KITCHEN_ENVIRONMENTS[env_name](**env_kwargs)
         if psl:
             self._env = KitchenPSLEnv(
                 self._env,
@@ -134,6 +144,7 @@ def make_kitchen(
     psl=False,
     use_sam_segmentation=False,
     use_mp=False,
+    control_mode="end_effector"
 ):
     assert camera_name in ["wrist", "fixed"]
 
