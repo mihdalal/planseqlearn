@@ -7,6 +7,7 @@ from robosuite.utils.transform_utils import (
     pose2mat,
     quat2mat,
 )
+from planseqlearn.psl.env_text_plans import METAWORLD_PLANS
 
 def set_robot_based_on_ee_pos(
     env,
@@ -125,6 +126,8 @@ class MetaworldPSLEnv(PSLEnv):
             "leftclaw",
             "leftpad",
         ]
+        if len(self.text_plan) == 0:
+            self.text_plan = METAWORLD_PLANS[self.env_name]
         self.mp_bounds_low = (-2.0, -2.0, -2.0)
         self.mp_bounds_high = (2.0, 2.0, 2.0)
         self.use_joint_space_mp = False

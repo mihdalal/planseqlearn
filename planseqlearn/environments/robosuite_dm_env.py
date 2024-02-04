@@ -41,6 +41,7 @@ class Robosuite_Wrapper(dm_env.Environment):
         use_proprio=True,
         use_sam_segmentation=False,
         use_mp=False,
+        use_vision_pose_estimation=False,
     ):
         self.discount = discount
         self.env_name = env_name
@@ -101,7 +102,7 @@ class Robosuite_Wrapper(dm_env.Environment):
             grip_ctrl_scale=0.0025,
             planning_time=20,
             controller_configs=controller_configs,
-            use_vision_pose_estimation=True,
+            use_vision_pose_estimation=use_vision_pose_estimation,
             use_vision_placement_check=False,
             use_joint_space_mp=True,
             estimate_orientation=False,
@@ -256,6 +257,7 @@ def make_robosuite(
     text_plan=None,
     use_sam_segmentation=False,
     use_mp=False,
+    use_vision_pose_estimation=False,
 ):
     env = Robosuite_Wrapper(
         env_name=name,
@@ -270,6 +272,7 @@ def make_robosuite(
         text_plan=text_plan,
         use_sam_segmentation=use_sam_segmentation,
         use_mp=use_mp,
+        use_vision_pose_estimation=use_vision_pose_estimation,
     )
     env = ActionDTypeWrapper(env, np.float32)
     env = ActionRepeatWrapper(env, action_repeat, use_metaworld_reward_dict=True)

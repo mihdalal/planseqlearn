@@ -18,6 +18,7 @@ import mopa_rl.env
 from planseqlearn.psl.inverse_kinematics import qpos_from_site_pose
 from planseqlearn.psl.mp_env import PSLEnv, ProxyEnv
 from planseqlearn.psl.vision_utils import *
+from planseqlearn.psl.env_text_plans import MOPA_PLANS
 
 
 def save_img(env, camera_name, filename, flip=False):
@@ -105,7 +106,7 @@ def cart2joint_ac(
     ].copy()
     pre_converted_ac = (
         target_qpos[env.ref_joint_pos_indexes] - curr_qpos[env.ref_joint_pos_indexes]
-    ) / env._ac_scale
+    ) / 0.05 #env._ac_scale
     if "gripper" in ac.keys():
         pre_converted_ac = np.concatenate((pre_converted_ac, ac["gripper"]))
     converted_ac = collections.OrderedDict([("default", pre_converted_ac)])
@@ -383,6 +384,8 @@ class MoPAPSLEnv(PSLEnv):
             env_name,
             **kwargs,
         )
+        if len(self.text_plan) == 0:
+            self.text_plan = MOPA_PLANS[self.env_name]
         ik_env = kwargs["ik_env"]
         self.allowed_collision_pairs = []
         for manipulation_geom_id in self._wrapped_env.manipulation_geom_ids:

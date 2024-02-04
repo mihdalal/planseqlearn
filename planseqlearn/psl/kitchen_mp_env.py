@@ -4,6 +4,7 @@ from planseqlearn.psl.mp_env import PSLEnv
 from planseqlearn.psl.vision_utils import *
 import robosuite.utils.transform_utils as T
 from robosuite.utils.transform_utils import *
+from planseqlearn.psl.env_text_plans import KITCHEN_PLANS
 OBS_ELEMENT_INDICES = {
     "bottom left burner": np.array([11, 12]),
     "top burner": np.array([15, 16]),
@@ -62,6 +63,8 @@ class KitchenPSLEnv(PSLEnv):
             env_name,
             **kwargs,
         )
+        if len(self.text_plan) == 0:
+            self.text_plan = KITCHEN_PLANS[self.env_name]
         self.eef_id = self._wrapped_env.sim.model.site_name2id("end_effector")
         self.robot_bodies = [
             "panda0_link0",

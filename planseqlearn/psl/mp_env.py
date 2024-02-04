@@ -65,6 +65,7 @@ class PSLEnv(ProxyEnv):
                 sam_hq_checkpoint=None,
                 use_sam_hq=False,
             )
+        print(f"Text plan: {text_plan}")
         self.text_plan = text_plan
         # trajectory information
         self.num_high_level_steps = 0
@@ -157,7 +158,8 @@ class PSLEnv(ProxyEnv):
         try:
             obs = self.get_observation()
         except:
-            obs = OrderedDict() # doesn't matter since all training is with vision
+            obs = np.zeros_like(self.observation_space.low, dtype=np.float64) 
+            # doesn't matter since all training is with vision
         return obs
 
     def step(self, action, get_intermediate_frames=False, **kwargs):

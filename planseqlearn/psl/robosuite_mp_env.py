@@ -12,6 +12,7 @@ import copy
 from urdfpy import URDF
 import trimesh
 from robosuite.wrappers.gym_wrapper import GymWrapper
+from planseqlearn.psl.env_text_plans import ROBOSUITE_PLANS
 
 
 def update_controller_config(env, controller_config):
@@ -80,6 +81,9 @@ class RobosuitePSLEnv(PSLEnv):
             env_name,
             **kwargs,
         )
+        if len(self.text_plan) == 0:
+            self.text_plan = ROBOSUITE_PLANS[self.env_name]
+            print(f"Actual text plan: {self.text_plan}")
         self.max_path_length = self._wrapped_env.horizon
         self.vertical_displacement = kwargs["vertical_displacement"]
         self.estimate_orientation = kwargs["estimate_orientation"]
@@ -450,25 +454,60 @@ class RobosuitePSLEnv(PSLEnv):
                 object_pos += 0.125
         else:
             if self.env_name.endswith("Lift"):
-                assert "cube" in obj_name.lower(), f"Object {obj_name} does not exist in environment!"
-                object_pos = self.sim.data.qpos[9:12].copy()
-                object_quat = T.convert_quat(self.sim.data.qpos[12:16].copy(), to="xyzw")
+                if self.text_plan[self.curr_plan_stage][1] == "grasp":
+                    assert "cube" in obj_name.lower(), f"Object {obj_name} does not exist in environment!"
+                    object_pos = self.sim.data.qpos[9:12].copy()
+                    object_quat = T.convert_quat(self.sim.data.qpos[12:16].copy(), to="xyzw")
+                elif self.text_plan[self.curr_plan_stage][1] == "place":
+                    assert self.text_plan[self.curr_plan_stage][0].lower().startswith("bin"), "placement location must be a bin"
+                    bin_num = int(self.text_plan[self.curr_plan_stage][0][-1])
+                    object_pos = self.pick_place_bin_locations[bin_num - 1].copy()
+                    object_pos[2] += 0.125
+                    object_quat = np.zeros(4)
             elif self.env_name.startswith("PickPlaceMilk"):
-                assert "milk" in obj_name.lower(), f"Object {obj_name} does not exist in environment!"
-                object_pos = self.sim.data.qpos[9:12].copy()
-                object_quat = T.convert_quat(self.sim.data.qpos[12:16].copy(), to="xyzw")
+                if self.text_plan[self.curr_plan_stage][1] == "grasp":
+                    assert "milk" in obj_name.lower(), f"Object {obj_name} does not exist in environment!"
+                    object_pos = self.sim.data.qpos[9:12].copy()
+                    object_quat = T.convert_quat(self.sim.data.qpos[12:16].copy(), to="xyzw")
+                elif self.text_plan[self.curr_plan_stage][1] == "place":
+                    assert self.text_plan[self.curr_plan_stage][0].lower().startswith("bin"), "placement location must be a bin"
+                    bin_num = int(self.text_plan[self.curr_plan_stage][0][-1])
+                    object_pos = self.pick_place_bin_locations[bin_num - 1].copy()
+                    object_pos[2] += 0.125
+                    object_quat = np.zeros(4)
             elif self.env_name.startswith("PickPlaceBread"):
-                assert "bread" in obj_name.lower(), f"Object {obj_name} does not exist in environment!"
-                object_pos = self.sim.data.qpos[16:19].copy()
-                object_quat = T.convert_quat(self.sim.data.qpos[19:23].copy(), to="xyzw")
+                if self.text_plan[self.curr_plan_stage][1] == "grasp":
+                    assert "bread" in obj_name.lower(), f"Object {obj_name} does not exist in environment!"
+                    object_pos = self.sim.data.qpos[16:19].copy()
+                    object_quat = T.convert_quat(self.sim.data.qpos[19:23].copy(), to="xyzw")
+                elif self.text_plan[self.curr_plan_stage][1] == "place":
+                    assert self.text_plan[self.curr_plan_stage][0].lower().startswith("bin"), "placement location must be a bin"
+                    bin_num = int(self.text_plan[self.curr_plan_stage][0][-1])
+                    object_pos = self.pick_place_bin_locations[bin_num - 1].copy()
+                    object_pos[2] += 0.125
+                    object_quat = np.zeros(4)
             elif self.env_name.startswith("PickPlaceCereal"):
-                assert "cereal" in obj_name.lower(), f"Object {obj_name} does not exist in environment!"
-                object_pos = self.sim.data.qpos[23:26].copy()
-                object_quat = T.convert_quat(self.sim.data.qpos[26:30].copy(), to="xyzw")
+                if self.text_plan[self.curr_plan_stage][1] == "grasp":
+                    assert "cereal" in obj_name.lower(), f"Object {obj_name} does not exist in environment!"
+                    object_pos = self.sim.data.qpos[23:26].copy()
+                    object_quat = T.convert_quat(self.sim.data.qpos[26:30].copy(), to="xyzw")
+                elif self.text_plan[self.curr_plan_stage][1] == "place":
+                    assert self.text_plan[self.curr_plan_stage][0].lower().startswith("bin"), "placement location must be a bin"
+                    bin_num = int(self.text_plan[self.curr_plan_stage][0][-1])
+                    object_pos = self.pick_place_bin_locations[bin_num - 1].copy()
+                    object_pos[2] += 0.125
+                    object_quat = np.zeros(4)
             elif self.env_name.startswith("PickPlaceCan"):
-                assert "can" in obj_name.lower(), f"Object {obj_name} does not exist in environment!"
-                object_pos = self.sim.data.qpos[30:33].copy()
-                object_quat = T.convert_quat(self.sim.data.qpos[33:37].copy(), to="xyzw")
+                if self.text_plan[self.curr_plan_stage][1] == "grasp":
+                    assert "can" in obj_name.lower(), f"Object {obj_name} does not exist in environment!"
+                    object_pos = self.sim.data.qpos[30:33].copy()
+                    object_quat = T.convert_quat(self.sim.data.qpos[33:37].copy(), to="xyzw")
+                elif self.text_plan[self.curr_plan_stage][1] == "place":
+                    assert self.text_plan[self.curr_plan_stage][0].lower().startswith("bin"), "placement location must be a bin"
+                    bin_num = int(self.text_plan[self.curr_plan_stage][0][-1])
+                    object_pos = self.pick_place_bin_locations[bin_num - 1].copy()
+                    object_pos[2] += 0.125
+                    object_quat = np.zeros(4)
             elif self.env_name.endswith("PickPlace"):
                 if self.text_plan[self.curr_plan_stage][1] == "grasp":
                     all_obj_names = [name.lower() for name in ["Milk", "Bread", "Cereal", "Can"] if name in self.valid_obj_names]
@@ -984,6 +1023,11 @@ class RobosuitePSLEnv(PSLEnv):
                 is_grasped = self._check_grasp(
                     gripper=self.robots[0].gripper,
                     object_geoms=self.cube,
+                )
+            if self.env_name.startswith("PickPlace"):
+                is_grasped = self._check_grasp(
+                    gripper=self.robots[0].gripper,
+                    object_geoms=self.objects[self.object_id],
                 )
             if self.env_name.endswith("PickPlace"):
                 all_obj_names = [name.lower() for name in ["Milk", "Bread", "Cereal", "Can"] if name in self.valid_obj_names]
