@@ -95,7 +95,7 @@ KITCHEN_PLANS = {
     "kitchen-tlb-v0": [
         ("top left burner", "grasp")
     ],
-    "microwave-kettle-light-burner-slider-v0": [
+    "microwave-kettle-light-burner-slider": [
         ("microwave handle", "grasp"),
         ("kettle", "grasp"),
         ("light", "grasp"),
