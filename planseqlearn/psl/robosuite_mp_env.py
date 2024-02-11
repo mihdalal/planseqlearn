@@ -82,7 +82,13 @@ class RobosuitePSLEnv(PSLEnv):
             **kwargs,
         )
         if len(self.text_plan) == 0:
-            self.text_plan = ROBOSUITE_PLANS[self.env_name]
+            if self.env_name != "PickPlace":
+                self.text_plan = ROBOSUITE_PLANS[self.env_name]
+            else:
+                if "Cereal" in self._wrapped_env.valid_obj_names:
+                    self.text_plan = ROBOSUITE_PLANS["PickPlaceCerealMilk"]
+                else:
+                    self.text_plan = ROBOSUITE_PLANS["PickPlaceCanBread"]
             print(f"Actual text plan: {self.text_plan}")
         self.max_path_length = self._wrapped_env.horizon
         self.vertical_displacement = kwargs["vertical_displacement"]
@@ -1024,7 +1030,7 @@ class RobosuitePSLEnv(PSLEnv):
                     gripper=self.robots[0].gripper,
                     object_geoms=self.cube,
                 )
-            if self.env_name.startswith("PickPlace"):
+            if self.env_name.startswith("PickPlace") and not self.env_name.endswith("PickPlace"):
                 is_grasped = self._check_grasp(
                     gripper=self.robots[0].gripper,
                     object_geoms=self.objects[self.object_id],
