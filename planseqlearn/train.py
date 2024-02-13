@@ -581,12 +581,12 @@ if __name__ == "__main__":
         "export D4RL_SUPPRESS_IMPORT_ERROR='1'",
     ]
     slurm_config = SlurmConfigMatrix(
-        partition="russ_reserved",
+        partition=os.environ["SLURM_PARTITION"],
         time="72:00:00",
         n_gpus=1,
         n_cpus_per_gpu=20,
         mem="62g",
-        extra_flags="--exclude=matrix-1-[4,8,12,16],matrix-0-[24,38]",  # throw out non-RTX
+        extra_flags=os.environ["SLURM_FLAGS"],  # throw out non-RTX
     )
     exp_id = "Default_Experiment_ID"
     experiment_subdir = None
@@ -623,9 +623,8 @@ if __name__ == "__main__":
     command = " ".join((python_cmd, script_name, "", *command_line_args))
     logdir = log_dir
     singularity_pre_cmds = " && ".join(SINGULARITY_PRE_CMDS)
-    # check if bash or zsh, and
-    slurm_cmd = wrap_command_with_sbatch_matrix(
-        '/opt/singularity/bin/singularity exec --nv /projects/rsalakhugroup/containers/mprl.sif /bin/bash -c "'
+    new_slurm_cmd = wrap_command_with_sbatch_matrix(
+        f'{os.environ["LAUNCH_SINGULARITY"]} "'
         + singularity_pre_cmds
         + " && source ~/.bashrc && mamba activate planseqlearn && "
         + command
@@ -633,6 +632,8 @@ if __name__ == "__main__":
         slurm_config,
         logdir,
     )
+    print(new_slurm_cmd)
+    breakpoint()
     if matrix:
         print(slurm_cmd)
         os.system(slurm_cmd)

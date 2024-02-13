@@ -93,12 +93,25 @@ KITCHEN_PLANS = {
         ("light", "grasp")
     ],
     "kitchen-tlb-v0": [
-        ("top left burner", "grasp")
+        ("top burner", "grasp")
     ],
-    "microwave_kettle_light_top_left_burner": [
+    "kitchen-ms5-v0": [
         ("microwave handle", "grasp"),
         ("kettle", "grasp"),
         ("light", "grasp"),
-        ("top left burner", "grasp")
+        ("top burner", "grasp"),
+        ("slide", "grasp"),
+    ],
+    "kitchen-ms10-v0": [
+        ("hinge cabinet", "grasp"),
+        ("top right burner", "grasp"),
+        ("bottom left burner", "grasp"),
+        ("bottom right burner", "grasp"),
+        ("close hinge cabinet", "grasp"),
+        ("microwave handle", "grasp"),
+        ("kettle", "grasp"),
+        ("light", "grasp"),
+        ("top burner", "grasp"),
+        ("slide", "grasp"),
     ]
 }

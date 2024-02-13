@@ -199,16 +199,27 @@ class MetaworldPSLEnv(PSLEnv):
                 "flip_channel": True,
                 "flip_image": False,
             }
-        if "wrench" in obj_name:
+        if "wrench" in obj_name and self.env_name == "assembly-v2":
+            return {
+                "text_prompts": ["robot, green wrench handle"],
+                "box_threshold": 0.3,
+                "camera_name": "corner3",
+                "idx": -1,
+                "offset": np.array([0.0, 0.0, 0.06]),
+                "flip_dm": False,
+                "flip_channel": True,
+                "flip_image": True,
+            }
+        if "wrench" in obj_name and self.env_name == "disassemble-v2":
             return {
                 "text_prompts": ["robot, green wrench handle"],
                 "box_threshold": 0.4,
                 "camera_name": "topview",
-                "idx": 1,
+                "idx": -1,
                 "offset": np.array([0.0, 0.0, 0.06]),
-                "flip_dm": True,
+                "flip_dm": False,
                 "flip_channel": True,
-                "flip_image": False,
+                "flip_image": True,
             }
         if "hammer" in obj_name:
             return {
@@ -216,7 +227,7 @@ class MetaworldPSLEnv(PSLEnv):
                 "box_threshold": 0.35,
                 "camera_name": "corner3",
                 "idx": -1,
-                "offset": np.array([0.09, 0.0, 0.05]),
+                "offset": np.array([0.07, -0.03, 0.03]),
                 "flip_dm": True,
                 "flip_channel": True,
                 "flip_image": False,
@@ -225,7 +236,7 @@ class MetaworldPSLEnv(PSLEnv):
             return {
                 "text_prompts": ["robot, gray nail on wooden box"],
                 "box_threshold": 0.4,
-                "camera_name": "corner",
+                "camera_name": "corner3",
                 "idx": -1,
                 "offset": np.array([-0.05, -0.2, 0.05]),
                 "flip_dm": True,
@@ -235,13 +246,13 @@ class MetaworldPSLEnv(PSLEnv):
         if "cube" in obj_name:
             return {
                 "text_prompts": ["robot, small green cube"],
-                "box_threshold": 0.35,
+                "box_threshold": 0.4,
                 "camera_name": "topview",
                 "idx": -1,
                 "offset": np.array([0.0, 0.0, 0.02]),
-                "flip_dm": True,
+                "flip_dm": False,
                 "flip_channel": True,
-                "flip_image": False,
+                "flip_image": True,
             }
         if "bin" in obj_name:
             return {
@@ -249,8 +260,10 @@ class MetaworldPSLEnv(PSLEnv):
                 "box_threshold": 0.4,
                 "camera_name": "corner3",
                 "idx": -1,
-                "offset": np.array([0, 0, 0.15]),
+                "offset": np.array([-0.12, 0.06, 0.15]),
                 "flip_dm": True,
+                "flip_image": False,
+                "flip_channel": False,
             }
 
     @property
@@ -356,6 +369,7 @@ class MetaworldPSLEnv(PSLEnv):
                 object_quat = np.zeros(4)
         if self.use_sam_segmentation:
             object_pos = self.sam_object_pose[obj_name].copy()
+            object_quat = np.zeros(4)
         elif self.use_vision_pose_estimation:
             if "wrench" in obj_name:
                 object_pos = get_geom_pose_from_seg(
@@ -369,7 +383,16 @@ class MetaworldPSLEnv(PSLEnv):
                 object_pos += np.array([0.02, 0.02, 0.03])
                 object_quat = np.zeros(4)
             if "cube" in obj_name:
-                pass 
+                object_pos = get_geom_pose_from_seg(
+                    self, 
+                    36,
+                    ["topview", "corner2"],
+                    500,
+                    500,
+                    self.sim        
+                )
+                object_pos += np.array([-0.00, 0.0, 0.02])
+                object_quat = np.zeros(4)
             if "hammer" in obj_name:
                 object_pos = get_geom_pose_from_seg(
                     self, 
@@ -381,11 +404,36 @@ class MetaworldPSLEnv(PSLEnv):
                 )
                 object_pos += np.array([0., 0., 0.05])
             if "nail" in obj_name:
-                pass 
+                object_pos = get_geom_pose_from_seg(
+                    self,
+                    53,
+                    ["corner2","topview", "corner3"],
+                    500,
+                    500,
+                    self.sim
+                ) 
+                object_pos += np.array([-0.15, -0.15, 0.0])
+                object_quat = np.zeros(4)
             if "peg" in obj_name:
-                pass 
+                object_pos = get_geom_pose_from_seg(
+                    self,
+                    49,
+                    ["corner", "corner2"],
+                    500,
+                    500,
+                    self.sim
+                ) 
+                object_quat = np.zeros(4)
             if "bin" in obj_name:
-                pass 
+                object_pos = get_geom_pose_from_seg(
+                    self,
+                    44,
+                    ["corner", "corner2"],
+                    500,
+                    500,
+                    self.sim
+                ) 
+                object_quat = np.zeros(4)
         return object_pos, object_quat 
 
     def get_all_initial_object_poses(self):

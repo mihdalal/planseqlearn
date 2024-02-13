@@ -18,6 +18,8 @@ env_names = [
     "kitchen_kitchen-kettle-light-burner-slider-v0",
     "kitchen_kitchen-microwave-kettle-light-burner-slider-v0",
     "kitchen_kitchen-hinge-microwave-kettle-light-burner-slider-v0",
+    "kitchen_kitchen-ms10-v0",
+    "kitchen_kitchen-ms5-v0",
 ]
 num_seeds = 1
 for env_name in env_names:
@@ -47,6 +49,14 @@ for env_name in env_names:
             "kitchen_kitchen-hinge-microwave-kettle-light-burner-slider-v0"
         ]:
             path_length = 150
+        elif env_name in [
+            "kitchen_kitchen-ms5-v0"
+        ]:
+            path_length = 125
+        elif env_name in [
+            "kitchen_kitchen-ms10-v0"
+        ]:
+            path_length = 250
         num_train_frames = 10000 * path_length
         seed = random.randint(0, 100000)
         run_name = f"drqv2_psl_kitchen_eef_{env_name}"

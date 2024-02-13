@@ -5,23 +5,32 @@ from planseqlearn.psl.vision_utils import *
 import robosuite.utils.transform_utils as T
 from robosuite.utils.transform_utils import *
 from planseqlearn.psl.env_text_plans import KITCHEN_PLANS
+
 OBS_ELEMENT_INDICES = {
-    "bottom left burner": np.array([11, 12]),
-    "top burner": np.array([15, 16]),
+    "bottom left burner": np.array([11]), #correct
+    "bottom right burner": np.array([9]),
+    "top burner": np.array([15]), #correct
+    "top right burner": np.array([13]), #correct
     "light switch": np.array([17, 18]),
     "slide cabinet": np.array([19]),
-    "hinge cabinet": np.array([20, 21]),
+    "left hinge cabinet": np.array([20]),
+    "hinge cabinet": np.array([21]),
     "microwave": np.array([22]),
     "kettle": np.array([23, 24, 25, 26, 27, 28, 29]),
+    "close hinge cabinet": np.array([13, 21])
 }
 OBS_ELEMENT_GOALS = {
-    "bottom left burner": np.array([-0.88, -0.01]),
-    "top burner": np.array([-0.92, -0.01]),
+    "bottom left burner": np.array([-0.92]),
+    "bottom right burner": np.array([-0.92]),
+    "top burner": np.array([-0.92]),
+    "top right burner": np.array([-0.92]),
     "light switch": np.array([-0.69, -0.05]),
     "slide cabinet": np.array([0.37]),
-    "hinge cabinet": np.array([0.0, 1.45]),
+    "left hinge cabinet": np.array([-1.45]),
+    "hinge cabinet": np.array([1.45]),
     "microwave": np.array([-0.75]),
     "kettle": np.array([-0.23, 0.75, 1.62, 0.99, 0.0, 0.0, -0.06]),
+    "close hinge cabinet": np.array([-0.92, 0.0])
 }
 BONUS_THRESH = 0.3
 
@@ -113,8 +122,8 @@ class KitchenPSLEnv(PSLEnv):
             return {
                 "camera_name": "leftview",
                 "text_prompts": ["red tips"],
-                "idx": 6,
-                "offset": np.array([0.05, 0., 0.]),
+                "idx": 5,
+                "offset": np.array([-0.12, 0., 0.05]),
                 "box_threshold": 0.3,
                 "flip_image": True,
                 "flip_channel": True,
@@ -137,6 +146,61 @@ class KitchenPSLEnv(PSLEnv):
                 "text_prompts": ["small knob"],
                 "idx": -2,
                 "offset": np.zeros(3),
+                "box_threshold": 0.3,
+                "flip_image": True,
+                "flip_channel": True,
+                "flip_dm": False,
+            }
+        if "top right burner" in obj_name:
+            return {
+                "camera_name": "leftview",
+                "text_prompts": ["red tips"],
+                "idx": 5,
+                "offset": np.array([0.0, 0., 0.05]),
+                "box_threshold": 0.3,
+                "flip_image": True,
+                "flip_channel": True,
+                "flip_dm": False,
+            }
+        if "bottom left burner" in obj_name:
+            return {
+                "camera_name": "leftview",
+                "text_prompts": ["red tips"],
+                "idx": 6,
+                "offset": np.array([-0.12, 0., -0.07]),
+                "box_threshold": 0.3,
+                "flip_image": True,
+                "flip_channel": True,
+                "flip_dm": False,
+            }
+        if "bottom right burner" in obj_name:
+            return {
+                "camera_name": "leftview",
+                "text_prompts": ["red tips"],
+                "idx": 5,
+                "offset": np.array([0.00, 0., -0.07]),
+                "box_threshold": 0.3,
+                "flip_image": True,
+                "flip_channel": True,
+                "flip_dm": False,
+            }
+        if "hinge" in obj_name and "close" not in obj_name:
+            return {
+                "camera_name": "leftview",
+                "text_prompts": ["vertical bar"],
+                "idx": 1,
+                "offset": np.array([0.16, 0., 0.,]),
+                "box_threshold": 0.3,
+                "flip_image": True,
+                "flip_channel": True,
+                "flip_dm": False,
+            }
+        if "close" in obj_name and "hinge" in obj_name:
+            return {
+                "camera_name": "leftview",
+                "text_prompts": ["vertical bar"],
+                "idx": 1,
+                "offset": np.array([0., 0., 0.,]),
                 "box_threshold": 0.3,
                 "flip_image": True,
                 "flip_channel": True,
@@ -270,7 +334,7 @@ class KitchenPSLEnv(PSLEnv):
             object_pos = self.get_site_xpos("hchandle_left1")
             object_quat = np.zeros(4)  # doesn't really matter
         elif "hinge cabinet" in obj_name:
-            object_pos = self.get_site_xpos("hchandle_1")
+            object_pos = self.get_site_xpos("hchandle1")
             object_quat = np.zeros(4)
         elif "light" in obj_name:
             object_pos = self.get_site_xpos("lshandle1")
@@ -554,7 +618,13 @@ class KitchenPSLEnv(PSLEnv):
                 for obj in self.tasks_to_complete:
                     if "microwave" in obj and "microwave" in obj_name:
                         return False 
-                    if "burner" in obj and "top burner" in obj_name:
+                    if "top burner" in obj and "top burner" in obj_name:
+                        return False 
+                    if "top right burner" in obj and "top right burner" in obj_name:
+                        return False 
+                    if "bottom right burner" in obj and "bottom right burner" in obj_name:
+                        return False 
+                    if "bottom left burner" in obj and "bottom left burner" in obj_name:
                         return False 
                     if "light" in obj and "light" in obj_name:
                         return False 
@@ -562,6 +632,11 @@ class KitchenPSLEnv(PSLEnv):
                         return False 
                     if "kettle" in obj and "kettle" in obj_name:
                         return False
+                    if "close hinge cabinet" in obj and "close hinge cabinet" in obj_name:
+                        return False
+                    if "hinge cabinet" in obj and "hinge cabinet" in obj_name \
+                        and "close" not in obj and "close" not in obj_name:
+                        return False 
             return True
         return check_object_grasp 
         

@@ -106,7 +106,7 @@ def cart2joint_ac(
     ].copy()
     pre_converted_ac = (
         target_qpos[env.ref_joint_pos_indexes] - curr_qpos[env.ref_joint_pos_indexes]
-    ) / 0.05 #env._ac_scale
+    ) / env._ac_scale
     if "gripper" in ac.keys():
         pre_converted_ac = np.concatenate((pre_converted_ac, ac["gripper"]))
     converted_ac = collections.OrderedDict([("default", pre_converted_ac)])
@@ -447,6 +447,7 @@ class MoPAPSLEnv(PSLEnv):
             self.sim.model.geom_rgba[idx].copy() for idx in self.robot_geom_ids
         ]
         self.retry = False
+        self._ac_scale = 0.05
     
     def get_mp_target_pose(self, obj_name):
         if self.use_sam_segmentation:

@@ -459,7 +459,7 @@ class RobosuitePSLEnv(PSLEnv):
             if "place" == self.text_plan[self.curr_plan_stage][1]:
                 object_pos += 0.125
         else:
-            if self.env_name.endswith("Lift"):
+            if self.env_name == "Lift":
                 if self.text_plan[self.curr_plan_stage][1] == "grasp":
                     assert "cube" in obj_name.lower(), f"Object {obj_name} does not exist in environment!"
                     object_pos = self.sim.data.qpos[9:12].copy()
@@ -470,7 +470,7 @@ class RobosuitePSLEnv(PSLEnv):
                     object_pos = self.pick_place_bin_locations[bin_num - 1].copy()
                     object_pos[2] += 0.125
                     object_quat = np.zeros(4)
-            elif self.env_name.startswith("PickPlaceMilk"):
+            elif self.env_name == "PickPlaceMilk":
                 if self.text_plan[self.curr_plan_stage][1] == "grasp":
                     assert "milk" in obj_name.lower(), f"Object {obj_name} does not exist in environment!"
                     object_pos = self.sim.data.qpos[9:12].copy()
@@ -481,7 +481,7 @@ class RobosuitePSLEnv(PSLEnv):
                     object_pos = self.pick_place_bin_locations[bin_num - 1].copy()
                     object_pos[2] += 0.125
                     object_quat = np.zeros(4)
-            elif self.env_name.startswith("PickPlaceBread"):
+            elif self.env_name == "PickPlaceBread":
                 if self.text_plan[self.curr_plan_stage][1] == "grasp":
                     assert "bread" in obj_name.lower(), f"Object {obj_name} does not exist in environment!"
                     object_pos = self.sim.data.qpos[16:19].copy()
@@ -492,7 +492,7 @@ class RobosuitePSLEnv(PSLEnv):
                     object_pos = self.pick_place_bin_locations[bin_num - 1].copy()
                     object_pos[2] += 0.125
                     object_quat = np.zeros(4)
-            elif self.env_name.startswith("PickPlaceCereal"):
+            elif self.env_name == "PickPlaceCereal":
                 if self.text_plan[self.curr_plan_stage][1] == "grasp":
                     assert "cereal" in obj_name.lower(), f"Object {obj_name} does not exist in environment!"
                     object_pos = self.sim.data.qpos[23:26].copy()
@@ -503,7 +503,7 @@ class RobosuitePSLEnv(PSLEnv):
                     object_pos = self.pick_place_bin_locations[bin_num - 1].copy()
                     object_pos[2] += 0.125
                     object_quat = np.zeros(4)
-            elif self.env_name.startswith("PickPlaceCan"):
+            elif self.env_name == "PickPlaceCan":
                 if self.text_plan[self.curr_plan_stage][1] == "grasp":
                     assert "can" in obj_name.lower(), f"Object {obj_name} does not exist in environment!"
                     object_pos = self.sim.data.qpos[30:33].copy()
@@ -531,7 +531,7 @@ class RobosuitePSLEnv(PSLEnv):
                     object_pos = self.pick_place_bin_locations[bin_num - 1].copy()
                     object_pos[2] += 0.125
                     object_quat = np.zeros(4)
-            elif self.env_name.startswith("Door"):
+            elif self.env_name == "Door":
                 object_pos = np.array(
                     [self.sim.data.qpos[self.hinge_qpos_addr]]
                 )  # this is not what they are, but they will be decoded properly

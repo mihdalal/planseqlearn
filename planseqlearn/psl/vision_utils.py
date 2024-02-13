@@ -69,7 +69,10 @@ def reset_precompute_sam_poses(env):
     env.sam_object_pose = {}
     for obj_name, action in env.text_plan:
         sam_kwargs = env.get_sam_kwargs(obj_name)
-        frame = env.sim.render(camera_name=sam_kwargs["camera_name"], width=500, height=500)
+        if hasattr(env, "mjpy_sim"):
+            frame = env.mjpy_sim.render(camera_name=sam_kwargs["camera_name"], width=500, height=500)
+        else:
+            frame = env.sim.render(camera_name=sam_kwargs["camera_name"], width=500, height=500)
         if sam_kwargs.get("flip_channel", True):
             frame = frame[:, :, ::-1]
         if sam_kwargs.get("flip_image", True):
@@ -90,15 +93,18 @@ def reset_precompute_sam_poses(env):
             camera_name=sam_kwargs["camera_name"],
             camera_width=500,
             camera_height=500,
-            sim=env.sim,
+            sim=env.mjpy_sim if hasattr(env, "mjpy_sim") else env.sim,
         )
         depth_map = np.expand_dims(
-            CU.get_real_depth_map(sim=env.sim, depth_map=depth_map), -1
+            CU.get_real_depth_map(
+                sim=env.mjpy_sim if hasattr(env, "mjpy_sim") else env.sim, 
+                depth_map=depth_map
+            ), -1
         )
         if sam_kwargs.get("flip_dm", True):
             depth_map = np.flipud(depth_map)
         world_to_camera = CU.get_camera_transform_matrix(
-            sim=env.sim,
+            sim=env.mjpy_sim if hasattr(env, "mjpy_sim") else env.sim,
             camera_name=sam_kwargs["camera_name"],
             camera_height=500,
             camera_width=500,
