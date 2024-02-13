@@ -186,6 +186,7 @@ def make_metaworld(
     psl=False,
     use_mp=False,
     use_sam_segmentation=False,
+    use_vision_pose_estimation=False,
 ):
     env = MT_Wrapper(
         env_name=name,
