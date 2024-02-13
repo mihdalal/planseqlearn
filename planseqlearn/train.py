@@ -623,7 +623,7 @@ if __name__ == "__main__":
     command = " ".join((python_cmd, script_name, "", *command_line_args))
     logdir = log_dir
     singularity_pre_cmds = " && ".join(SINGULARITY_PRE_CMDS)
-    new_slurm_cmd = wrap_command_with_sbatch_matrix(
+    slurm_cmd = wrap_command_with_sbatch_matrix(
         f'{os.environ["LAUNCH_SINGULARITY"]} "'
         + singularity_pre_cmds
         + " && source ~/.bashrc && mamba activate planseqlearn && "
@@ -632,8 +632,6 @@ if __name__ == "__main__":
         slurm_config,
         logdir,
     )
-    print(new_slurm_cmd)
-    breakpoint()
     if matrix:
         print(slurm_cmd)
         os.system(slurm_cmd)
