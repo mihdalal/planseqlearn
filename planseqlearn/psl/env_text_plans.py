@@ -103,15 +103,15 @@ KITCHEN_PLANS = {
         ("slide", "grasp"),
     ],
     "kitchen-ms10-v0": [
-        ("hinge cabinet", "grasp"),
-        ("top right burner", "grasp"),
-        ("bottom left burner", "grasp"),
-        ("bottom right burner", "grasp"),
-        ("close hinge cabinet", "grasp"),
-        ("microwave handle", "grasp"),
+        ("microwave", "grasp"),
         ("kettle", "grasp"),
-        ("light", "grasp"),
-        ("top burner", "grasp"),
+        ("close microwave", "grasp"),
         ("slide", "grasp"),
+        ("top burner", "grasp"),
+        ("close slide", "grasp")
+        ("hinge cabinet", "grasp")
+        ("light", "grasp"),
+        ("close hinge cabinet", "grasp"),
+        ("bottom right burner", "grasp"),
     ]
 }

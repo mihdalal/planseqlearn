@@ -5,6 +5,7 @@ from planseqlearn.psl.vision_utils import *
 import robosuite.utils.transform_utils as T
 from robosuite.utils.transform_utils import *
 from planseqlearn.psl.env_text_plans import KITCHEN_PLANS
+from planseqlearn.environments.wrappers import Camera_Render_Wrapper
 
 OBS_ELEMENT_INDICES = {
     "bottom left burner": np.array([11]), #correct
@@ -17,7 +18,9 @@ OBS_ELEMENT_INDICES = {
     "hinge cabinet": np.array([21]),
     "microwave": np.array([22]),
     "kettle": np.array([23, 24, 25, 26, 27, 28, 29]),
-    "close hinge cabinet": np.array([13, 21])
+    "close hinge cabinet": np.array([13, 21]),
+    "close microwave": np.array([22, 23, 24, 25, 26, 27, 28, 29]),
+    "close slide": np.array([15, 19]),
 }
 OBS_ELEMENT_GOALS = {
     "bottom left burner": np.array([-0.92]),
@@ -31,6 +34,8 @@ OBS_ELEMENT_GOALS = {
     "microwave": np.array([-0.75]),
     "kettle": np.array([-0.23, 0.75, 1.62, 0.99, 0.0, 0.0, -0.06]),
     "close hinge cabinet": np.array([-0.92, 0.0])
+    "close microwave": np.array([0., -0.23, 0.75, 1.62, 0.99, 0.0, 0.0, -0.06]),
+    "close slide": np.array([-0.92, 0.0]),
 }
 BONUS_THRESH = 0.3
 
@@ -41,18 +46,24 @@ def check_robot_string(string):
 
 
 def get_object_string(env, obj_name):
-    if "microwave" in obj_name:
-        return "microwave"
-    if "kettle" in obj_name:
-        return "kettle"
-    if "light" in obj_name:
-        return "light switch"
-    if "slide" in obj_name:
-        return "slide cabinet"
     if "hinge" in obj_name:
         return "hinge cabinet"
-    if "burner" in obj_name:
+    elif "bottom left burner" in obj_name:
+        return "bottom left burner"
+    elif "bottom right burner" in obj_name:
+        return "bottom right burner"
+    elif "top burner" in obj_name:
         return "top burner"
+    elif "top right burner" in obj_name:
+        return "top right burner"
+    elif "microwave" in obj_name:
+        return "microwave"
+    elif "kettle" in obj_name:
+        return "kettle"
+    elif "light" in obj_name:
+        return "light switch"
+    elif "slide" in obj_name:
+        return "slide cabinet"
 
 def check_string(string, other_string):
     if string is None:
@@ -94,6 +105,9 @@ class KitchenPSLEnv(PSLEnv):
         self.original_colors = [
             env.sim.model.geom_rgba[idx].copy() for idx in self.robot_geom_ids
         ]
+        self.mp_bounds_low = np.array([-2.0, -2.0, -2.0])
+        self.mp_bounds_high = np.array([4.0, 4.0, 4.0])
+        self.retry = False
 
     def get_sam_kwargs(self, obj_name):
         if "microwave" in obj_name:
@@ -244,7 +258,7 @@ class KitchenPSLEnv(PSLEnv):
         ignore_object_collision=False,
         obj_name="",
     ):
-        obj_string = get_object_name(env, obj_name)
+        obj_string = get_object_string(self, obj_name=self.text_plan[self.curr_plan_stage][0])
         d = self.sim.data
         for coni in range(d.ncon):
             con1 = self.sim.model.geom_id2name(d.contact[coni].geom1)
@@ -431,10 +445,12 @@ class KitchenPSLEnv(PSLEnv):
         ee_error = np.linalg.norm(self._eef_xpos - target_pos)
         return ee_error
 
-    def set_object_pose(self, object_pos, object_quat, obj_idx=0):
-        element = self.TASK_ELEMENTS[obj_idx]
-        self.sim.data.qpos[-21 + self.OBS_ELEMENT_INDICES[element] - 9] = object_pos
-        self.sim.forward()
+    def set_object_pose(self, object_pos, object_quat, obj_name=""):
+        # element = get_object_string(self, obj_name)
+        # breakpoint()
+        # self.sim.data.qpos[-21 + self.OBS_ELEMENT_INDICES[element] - 9] = object_pos
+        # self.sim.forward()
+        pass 
 
     def set_robot_based_on_joint_angles(
         self,
@@ -471,12 +487,12 @@ class KitchenPSLEnv(PSLEnv):
                 np.dot(transform, pose2mat((object_pos, object_quat)))
             )
             self.set_object_pose(
-                new_object_pose[0], new_object_pose[1], obj_idx=obj_idx
+                new_object_pose[0], new_object_pose[1], obj_name=obj_name,
             )
             self.sim.forward()
         else:
             # make sure the object is back where it started
-            self.set_object_pose(object_pos, object_quat, obj_idx=obj_idx)
+            self.set_object_pose(object_pos, object_quat, obj_name=obj_name)
 
         if open_gripper_on_tp:
             self.sim.data.qpos[7:9] = np.array([0.04, 0.04])
@@ -495,23 +511,27 @@ class KitchenPSLEnv(PSLEnv):
         is_grasped=False,
         obj_name="",
     ):
-        if self.use_pcd_collision_check:
-            raise NotImplementedError
-        else:
-            self.set_robot_based_on_joint_angles(
-                curr_pos,
-                qpos,
-                qvel,
-                obj_name=obj_name
-            )
-            valid = not self.check_robot_collision(
-                ignore_object_collision=False, obj_name=obj_name
-            )
+        self.set_robot_based_on_joint_angles(
+            curr_pos,
+            qpos,
+            qvel,
+            obj_name=obj_name
+        )
+        valid = not self.check_robot_collision(
+            ignore_object_collision=False, obj_name=obj_name
+        )
         return valid
 
     def get_robot_mask(self):
-        segmentation_map = self.sim.render(segmentation=True, height=540, width=960)
-        geom_ids = np.unique(segmentation_map[:, :, 1])
+        fixed_view_physics = Camera_Render_Wrapper(
+            self.sim,
+            lookat=[-0.3, 0.5, 2.0],
+            distance=1.86,
+            azimuth=90,
+            elevation=-60,
+        )
+        segmentation_map = fixed_view_physics.render(segmentation=True, height=540, width=960)
+        geom_ids = np.unique(segmentation_map[:, :, 0])
         robot_ids = []
         object_ids = []
         object_string = get_object_string(self, self.text_plan[self.curr_plan_stage][0])
@@ -616,7 +636,10 @@ class KitchenPSLEnv(PSLEnv):
             # copy code from https://github.com/mihdalal/d4rl/blob/primitives/d4rl/kitchen/kitchen_envs.py
             if info != {}:
                 for obj in self.tasks_to_complete:
-                    if "microwave" in obj and "microwave" in obj_name:
+                    if "close microwave" in obj and "close microwave" in obj_name:
+                        return False
+                    if "microwave" in obj and "microwave" in obj_name 
+                        and "close" not in obj and "close" not in obj_name:
                         return False 
                     if "top burner" in obj and "top burner" in obj_name:
                         return False 
@@ -628,12 +651,14 @@ class KitchenPSLEnv(PSLEnv):
                         return False 
                     if "light" in obj and "light" in obj_name:
                         return False 
-                    if "slide" in obj and "slide" in obj_name:
+                    if "slide" in obj and "slide" in obj_name and "close" not in obj and "close" not in obj_name:
                         return False 
+                    if "close slide" in obj and "close slide" in obj_name:
+                        return False
                     if "kettle" in obj and "kettle" in obj_name:
                         return False
                     if "close hinge cabinet" in obj and "close hinge cabinet" in obj_name:
-                        return False
+                        return False 
                     if "hinge cabinet" in obj and "hinge cabinet" in obj_name \
                         and "close" not in obj and "close" not in obj_name:
                         return False 
@@ -699,7 +724,5 @@ class KitchenPSLEnv(PSLEnv):
             new_state,
             self.reset_qpos,
             self.reset_qvel,
-            is_grasped=is_grasped,
-            obj_idx=self.obj_idx,
-            open_gripper_on_tp=not is_grasped,
+            obj_name=self.text_plan[self.curr_plan_stage][0],
         )
