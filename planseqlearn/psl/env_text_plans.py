@@ -108,10 +108,14 @@ KITCHEN_PLANS = {
         ("close microwave", "grasp"),
         ("slide", "grasp"),
         ("top burner", "grasp"),
-        ("close slide", "grasp")
-        ("hinge cabinet", "grasp")
+        ("close slide", "grasp"),
+        ("hinge cabinet", "grasp"),
         ("light", "grasp"),
         ("close hinge cabinet", "grasp"),
         ("bottom right burner", "grasp"),
+    ],
+    "kitchen-kettle-burner-v0": [
+        ("kettle", "grasp"),
+        ("top burner", "grasp"),
     ]
 }
