@@ -170,10 +170,10 @@ class RobosuitePSLEnv(PSLEnv):
 
     def get_sam_kwargs(self, obj_name):
         offset_map = {
-            '1': np.array([-0.075, -0.16, 0.9]),
-            '2': np.array([0.075, -0.16, 0.9]),
-            '3': np.array([-0.075, 0.16, 0.9]),
-            '4': np.array([-0.075, 0.16, 0.9]),
+            '1': np.array([-0.075, -0.08, 0.04]),
+            '2': np.array([0.075, -0.08, 0.04]),
+            '3': np.array([-0.075, 0.08, 0.04]),
+            '4': np.array([0.075, 0.08, 0.04]),
         }
         if "cube" in obj_name:
             return {
@@ -200,7 +200,7 @@ class RobosuitePSLEnv(PSLEnv):
                 "camera_name": "agentview",
                 "text_prompts": ["gold square key"],
                 "idx": -1,
-                "offset": np.zeros(3),
+                "offset": np.array([0., -0.01, -0.05]),
                 "box_threshold": 0.3,
                 "flip_channel": True,
                 "flip_image": True,
@@ -214,13 +214,14 @@ class RobosuitePSLEnv(PSLEnv):
                 "box_threshold": 0.4,
                 "flip_channel": True,
                 "flip_image": True,
+                "flip_dm": False,
             }
         elif "silver" in obj_name and "nut" in obj_name:
             return {
                 "camera_name": "agentview",
                 "text_prompts": ["silver round nut"],
                 "idx": 1,
-                "offset": np.zeros(3),
+                "offset": np.array([-0.02, -0.04, -0.06]),
                 "box_threshold": 0.3,
                 "flip_channel": True,
                 "flip_image": True,
@@ -230,28 +231,41 @@ class RobosuitePSLEnv(PSLEnv):
                 "camera_name": "robot0_robotview",
                 "text_prompts": ["tall cylinder"],
                 "idx": 1,
-                "offset": np.zeros(3),
+                "offset": np.array([-0.07, 0.0, 0.05]),
                 "box_threshold": 0.4,
                 "flip_channel": True,
                 "flip_image": True,
+                "flip_dm": False,
             }
         elif "can" in obj_name:
             return {
                 "camera_name": "agentview",
                 "text_prompts": ["red can"],
                 "idx": -1,
-                "offset": np.zeros(3),
+                "offset": np.array([0., 0., -0.012]),
                 "box_threshold": 0.3,
                 "flip_channel": True,
                 "flip_image": True,
+                "flip_dm": False,
             }
-        elif "bread" in obj_name:
+        elif "bread" in obj_name and not self.env_name.endswith("PickPlace"):
             return {
                 "camera_name": "robot0_robotview",
                 "text_prompts": ["small brown box"],
                 "idx": 0,
                 "offset": np.zeros(3),
                 "box_threshold": 0.4,
+                "flip_channel": True,
+                "flip_image": True,
+                "flip_dm": False,
+            }
+        elif "bread" in obj_name:
+            return {
+                "camera_name": "agentview",
+                "text_prompts": ["small brown bread"],
+                "idx": -1,
+                "offset": np.array([0., 0., -0.012]),
+                "box_threshold": 0.3,
                 "flip_channel": True,
                 "flip_image": True,
                 "flip_dm": False,
@@ -275,16 +289,19 @@ class RobosuitePSLEnv(PSLEnv):
                 "box_threshold": 0.3,
                 "flip_channel": True,
                 "flip_image": True,
+                "flip_dm": False,
             }
         elif "bin" in obj_name:
             return {
                 "camera_name": "birdview",
                 "text_prompts": ["grid"],
-                "idx": 1,
+                "idx": 
+                    0 if self.env_name.endswith("PickPlace") and "Cereal" in self.valid_obj_names else 2,
                 "offset": offset_map[obj_name[-1]],
                 "box_threshold": 0.4,
                 "flip_channel": True,
                 "flip_image": True,
+                "flip_dm": False,
             }
 
     def get_body_geom_ids_from_robot_bodies(self):
