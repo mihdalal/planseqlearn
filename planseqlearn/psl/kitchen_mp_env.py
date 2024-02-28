@@ -33,7 +33,7 @@ OBS_ELEMENT_GOALS = {
     "hinge cabinet": np.array([1.45]),
     "microwave": np.array([-0.75]),
     "kettle": np.array([-0.23, 0.75, 1.62, 0.99, 0.0, 0.0, -0.06]),
-    "close hinge cabinet": np.array([-0.92, 0.0])
+    "close hinge cabinet": np.array([-0.92, 0.0]),
     "close microwave": np.array([0., -0.23, 0.75, 1.62, 0.99, 0.0, 0.0, -0.06]),
     "close slide": np.array([-0.92, 0.0]),
 }
@@ -638,8 +638,7 @@ class KitchenPSLEnv(PSLEnv):
                 for obj in self.tasks_to_complete:
                     if "close microwave" in obj and "close microwave" in obj_name:
                         return False
-                    if "microwave" in obj and "microwave" in obj_name 
-                        and "close" not in obj and "close" not in obj_name:
+                    if "microwave" in obj and "microwave" in obj_name and "close" not in obj and "close" not in obj_name:
                         return False 
                     if "top burner" in obj and "top burner" in obj_name:
                         return False 

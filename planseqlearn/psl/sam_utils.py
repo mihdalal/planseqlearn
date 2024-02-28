@@ -7,10 +7,10 @@ from PIL import Image
 
 try:
     # Grounding DINO
-    import GroundingDINO.groundingdino.datasets.transforms as T
-    from GroundingDINO.groundingdino.models import build_model
-    from GroundingDINO.groundingdino.util.slconfig import SLConfig
-    from GroundingDINO.groundingdino.util.utils import (
+    import groundingdino.datasets.transforms as T
+    from groundingdino.models import build_model
+    from groundingdino.util.slconfig import SLConfig
+    from groundingdino.util.utils import (
         clean_state_dict,
         get_phrases_from_posmap,
     )
@@ -19,10 +19,10 @@ try:
     from segment_anything import build_sam, build_sam_hq, SamPredictor
 except:
     pass
-import GroundingDINO.groundingdino.datasets.transforms as T
-from GroundingDINO.groundingdino.models import build_model
-from GroundingDINO.groundingdino.util.slconfig import SLConfig
-from GroundingDINO.groundingdino.util.utils import (
+import groundingdino.datasets.transforms as T
+from groundingdino.models import build_model
+from groundingdino.util.slconfig import SLConfig
+from groundingdino.util.utils import (
     clean_state_dict,
     get_phrases_from_posmap,
 )
@@ -56,9 +56,9 @@ def load_dino(model_config_path, model_checkpoint_path, device):
 
 
 def build_models(
-    config_file="../Grounded-Segment-Anything/GroundingDINO/groundingdino/config/GroundingDINO_SwinT_OGC.py",
-    grounded_checkpoint="../Grounded-Segment-Anything/groundingdino_swint_ogc.pth",
-    sam_checkpoint="../Grounded-Segment-Anything/sam_vit_h_4b8939.pth",
+    config_file="Grounded-Segment-Anything/GroundingDINO/groundingdino/config/GroundingDINO_SwinT_OGC.py",
+    grounded_checkpoint="Grounded-Segment-Anything/groundingdino_swint_ogc.pth",
+    sam_checkpoint="Grounded-Segment-Anything/sam_vit_h_4b8939.pth",
     sam_hq_checkpoint=None,
     use_sam_hq=False,
     device="cuda",

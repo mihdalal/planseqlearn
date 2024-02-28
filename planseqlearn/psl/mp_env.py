@@ -59,9 +59,9 @@ class PSLEnv(ProxyEnv):
         self.teleport_on_grasp = teleport_on_grasp
         if self.use_sam_segmentation:
             self.dino, self.sam = build_models(
-                config_file="../../Grounded-Segment-Anything/GroundingDINO/groundingdino/config/GroundingDINO_SwinT_OGC.py",
-                grounded_checkpoint="../../Grounded-Segment-Anything/groundingdino_swint_ogc.pth",
-                sam_checkpoint="../../Grounded-Segment-Anything/sam_vit_h_4b8939.pth",
+                config_file="Grounded-Segment-Anything/GroundingDINO/groundingdino/config/GroundingDINO_SwinT_OGC.py",
+                grounded_checkpoint="Grounded-Segment-Anything/groundingdino_swint_ogc.pth",
+                sam_checkpoint="Grounded-Segment-Anything/sam_vit_h_4b8939.pth",
                 sam_hq_checkpoint=None,
                 use_sam_hq=False,
             )

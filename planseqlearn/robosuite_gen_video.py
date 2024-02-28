@@ -24,11 +24,11 @@ def robosuite_gen_video(env_name, camera_name):
         camera_name=camera_name,
         psl=True,
         use_mp=False,
-        use_sam_segmentation=True,
+        use_sam_segmentation=False,
         use_vision_pose_estimation=False,
         text_plan=ROBOSUITE_PLANS[env_name],
-        vertical_displacement=0.04,
-        estimate_orientation=True,
+        vertical_displacement=0.08,
+        estimate_orientation=False,
     )
     frames = []
     clean_frames = []
@@ -41,11 +41,11 @@ def robosuite_gen_video(env_name, camera_name):
             frames.append(env.get_image())
             if o.last(): # or o.reward["success"]:
                 break 
-    frames = list(map(lambda x: x[:, :, ::-1], frames))
     make_video(frames, "videos", 0, use_wandb=False)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--env_name', type=str, help='Name of the environment')
     parser.add_argument('--camera_name', type=str, help='Name of the environment')   
+    args = parser.parse_args()
     robosuite_gen_video(args.env_name, args.camera_name)  

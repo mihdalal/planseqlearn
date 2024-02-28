@@ -45,3 +45,4 @@ open3d
 pybullet-svl>=3.1.6.4
 lockfile
 nvisii
+gymnasium
