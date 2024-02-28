@@ -18,6 +18,8 @@ slim_mask_cfg:
 psl: false 
 path_length: 500
 use_rgbm: false
+text_plan: []
+use_vision_pose_estimation: false
 # train settings
 num_seed_frames: 4000
 # eval

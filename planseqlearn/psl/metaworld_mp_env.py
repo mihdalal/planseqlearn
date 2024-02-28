@@ -7,7 +7,7 @@ from robosuite.utils.transform_utils import (
     pose2mat,
     quat2mat,
 )
-
+from planseqlearn.psl.env_text_plans import METAWORLD_PLANS
 
 def set_robot_based_on_ee_pos(
     env,
@@ -15,14 +15,18 @@ def set_robot_based_on_ee_pos(
     target_quat,
     qpos,
     qvel,
-    is_grasped,
+    obj_name=""
 ):
     """
     Set robot joint positions based on target ee pose. Uses IK to solve for joint positions.
     If grasping an object, ensures the object moves with the arm in a consistent way.
     """
+    # check is grasped
+    is_grasped = env.named_check_object_grasp(
+        env.text_plan[env.curr_plan_stage - (env.curr_plan_stage % 2)][0]
+    )()
     # cache quantities from prior to setting the state
-    object_pose = env.get_object_pose()
+    object_pose = env.get_sim_object_pose(obj_name)
     gripper_qpos = env.sim.data.qpos[7:9].copy()
     gripper_qvel = env.sim.data.qvel[7:9].copy()
     old_eef_xquat = env._eef_xquat.copy()
@@ -113,6 +117,7 @@ class MetaworldPSLEnv(PSLEnv):
             env_name,
             **kwargs,
         )
+        self.retry = False
         self.ROBOT_BODIES = [
             "right_hand",
             "hand",
@@ -121,6 +126,8 @@ class MetaworldPSLEnv(PSLEnv):
             "leftclaw",
             "leftpad",
         ]
+        if len(self.text_plan) == 0:
+            self.text_plan = METAWORLD_PLANS[self.env_name]
         self.mp_bounds_low = (-2.0, -2.0, -2.0)
         self.mp_bounds_high = (2.0, 2.0, 2.0)
         self.use_joint_space_mp = False
@@ -163,7 +170,6 @@ class MetaworldPSLEnv(PSLEnv):
             env.sim.model.geom_rgba[idx].copy() for idx in self.robot_geom_ids
         ]
         self.max_path_length = kwargs["max_path_length"]
-        self.hardcoded_text_plan = self.get_hardcoded_text_plan()
 
     def get_body_geom_ids_from_robot_bodies(self):
         body_ids = [self.sim.model.body_name2id(body) for body in self.geom_bodies]
@@ -173,16 +179,6 @@ class MetaworldPSLEnv(PSLEnv):
                 geom_ids.append(geom_id)
         return body_ids, geom_ids
 
-    def get_hardcoded_text_plan(self):
-        if self.env_name == "assembly-v2":
-            return [("green wrench", "grasp"), ("small maroon peg", "place")]
-        if self.env_name == "hammer-v2":
-            return [("red hammer handle", "grasp"), ("gray nail", "place")]
-        if self.env_name == "bin-picking-v2":
-            return [("green cube", "grasp"), ("blue bin", "place")]
-        if self.env_name == "disassemble-v2":
-            return [("green wrench", "grasp"), (None, None)]
-
     def get_image(self):
         im = self.sim.render(
             camera_name="corner",
@@ -190,137 +186,85 @@ class MetaworldPSLEnv(PSLEnv):
             height=540,
         )
         return im
-
-    def get_object_pose_mp(self, obj_idx=0):
-        if self.env_name == "assembly-v2":
-            object_pos = self._get_pos_objects().copy() + np.array([0.03, 0.0, 0.05])
-            object_quat = self._get_quat_objects().copy()
-        elif self.env_name == "disassemble-v2":
-            object_pos = self._get_pos_objects().copy() + np.array([0.0, 0.0, 0.06])
-            object_quat = self._get_quat_objects().copy()
-        elif self.env_name == "hammer-v2":
-            object_pos = self._get_pos_objects()[:3] + np.array([0.09, 0.0, 0.05])
-            object_quat = self._get_quat_objects().copy()
-        elif self.env_name == "bin-picking-v2":
-            object_pos = self._get_pos_objects().copy() + np.array([0.0, 0.0, 0.02])
-            object_quat = self._get_quat_objects().copy()
-        if self.use_vision_pose_estimation:
-            object_name = (
-                self.text_plan[0][0]
-                if self.use_llm_plan
-                else self.hardcoded_text_plan[0][0]
-            )
-            if self.env_name == "assembly-v2" or self.env_name == "disassemble-v2":
-                if not self.use_sam_segmentation:
-                    object_pos = get_geom_pose_from_seg(
-                        self,
-                        self.sim.model.geom_name2id("WrenchHandle"),
-                        ["corner", "corner2"],
-                        500,
-                        500,
-                        self.sim,
-                    )
-                    object_pos += np.array([0.02, 0.02, 0.03])
-                else:
-                    object_pos = get_pose_from_sam_segmentation(
-                        self, object_name, "corner"
-                    )
-                    object_pos += np.array([0.08, 0.02, 0.07])
-                object_quat = self._get_quat_objects().copy()
-            elif self.env_name == "hammer-v2":
-                if not self.use_sam_segmentation:
-                    object_pos = get_geom_pose_from_seg(
-                        self,
-                        self.sim.model.geom_name2id("HammerHandle"),
-                        ["topview", "corner2"],
-                        500,
-                        500,
-                        self.sim,
-                    )
-                    object_pos += np.array([0.0, 0.0, 0.05])
-                else:
-                    object_pos = get_pose_from_sam_segmentation(
-                        self, object_name, "corner"
-                    )
-                    object_pos += np.array([0.0, 0.0, 0.05])
-                object_quat = self._get_quat_objects()[:4]
-            elif self.env_name == "bin-picking-v2":
-                if not self.use_sam_segmentation:
-                    object_pos = get_geom_pose_from_seg(
-                        self, 36, ["topview", "corner2"], 500, 500, self.sim
-                    )
-                else:
-                    # saving image first
-                    object_pos = get_pose_from_sam_segmentation(
-                        self, object_name, "corner3"
-                    )
-                object_pos += np.array([-0.00, 0.0, 0.02])
-                object_quat = self._get_quat_objects().copy()
-        return object_pos, object_quat
-
-    def get_object_poses(self):
-        object_poses = []
-        object_poses.append((self.get_object_pose_mp()))
-        return object_poses
-
-    def get_placement_pose(self):
-        placement_quat = None
-        if not self.use_vision_pose_estimation:
-            if self.env_name == "assembly-v2":
-                placement_pos = self.sim.data.body_xpos[
-                    self.sim.model.body_name2id("peg")
-                ] + np.array([0.13, 0.0, 0.15])
-            elif self.env_name == "bin-picking-v2":
-                placement_pos = self._target_pos + np.array([0, 0, 0.15])
-            elif self.env_name == "disassemble-v2":
-                placement_pos = None
-            elif self.env_name == "hammer-v2":
-                placement_pos = self._wrapped_env._get_pos_objects()[3:] + np.array(
-                    [-0.05, -0.20, 0.05]
-                )
-        else:
-            object_name = (
-                self.text_plan[1][0]
-                if self.use_llm_plan
-                else self.hardcoded_text_plan[1][0]
-            )
-            if self.env_name == "disassemble-v2":
-                placement_pos = None
-            elif self.env_name == "hammer-v2":
-                if not self.use_sam_segmentation:
-                    placement_pos = get_geom_pose_from_seg(
-                        self, 53, ["corner2", "topview", "corner3"], 500, 500, self.sim
-                    )
-                    placement_pos += np.array([-0.15, -0.15, 0.0])
-                else:
-                    placement_pos = get_pose_from_sam_segmentation(
-                        self, object_name, "corner"
-                    )
-                    placement_pos += np.array([-0.15, -0.15, 0.0])
-            elif self.env_name == "bin-picking-v2":
-                if not self.use_sam_segmentation:
-                    placement_pos = get_geom_pose_from_seg(
-                        self, 44, ["corner", "corner2"], 500, 500, self.sim
-                    )
-                else:
-                    placement_pos = get_pose_from_sam_segmentation(
-                        self, object_name, "corner3"
-                    )
-                placement_pos += np.array([0.03, 0.03, 0.10])
-            elif self.env_name == "assembly-v2":
-                if not self.use_sam_segmentation:
-                    placement_pos = get_geom_pose_from_seg(
-                        self, 49, ["corner", "corner2"], 500, 500, self.sim
-                    )
-                else:
-                    placement_pos = get_pose_from_sam_segmentation(
-                        self, object_name, "corner"
-                    )
-                placement_pos += np.array([0.13, 0.0, 0.15])
-        return placement_pos, placement_quat
-
-    def get_placement_poses(self):
-        return [self.get_placement_pose()]
+    
+    def get_sam_kwargs(self, obj_name):
+        if "maroon peg" in obj_name:
+            return {
+                "text_prompts": ["robot, small maroon peg"],
+                "box_threshold": 0.45,
+                "camera_name": "corner",
+                "idx": -1,
+                "offset": np.array([0.13, 0.0, -0.05]),
+                "flip_dm": True,
+                "flip_channel": True,
+                "flip_image": False,
+            }
+        if "wrench" in obj_name and self.env_name == "assembly-v2":
+            return {
+                "text_prompts": ["robot, green wrench handle"],
+                "box_threshold": 0.3,
+                "camera_name": "corner3",
+                "idx": -1,
+                "offset": np.array([0.0, 0.0, 0.06]),
+                "flip_dm": False,
+                "flip_channel": True,
+                "flip_image": True,
+            }
+        if "wrench" in obj_name and self.env_name == "disassemble-v2":
+            return {
+                "text_prompts": ["robot, green wrench handle"],
+                "box_threshold": 0.4,
+                "camera_name": "topview",
+                "idx": -1,
+                "offset": np.array([0.0, 0.0, 0.06]),
+                "flip_dm": False,
+                "flip_channel": True,
+                "flip_image": True,
+            }
+        if "hammer" in obj_name:
+            return {
+                "text_prompts": ["robot, small red hammer handle"],
+                "box_threshold": 0.35,
+                "camera_name": "corner3",
+                "idx": -1,
+                "offset": np.array([0.07, -0.03, 0.03]),
+                "flip_dm": True,
+                "flip_channel": True,
+                "flip_image": False,
+            }
+        if "nail" in obj_name:
+            return {
+                "text_prompts": ["robot, gray nail on wooden box"],
+                "box_threshold": 0.4,
+                "camera_name": "corner3",
+                "idx": -1,
+                "offset": np.array([-0.05, -0.2, 0.05]),
+                "flip_dm": True,
+                "flip_channel": True,
+                "flip_image": False,
+            }
+        if "cube" in obj_name:
+            return {
+                "text_prompts": ["robot, small green cube"],
+                "box_threshold": 0.4,
+                "camera_name": "topview",
+                "idx": -1,
+                "offset": np.array([0.0, 0.0, 0.02]),
+                "flip_dm": False,
+                "flip_channel": True,
+                "flip_image": True,
+            }
+        if "bin" in obj_name:
+            return {
+                "text_prompts": ["robot, blue bin"],
+                "box_threshold": 0.4,
+                "camera_name": "corner3",
+                "idx": -1,
+                "offset": np.array([-0.12, 0.06, 0.15]),
+                "flip_dm": True,
+                "flip_image": False,
+                "flip_channel": False,
+            }
 
     @property
     def observation_space(self):
@@ -330,36 +274,186 @@ class MetaworldPSLEnv(PSLEnv):
     def action_space(self):
         return self._wrapped_env.action_space
 
+    def named_check_object_grasp(self, obj_name):
+        def check_object_grasp(*args, **kwargs):
+            if "wrench" in obj_name:
+                obj_str = "asmbly_peg"
+            elif "hammer" in obj_name:
+                obj_str = "hammer"
+            elif "cube" in obj_name:
+                obj_str = "objA"
+            else:
+                return False # disassemble case
+            d = self.sim.data
+            left_gripper_contact, right_gripper_contact = (False, False)
+            for coni in range(d.ncon):
+                con1 = self.sim.model.geom_id2name(d.contact[coni].geom1)
+                con2 = self.sim.model.geom_id2name(d.contact[coni].geom2)
+                body1 = self.sim.model.body_id2name(
+                    self.sim.model.geom_bodyid[d.contact[coni].geom1]
+                )
+                body2 = self.sim.model.body_id2name(
+                    self.sim.model.geom_bodyid[d.contact[coni].geom2]
+                )
+                if (
+                    body1 == "leftpad"
+                    and body2 == obj_str
+                    or body2 == "leftpad"
+                    and body1 == obj_str
+                ):
+                    left_gripper_contact = True
+                if (
+                    body1 == "rightpad"
+                    and body2 == obj_str
+                    or body2 == "rightpad"
+                    and body1 == obj_str
+                ):
+                    right_gripper_contact = True
+            body_grasp = left_gripper_contact and right_gripper_contact 
+            if obj_str == "hammer":
+                return body_grasp 
+            else:
+                height_diff = abs(self.get_sim_object_pose(obj_name)[0][2] - self.initial_object_pos_dict[obj_name][2])
+                return body_grasp and height_diff > 0.03
+        return check_object_grasp
+    
+    def named_check_object_placement(self, obj_name): # not necessary 
+        def check_object_placement(*args, **kwargs):
+            return False
+        return check_object_placement
+    
+    def get_sim_object_pose(self, obj_name):
+        if self.env_name == "hammer-v2":
+            if "hammer" in obj_name:
+                object_pos = self._get_pos_objects()[:3] + np.array([0.0, 0.0, 0.016])
+                object_quat = self._get_quat_objects()[:4]
+        elif self.env_name == "assembly-v2" or self.env_name == "disassemble-v2":
+            if "wrench" in obj_name:
+                object_pos = self._get_pos_objects().copy() - np.array([0.13, 0.0, 0.0,])
+                object_quat = self._get_quat_objects().copy()
+        elif self.env_name == "bin-picking-v2":
+            if "cube" in obj_name:
+                object_pos = self._get_pos_objects().copy()
+                object_quat = self._get_quat_objects().copy()
+        return object_pos, object_quat 
+
+    def get_mp_target_pose(self, obj_name):
+        if self.env_name == "assembly-v2":
+            if "wrench" in obj_name:
+                object_pos = self._get_pos_objects().copy() + np.array([0.03, 0.0, 0.05])
+                object_quat = self._get_quat_objects().copy()
+            if "peg" in obj_name:
+                object_pos = self.sim.data.body_xpos[
+                    self.sim.model.body_name2id("peg")
+                ] + np.array([0.13, 0.0, 0.15])
+                object_quat = np.zeros(4)
+        elif self.env_name == "disassemble-v2":
+            if "wrench" in obj_name:
+                object_pos = self._get_pos_objects().copy() + np.array([0.0, 0.0, 0.06])
+                object_quat = self._get_quat_objects().copy()
+        elif self.env_name == "hammer-v2":
+            if "hammer" in obj_name:
+                object_pos = self._get_pos_objects()[:3] + np.array([0.09, 0.0, 0.05])
+                object_quat = self._get_quat_objects().copy()
+            if "nail" in obj_name:
+                object_pos = self._wrapped_env._get_pos_objects()[3:] + np.array(
+                    [-0.05, -0.20, 0.05]
+                )
+                object_quat = np.zeros(4)
+        elif self.env_name == "bin-picking-v2":
+            if "cube" in obj_name:
+                object_pos = self._get_pos_objects().copy() + np.array([0.0, 0.0, 0.02])
+                object_quat = self._get_quat_objects().copy()
+            if "bin" in obj_name:
+                object_pos = self._target_pos + np.array([0, 0, 0.15])
+                object_quat = np.zeros(4)
+        if self.use_sam_segmentation:
+            object_pos = self.sam_object_pose[obj_name].copy()
+            object_quat = np.zeros(4)
+        elif self.use_vision_pose_estimation:
+            if "wrench" in obj_name:
+                object_pos = get_geom_pose_from_seg(
+                    self, 
+                    self.sim.model.geom_name2id("WrenchHandle"), 
+                    ["corner", "corner2"], 
+                    500, 
+                    500, 
+                    self.sim
+                )
+                object_pos += np.array([0.02, 0.02, 0.03])
+                object_quat = np.zeros(4)
+            if "cube" in obj_name:
+                object_pos = get_geom_pose_from_seg(
+                    self, 
+                    36,
+                    ["topview", "corner2"],
+                    500,
+                    500,
+                    self.sim        
+                )
+                object_pos += np.array([-0.00, 0.0, 0.02])
+                object_quat = np.zeros(4)
+            if "hammer" in obj_name:
+                object_pos = get_geom_pose_from_seg(
+                    self, 
+                    self.sim.model.geom_name2id("HammerHandle"),
+                    ["topview", "corner2"],
+                    500,
+                    500,
+                    self.sim        
+                )
+                object_pos += np.array([0., 0., 0.05])
+            if "nail" in obj_name:
+                object_pos = get_geom_pose_from_seg(
+                    self,
+                    53,
+                    ["corner2","topview", "corner3"],
+                    500,
+                    500,
+                    self.sim
+                ) 
+                object_pos += np.array([-0.15, -0.15, 0.0])
+                object_quat = np.zeros(4)
+            if "peg" in obj_name:
+                object_pos = get_geom_pose_from_seg(
+                    self,
+                    49,
+                    ["corner", "corner2"],
+                    500,
+                    500,
+                    self.sim
+                ) 
+                object_quat = np.zeros(4)
+            if "bin" in obj_name:
+                object_pos = get_geom_pose_from_seg(
+                    self,
+                    44,
+                    ["corner", "corner2"],
+                    500,
+                    500,
+                    self.sim
+                ) 
+                object_quat = np.zeros(4)
+        return object_pos, object_quat 
+
+    def get_all_initial_object_poses(self):
+        self.initial_object_pos_dict = {}
+        for obj_name, action in self.text_plan:
+            if action == "grasp":
+                self.initial_object_pos_dict[obj_name] = self.get_mp_target_pose(obj_name)[0].copy()
+
     def get_observation(self):
         return self._get_obs()
-
-    def get_object_pose(self):
-        if self.env_name == "hammer-v2":
-            object_pos = self._get_pos_objects()[:3] + np.array([0.0, 0.0, 0.016])
-            object_quat = self._get_quat_objects()[:4]
-        elif self.env_name == "assembly-v2" or self.env_name == "disassemble-v2":
-            object_pos = self._get_pos_objects().copy() - np.array(
-                [
-                    0.13,
-                    0.0,
-                    0.0,
-                ]
-            )
-            object_quat = self._get_quat_objects().copy()
-        else:
-            object_pos = self._get_pos_objects().copy()
-            object_quat = self._get_quat_objects().copy()
-        return object_pos, object_quat
 
     def set_object_pose(self, object_pos, object_quat):
         self._set_obj_pose(np.concatenate((object_pos, object_quat)))
 
-    def get_object_string(self):
-        if self.env_name == "hammer-v2":
+    def get_object_string(self, obj_name):
+        if "hammer" in obj_name:
             obj_name = "hammer"
-        elif self.env_name == "assembly-v2" or self.env_name == "disassemble-v2":
+        elif "wrench" in obj_name:
             obj_name = "asmbly_peg"
-        elif self.env_name == "bin-picking-v2":
+        elif "cube" in obj_name:
             obj_name = "objA"
         return obj_name
 
@@ -392,29 +486,16 @@ class MetaworldPSLEnv(PSLEnv):
                 right_gripper_contact = True
         return left_gripper_contact and right_gripper_contact
 
-    def check_grasp(self):
-        qpos = self.sim.data.qpos.copy()
-        qvel = self.sim.data.qvel.copy()
-        contact_grasp = self.body_check_grasp()
-        if self.env_name == "hammer-v2":
-            return contact_grasp
-        return (
-            contact_grasp
-            and abs(self.get_object_pose()[0][2] - self.initial_object_pos[0][2]) > 0.03
-        )
-
     def set_object_pose(self, object_pos, object_quat):
         self._set_obj_pose(np.concatenate((object_pos, object_quat)))
 
     def get_target_pos(self):
-        if self.num_high_level_steps % 2 == 0:
-            pos = self.get_object_pose_mp()[0]
-        else:
-            pos = self.placement_poses[(self.num_high_level_steps - 1) // 2][0]
-        return pos, self._eef_xquat
+        pos, obj_quat = self.get_mp_target_pose(self.text_plan[self.curr_plan_stage][0])
+        quat = self._eef_xquat.copy()
+        return pos, quat 
 
-    def check_robot_collision(self, ignore_object_collision, obj_idx=0, verbose=False):
-        obj_string = self.get_object_string()
+    def check_robot_collision(self, ignore_object_collision, obj_idx=0, verbose=False, obj_name=""):
+        obj_string = self.get_object_string(obj_name)
         d = self.sim.data
         for coni in range(d.ncon):
             con1 = self.sim.model.geom_id2name(d.contact[coni].geom1)
@@ -468,9 +549,7 @@ class MetaworldPSLEnv(PSLEnv):
         target_quat,
         qpos,
         qvel,
-        is_grasped,
-        open_gripper_on_tp=False,  # placeholder argument
-        obj_idx=0,  # placeholder argument for robosuite
+        obj_name="",  # placeholder argument for robosuite
     ):
         if target_pos is not None:
             set_robot_based_on_ee_pos(
@@ -479,7 +558,7 @@ class MetaworldPSLEnv(PSLEnv):
                 target_quat,
                 qpos,
                 qvel,
-                is_grasped,
+                obj_name=obj_name
             )
         else:
             return -np.inf
@@ -533,34 +612,6 @@ class MetaworldPSLEnv(PSLEnv):
     @property
     def _eef_xquat(self):
         return self.get_endeff_quat()
-
-    def set_robot_colors(self, colors):
-        if type(colors) is np.ndarray:
-            colors = [colors] * len(self.robot_geom_ids)
-        for idx, geom_id in enumerate(self.robot_geom_ids):
-            self.sim.model.geom_rgba[geom_id] = colors[idx]
-        self.sim.forward()
-
-    def reset_robot_colors(self):
-        self.set_robot_colors(self.original_colors)
-        self.sim.forward()
-
-    def get_poses_from_obj_name(self, obj_name):
-        if self.env_name == "assembly-v2" or self.env_name == "disassemble-v2":
-            if "wrench" in obj_name:
-                return self.get_object_pose_mp(), self.get_placement_pose()
-            else:
-                raise NotImplementedError
-        elif self.env_name == "bin-picking-v2":
-            if "cube" in obj_name:
-                return self.get_object_pose_mp(), self.get_placement_pose()
-            else:
-                raise NotImplementedError
-        elif self.env_name == "hammer-v2":
-            if "hammer" in obj_name:
-                return self.get_object_pose_mp(), self.get_placement_pose()
-            else:
-                raise NotImplementedError
 
     def update_controllers(self, *args, **kwargs):
         pass

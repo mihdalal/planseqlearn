@@ -37,7 +37,11 @@ class Robosuite_Wrapper(dm_env.Environment):
         vertical_displacement=0.08,
         estimate_orientation=True,
         valid_obj_names=None,
+        text_plan=None,
         use_proprio=True,
+        use_sam_segmentation=False,
+        use_mp=False,
+        use_vision_pose_estimation=False,
     ):
         self.discount = discount
         self.env_name = env_name
@@ -91,17 +95,19 @@ class Robosuite_Wrapper(dm_env.Environment):
         )
         # Base dictionary for common parameters
         mp_env_kwargs = dict(
-            teleport_instead_of_mp=True,
+            teleport_instead_of_mp=not use_mp,
             mp_bounds_low=(-1.45, -1.25, 0.45),
             mp_bounds_high=(0.45, 0.85, 2.25),
             backtrack_movement_fraction=0.001,
             grip_ctrl_scale=0.0025,
             planning_time=20,
             controller_configs=controller_configs,
-            use_vision_pose_estimation=False,
+            use_vision_pose_estimation=use_vision_pose_estimation,
             use_vision_placement_check=False,
-            use_vision_grasp_check=False,
+            use_joint_space_mp=True,
             estimate_orientation=False,
+            text_plan=text_plan,
+            use_sam_segmentation=use_sam_segmentation,
         )
 
         if env_name == "Lift":
@@ -121,7 +127,7 @@ class Robosuite_Wrapper(dm_env.Environment):
         elif env_name.startswith("NutAssembly"):
             mp_env_kwargs.update(
                 dict(
-                    vertical_displacement=0.04,
+                    vertical_displacement=0.02,
                     estimate_orientation=True,
                 )
             )
@@ -248,6 +254,10 @@ def make_robosuite(
     estimate_orientation=True,
     valid_obj_names=None,
     use_proprio=True,
+    text_plan=None,
+    use_sam_segmentation=False,
+    use_mp=False,
+    use_vision_pose_estimation=False,
 ):
     env = Robosuite_Wrapper(
         env_name=name,
@@ -259,6 +269,10 @@ def make_robosuite(
         estimate_orientation=estimate_orientation,
         valid_obj_names=valid_obj_names,
         use_proprio=use_proprio,
+        text_plan=text_plan,
+        use_sam_segmentation=use_sam_segmentation,
+        use_mp=use_mp,
+        use_vision_pose_estimation=use_vision_pose_estimation,
     )
     env = ActionDTypeWrapper(env, np.float32)
     env = ActionRepeatWrapper(env, action_repeat, use_metaworld_reward_dict=True)
