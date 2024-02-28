@@ -19,8 +19,8 @@ If you find this codebase useful in your research, please cite:
 @inproceedings{dalal2023psl,
     title={Plan-Seq-Learn: Language Model Guided RL for Solving Long Horizon Robotics Tasks},
     author={Dalal, Murtaza and Chiruvolu, Tarun and Chaplot, Devendra and Salakhutdinov, Ruslan},
-    journal={TODO},
-    year={2023}
+    journal={International Conference on Learning Representations},
+    year={2024}
 }
 ```
 
@@ -78,13 +78,13 @@ If you run into an error not documented above, please search through the [GitHub
 
 ## Citation
 
-Please cite [the PSL paper](TODO) if you use this code in your work:
+Please cite [the PSL paper](https://mihdalal.github.io/planseqlearn/resources/paper.pdf) if you use this code in your work:
 
 ```bibtex
 @inproceedings{dalal2023psl,
     title={Plan-Seq-Learn: Language Model Guided RL for Solving Long Horizon Robotics Tasks},
     author={Dalal, Murtaza and Chiruvolu, Tarun and Chaplot, Devendra and Salakhutdinov, Ruslan},
-    journal={TODO},
-    year={2023}
+    journal={International Conference on Learning Representations},
+    year={2024}
 }
 ```
