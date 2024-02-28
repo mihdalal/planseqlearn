@@ -4,87 +4,40 @@ from planseqlearn.psl.mp_env import PSLEnv
 from planseqlearn.psl.vision_utils import *
 import robosuite.utils.transform_utils as T
 from robosuite.utils.transform_utils import *
+from planseqlearn.psl.env_text_plans import KITCHEN_PLANS
+from planseqlearn.environments.wrappers import Camera_Render_Wrapper
 
-
-def check_object_grasp(env, obj_idx=0):
-    element = env.TASK_ELEMENTS[obj_idx]
-    is_grasped = False
-
-    if element == "slide cabinet":
-        for i in range(1, 6):
-            obj_pos = env.get_site_xpos("schandle{}".format(i))
-            left_pad = env.get_site_xpos("leftpad")
-            right_pad = env.get_site_xpos("rightpad")
-            within_sphere_left = np.linalg.norm(obj_pos - left_pad) < 0.07
-            within_sphere_right = np.linalg.norm(obj_pos - right_pad) < 0.07
-            right = right_pad[0] < obj_pos[0]
-            left = obj_pos[0] < left_pad[0]
-            if right and left and within_sphere_right and within_sphere_left:
-                is_grasped = True
-    if element == "top burner":
-        obj_pos = env.get_site_xpos("tlbhandle")
-        left_pad = env.get_site_xpos("leftpad")
-        right_pad = env.get_site_xpos("rightpad")
-        within_sphere_left = np.linalg.norm(obj_pos - left_pad) < 0.035
-        within_sphere_right = np.linalg.norm(obj_pos - right_pad) < 0.04
-        right = right_pad[0] < obj_pos[0]
-        left = obj_pos[0] < left_pad[0]
-        if within_sphere_right and within_sphere_left and right and left:
-            is_grasped = True
-    if element == "microwave":
-        for i in range(1, 6):
-            obj_pos = env.get_site_xpos("mchandle{}".format(i))
-            left_pad = env.get_site_xpos("leftpad")
-            right_pad = env.get_site_xpos("rightpad")
-            within_sphere_left = np.linalg.norm(obj_pos - left_pad) < 0.05
-            within_sphere_right = np.linalg.norm(obj_pos - right_pad) < 0.05
-            if (
-                right_pad[0] < obj_pos[0]
-                and obj_pos[0] < left_pad[0]
-                and within_sphere_right
-                and within_sphere_left
-            ):
-                is_grasped = True
-    if element == "hinge cabinet":
-        for i in range(1, 6):
-            obj_pos = env.get_site_xpos("hchandle{}".format(i))
-            left_pad = env.get_site_xpos("leftpad")
-            right_pad = env.get_site_xpos("rightpad")
-            within_sphere_left = np.linalg.norm(obj_pos - left_pad) < 0.06
-            within_sphere_right = np.linalg.norm(obj_pos - right_pad) < 0.06
-            if (
-                right_pad[0] < obj_pos[0]
-                and obj_pos[0] < left_pad[0]
-                and within_sphere_right
-            ):
-                is_grasped = True
-    if element == "left hinge cabinet":
-        for i in range(1, 6):
-            obj_pos = env.get_site_xpos("hchandle_left{}".format(i))
-            left_pad = env.get_site_xpos("leftpad")
-            right_pad = env.get_site_xpos("rightpad")
-            within_sphere_left = np.linalg.norm(obj_pos - left_pad) < 0.06
-            within_sphere_right = np.linalg.norm(obj_pos - right_pad) < 0.06
-            if (
-                right_pad[0] < obj_pos[0]
-                and obj_pos[0] < left_pad[0]
-                and within_sphere_right
-            ):
-                is_grasped = True
-    if element == "light switch":
-        for i in range(1, 4):
-            obj_pos = env.get_site_xpos("lshandle{}".format(i))
-            left_pad = env.get_site_xpos("leftpad")
-            right_pad = env.get_site_xpos("rightpad")
-            within_sphere_left = np.linalg.norm(obj_pos - left_pad) < 0.045
-            within_sphere_right = np.linalg.norm(obj_pos - right_pad) < 0.03
-            if within_sphere_right and within_sphere_left:
-                is_grasped = True
-    if element == "kettle":
-        # TODO: check if kettle is grasped
-        pass
-    return is_grasped
-
+OBS_ELEMENT_INDICES = {
+    "bottom left burner": np.array([11]), #correct
+    "bottom right burner": np.array([9]),
+    "top burner": np.array([15]), #correct
+    "top right burner": np.array([13]), #correct
+    "light switch": np.array([17, 18]),
+    "slide cabinet": np.array([19]),
+    "left hinge cabinet": np.array([20]),
+    "hinge cabinet": np.array([21]),
+    "microwave": np.array([22]),
+    "kettle": np.array([23, 24, 25, 26, 27, 28, 29]),
+    "close hinge cabinet": np.array([13, 21]),
+    "close microwave": np.array([22, 23, 24, 25, 26, 27, 28, 29]),
+    "close slide": np.array([15, 19]),
+}
+OBS_ELEMENT_GOALS = {
+    "bottom left burner": np.array([-0.92]),
+    "bottom right burner": np.array([-0.92]),
+    "top burner": np.array([-0.92]),
+    "top right burner": np.array([-0.92]),
+    "light switch": np.array([-0.69, -0.05]),
+    "slide cabinet": np.array([0.37]),
+    "left hinge cabinet": np.array([-1.45]),
+    "hinge cabinet": np.array([1.45]),
+    "microwave": np.array([-0.75]),
+    "kettle": np.array([-0.23, 0.75, 1.62, 0.99, 0.0, 0.0, -0.06]),
+    "close hinge cabinet": np.array([-0.92, 0.0])
+    "close microwave": np.array([0., -0.23, 0.75, 1.62, 0.99, 0.0, 0.0, -0.06]),
+    "close slide": np.array([-0.92, 0.0]),
+}
+BONUS_THRESH = 0.3
 
 def check_robot_string(string):
     if string is None:
@@ -92,10 +45,25 @@ def check_robot_string(string):
     return string.startswith("panda0") or string.startswith("gripper")
 
 
-def get_object_string(env, obj_idx=0):
-    element = env.TASK_ELEMENTS[obj_idx]
-    return element
-
+def get_object_string(env, obj_name):
+    if "hinge" in obj_name:
+        return "hinge cabinet"
+    elif "bottom left burner" in obj_name:
+        return "bottom left burner"
+    elif "bottom right burner" in obj_name:
+        return "bottom right burner"
+    elif "top burner" in obj_name:
+        return "top burner"
+    elif "top right burner" in obj_name:
+        return "top right burner"
+    elif "microwave" in obj_name:
+        return "microwave"
+    elif "kettle" in obj_name:
+        return "kettle"
+    elif "light" in obj_name:
+        return "light switch"
+    elif "slide" in obj_name:
+        return "slide cabinet"
 
 def check_string(string, other_string):
     if string is None:
@@ -115,6 +83,8 @@ class KitchenPSLEnv(PSLEnv):
             env_name,
             **kwargs,
         )
+        if len(self.text_plan) == 0:
+            self.text_plan = KITCHEN_PLANS[self.env_name]
         self.eef_id = self._wrapped_env.sim.model.site_name2id("end_effector")
         self.robot_bodies = [
             "panda0_link0",
@@ -135,6 +105,121 @@ class KitchenPSLEnv(PSLEnv):
         self.original_colors = [
             env.sim.model.geom_rgba[idx].copy() for idx in self.robot_geom_ids
         ]
+        self.mp_bounds_low = np.array([-2.0, -2.0, -2.0])
+        self.mp_bounds_high = np.array([4.0, 4.0, 4.0])
+        self.retry = False
+
+    def get_sam_kwargs(self, obj_name):
+        if "microwave" in obj_name:
+            return {
+                "camera_name": "leftview",
+                "text_prompts": ["vertical bar"],
+                "idx": -1,
+                "offset": np.zeros(3),
+                "box_threshold": 0.3,
+                "flip_image": True,
+                "flip_channel": True,
+                "flip_dm": False,
+            }
+        if "slide" in obj_name:
+            return {
+                "camera_name": "leftview",
+                "text_prompts": ["vertical bar"],
+                "idx": 0,
+                "offset": np.zeros(3),
+                "box_threshold": 0.3,
+                "flip_image": True,
+                "flip_channel": True,
+                "flip_dm": False,
+            }
+        if "top burner" in obj_name:
+            return {
+                "camera_name": "leftview",
+                "text_prompts": ["red tips"],
+                "idx": 5,
+                "offset": np.array([-0.12, 0., 0.05]),
+                "box_threshold": 0.3,
+                "flip_image": True,
+                "flip_channel": True,
+                "flip_dm": False,
+            }
+        if "kettle" in obj_name:
+            return {
+                "camera_name": "leftview",
+                "text_prompts": ["vertical bar"],
+                "idx": 2,
+                "offset": np.array([0.09, 0., 0.]),
+                "box_threshold": 0.3,
+                "flip_image": True,
+                "flip_channel": True,
+                "flip_dm": False,
+            }
+        if "light" in obj_name: 
+            return {
+                "camera_name": "leftview",
+                "text_prompts": ["small knob"],
+                "idx": -2,
+                "offset": np.zeros(3),
+                "box_threshold": 0.3,
+                "flip_image": True,
+                "flip_channel": True,
+                "flip_dm": False,
+            }
+        if "top right burner" in obj_name:
+            return {
+                "camera_name": "leftview",
+                "text_prompts": ["red tips"],
+                "idx": 5,
+                "offset": np.array([0.0, 0., 0.05]),
+                "box_threshold": 0.3,
+                "flip_image": True,
+                "flip_channel": True,
+                "flip_dm": False,
+            }
+        if "bottom left burner" in obj_name:
+            return {
+                "camera_name": "leftview",
+                "text_prompts": ["red tips"],
+                "idx": 6,
+                "offset": np.array([-0.12, 0., -0.07]),
+                "box_threshold": 0.3,
+                "flip_image": True,
+                "flip_channel": True,
+                "flip_dm": False,
+            }
+        if "bottom right burner" in obj_name:
+            return {
+                "camera_name": "leftview",
+                "text_prompts": ["red tips"],
+                "idx": 5,
+                "offset": np.array([0.00, 0., -0.07]),
+                "box_threshold": 0.3,
+                "flip_image": True,
+                "flip_channel": True,
+                "flip_dm": False,
+            }
+        if "hinge" in obj_name and "close" not in obj_name:
+            return {
+                "camera_name": "leftview",
+                "text_prompts": ["vertical bar"],
+                "idx": 1,
+                "offset": np.array([0.16, 0., 0.,]),
+                "box_threshold": 0.3,
+                "flip_image": True,
+                "flip_channel": True,
+                "flip_dm": False,
+            }
+        if "close" in obj_name and "hinge" in obj_name:
+            return {
+                "camera_name": "leftview",
+                "text_prompts": ["vertical bar"],
+                "idx": 1,
+                "offset": np.array([0., 0., 0.,]),
+                "box_threshold": 0.3,
+                "flip_image": True,
+                "flip_channel": True,
+                "flip_dm": False,
+            }
 
     def get_body_geom_ids_from_robot_bodies(self):
         body_ids = [self.sim.model.body_name2id(body) for body in self.robot_bodies]
@@ -163,18 +248,17 @@ class KitchenPSLEnv(PSLEnv):
     def observation_space(self):
         return self._wrapped_env.observation_space
 
-    def check_grasp(self, obj_idx=0):
-        return check_object_grasp(self, obj_idx=obj_idx)
-
     def check_object_placement(self, **kwargs):
-        pass
+        def check_object_placement(*args, **kwargs):
+            return False 
+        return check_object_placement 
 
     def check_robot_collision(
         self,
         ignore_object_collision=False,
-        obj_idx=0,
+        obj_name="",
     ):
-        obj_string = get_object_string(self, obj_idx=obj_idx)
+        obj_string = get_object_string(self, obj_name=self.text_plan[self.curr_plan_stage][0])
         d = self.sim.data
         for coni in range(d.ncon):
             con1 = self.sim.model.geom_id2name(d.contact[coni].geom1)
@@ -210,70 +294,79 @@ class KitchenPSLEnv(PSLEnv):
     def get_site_xmat(self, name):
         site_id = self.sim.model.site_name2id(name)
         return self.sim.data.site_xmat[site_id]
-
-    def get_object_pose_mp(self, obj_idx=0):
-        element = self.TASK_ELEMENTS[obj_idx]
-        if element == "slide cabinet":
+    
+    def get_sim_object_pose(self, obj_name):
+        if "slide" in obj_name:
             object_pos = self.get_site_xpos("schandle1")
             object_quat = np.zeros(4)  # doesn't really matter
-        elif element == "top burner":
+        elif "top burner" in obj_name:
             object_pos = self.get_site_xpos("tlbhandle")
             object_quat = np.zeros(4)  # doesn't really matter
-        elif element == "bottom left burner":
+        elif "bottom left burner" in obj_name:
             object_pos = self.get_site_xpos("blbhandle")
             object_quat = np.zeros(4)
-        elif element == "bottom right burner":
+        elif "bottom right burner" in obj_name:
             object_pos = self.get_site_xpos("brbhandle")
             object_quat = np.zeros(4)
-        elif element == "top right burner":
+        elif "top right burner" in obj_name:
             object_pos = self.get_site_xpos("trbhandle")
             object_quat = np.zeros(4)
-        elif element == "hinge cabinet":
+        elif "hinge cabinet" in obj_name:
             object_pos = self.get_site_xpos("hchandle1")
             object_quat = np.zeros(4)  # doesn't really matter
-        elif element == "left hinge cabinet":
+        elif "left hinge cabinet" in obj_name:
             object_pos = self.get_site_xpos("hchandle_left1")
             object_quat = np.zeros(4)
-        elif element == "light switch":
+        elif "light" in obj_name:
             object_pos = self.get_site_xpos("lshandle1")
             object_quat = np.zeros(4)  # doesn't really matter
-        elif element == "microwave":
+        elif "microwave" in obj_name:
             object_pos = self.get_site_xpos("mchandle1")
             object_quat = np.zeros(4)  # doesn't really matter
-        elif element == "kettle":
+        elif "kettle" in obj_name:
             object_pos = self.get_site_xpos("khandle1")
             object_quat = np.zeros(4)  # doesn't really matter
         return object_pos, object_quat
-
-    def get_object_pose(self, obj_idx=0):
-        element = self.TASK_ELEMENTS[obj_idx]
-        object_qpos = self.sim.data.qpos[-21:]
-        object_pos = object_qpos[self.OBS_ELEMENT_INDICES[element] - 9]
-        object_quat = np.zeros(4)  # doesn't really matter
-        return object_pos, object_quat
-
-    def get_placement_poses(self):
-        return []
-
-    def get_object_poses(self):
-        return []  # return none since
-
-    def get_target_pose_list(self):
-        pose_list = []
-        # init target pos (object pos + vertical displacement)
-        # final target positions, depending on the task
-        for idx, element in enumerate(self.TASK_ELEMENTS):
-            object_pos, object_quat = self.get_object_pose_mp(obj_idx=idx)
-            target_pos = object_pos + np.array([0, -0.05, 0])
-            target_quat = self.reset_ori
-            pose_list.append((target_pos, target_quat))
-        return pose_list
+    
+    def get_mp_target_pose(self, obj_name):
+        if "slide" in obj_name:
+            object_pos = self.get_site_xpos("schandle1")
+            object_quat = np.zeros(4)  # doesn't really matter
+        elif "top burner" in obj_name:
+            object_pos = self.get_site_xpos("tlbhandle")
+            object_quat = np.zeros(4)  # doesn't really matter
+        elif "bottom left burner" in obj_name:
+            object_pos = self.get_site_xpos("blbhandle")
+            object_quat = np.zeros(4)
+        elif "bottom right burner" in obj_name:
+            object_pos = self.get_site_xpos("brbhandle")
+            object_quat = np.zeros(4)
+        elif "top right burner" in obj_name:
+            object_pos = self.get_site_xpos("trbhandle")
+            object_quat = np.zeros(4)
+        elif "left hinge cabinet" in obj_name:
+            object_pos = self.get_site_xpos("hchandle_left1")
+            object_quat = np.zeros(4)  # doesn't really matter
+        elif "hinge cabinet" in obj_name:
+            object_pos = self.get_site_xpos("hchandle1")
+            object_quat = np.zeros(4)
+        elif "light" in obj_name:
+            object_pos = self.get_site_xpos("lshandle1")
+            object_quat = np.zeros(4)  # doesn't really matter
+        elif "microwave" in obj_name:
+            object_pos = self.get_site_xpos("mchandle1") + np.array([0, -0.05, 0])
+            object_quat = np.zeros(4)  # doesn't really matter
+        elif "kettle" in obj_name:
+            object_pos = self.get_site_xpos("khandle1")
+            object_quat = np.zeros(4)  # doesn't really matter
+        if self.use_sam_segmentation:
+            object_pos = self.sam_object_pose[obj_name] + np.array([0., -0.05, 0])
+            object_quat = np.zeros(4)
+        return object_pos, object_quat 
 
     def get_target_pos(self):
-        target_pose_list = self.get_target_pose_list()
-        if self.num_high_level_steps > len(target_pose_list) - 1:
-            return target_pose_list[-1]
-        return self.get_target_pose_list()[self.num_high_level_steps]
+        pos, obj_quat = self.get_mp_target_pose(self.text_plan[self.curr_plan_stage][0])
+        return pos, obj_quat 
 
     def set_robot_based_on_ee_pos(
         self,
@@ -281,8 +374,7 @@ class KitchenPSLEnv(PSLEnv):
         target_quat,
         qpos,
         qvel,
-        is_grasped,
-        obj_idx=0,
+        obj_name="",
         open_gripper_on_tp=False,
     ):
         """
@@ -290,7 +382,10 @@ class KitchenPSLEnv(PSLEnv):
         If grasping an object, ensures the object moves with the arm in a consistent way.
         """
         # cache quantities from prior to setting the state
-        object_pos, object_quat = self.get_object_pose(obj_idx=obj_idx)
+        is_grasped = self.named_check_object_grasp(
+            self.text_plan[self.curr_plan_stage - (self.curr_plan_stage % 2)][0]
+        )()
+        object_pos, object_quat = self.get_sim_object_pose(obj_name)
         object_pos = object_pos.copy()
         object_quat = object_quat.copy()
         gripper_qpos = self.sim.data.qpos[7:9].copy()
@@ -338,7 +433,7 @@ class KitchenPSLEnv(PSLEnv):
                 np.dot(transform, pose2mat((object_pos, object_quat)))
             )
 
-        if open_gripper_on_tp:
+        if not is_grasped:
             self.sim.data.qpos[7:9] = np.array([0.04, 0.04])
             self.sim.data.qvel[7:9] = np.zeros(2)
             self.sim.forward()
@@ -350,21 +445,23 @@ class KitchenPSLEnv(PSLEnv):
         ee_error = np.linalg.norm(self._eef_xpos - target_pos)
         return ee_error
 
-    def set_object_pose(self, object_pos, object_quat, obj_idx=0):
-        element = self.TASK_ELEMENTS[obj_idx]
-        self.sim.data.qpos[-21 + self.OBS_ELEMENT_INDICES[element] - 9] = object_pos
-        self.sim.forward()
+    def set_object_pose(self, object_pos, object_quat, obj_name=""):
+        # element = get_object_string(self, obj_name)
+        # breakpoint()
+        # self.sim.data.qpos[-21 + self.OBS_ELEMENT_INDICES[element] - 9] = object_pos
+        # self.sim.forward()
+        pass 
 
     def set_robot_based_on_joint_angles(
         self,
         joint_pos,
         qpos,
         qvel,
-        is_grasped=False,
-        obj_idx=0,
-        open_gripper_on_tp=False,
+        obj_name="",
     ):
-        object_pos, object_quat = self.get_object_pose(obj_idx=obj_idx)
+        object_pos, object_quat = self.get_sim_object_pose(obj_name=obj_name)
+        is_grasped = False # always true for kitchen environment
+        open_gripper_on_tp = True 
         object_pos = object_pos.copy()
         object_quat = object_quat.copy()
         gripper_qpos = self.sim.data.qpos[7:9].copy()
@@ -375,7 +472,6 @@ class KitchenPSLEnv(PSLEnv):
         self.sim.data.qpos[:7] = joint_pos
         self.sim.forward()
         assert (self.sim.data.qpos[:7] - joint_pos).sum() < 1e-10
-        # error = np.linalg.norm(env._eef_xpos - pos[:3])
 
         if is_grasped:
             self.sim.data.qpos[7:9] = gripper_qpos
@@ -391,12 +487,12 @@ class KitchenPSLEnv(PSLEnv):
                 np.dot(transform, pose2mat((object_pos, object_quat)))
             )
             self.set_object_pose(
-                new_object_pose[0], new_object_pose[1], obj_idx=obj_idx
+                new_object_pose[0], new_object_pose[1], obj_name=obj_name,
             )
             self.sim.forward()
         else:
             # make sure the object is back where it started
-            self.set_object_pose(object_pos, object_quat, obj_idx=obj_idx)
+            self.set_object_pose(object_pos, object_quat, obj_name=obj_name)
 
         if open_gripper_on_tp:
             self.sim.data.qpos[7:9] = np.array([0.04, 0.04])
@@ -413,32 +509,32 @@ class KitchenPSLEnv(PSLEnv):
         qpos,
         qvel,
         is_grasped=False,
-        obj_idx=0,
-        ignore_object_collision=False,
-        open_gripper_on_tp=False,
+        obj_name="",
     ):
-        if self.use_pcd_collision_check:
-            raise NotImplementedError
-        else:
-            self.set_robot_based_on_joint_angles(
-                curr_pos,
-                qpos,
-                qvel,
-                is_grasped=is_grasped,
-                obj_idx=obj_idx,
-                open_gripper_on_tp=open_gripper_on_tp,
-            )
-            valid = not self.check_robot_collision(
-                ignore_object_collision=ignore_object_collision, obj_idx=obj_idx
-            )
+        self.set_robot_based_on_joint_angles(
+            curr_pos,
+            qpos,
+            qvel,
+            obj_name=obj_name
+        )
+        valid = not self.check_robot_collision(
+            ignore_object_collision=False, obj_name=obj_name
+        )
         return valid
 
     def get_robot_mask(self):
-        segmentation_map = self.sim.render(segmentation=True, height=540, width=960)
-        geom_ids = np.unique(segmentation_map[:, :, 1])
+        fixed_view_physics = Camera_Render_Wrapper(
+            self.sim,
+            lookat=[-0.3, 0.5, 2.0],
+            distance=1.86,
+            azimuth=90,
+            elevation=-60,
+        )
+        segmentation_map = fixed_view_physics.render(segmentation=True, height=540, width=960)
+        geom_ids = np.unique(segmentation_map[:, :, 0])
         robot_ids = []
         object_ids = []
-        object_string = get_object_string(self, obj_idx=0)
+        object_string = get_object_string(self, self.text_plan[self.curr_plan_stage][0])
         for geom_id in geom_ids:
             if geom_id == -1:
                 continue
@@ -535,23 +631,46 @@ class KitchenPSLEnv(PSLEnv):
     def process_state_frames(self, frames):
         raise NotImplementedError
 
+    def named_check_object_grasp(self, obj_name):
+        def check_object_grasp(info={}, *args, **kwargs):
+            # copy code from https://github.com/mihdalal/d4rl/blob/primitives/d4rl/kitchen/kitchen_envs.py
+            if info != {}:
+                for obj in self.tasks_to_complete:
+                    if "close microwave" in obj and "close microwave" in obj_name:
+                        return False
+                    if "microwave" in obj and "microwave" in obj_name 
+                        and "close" not in obj and "close" not in obj_name:
+                        return False 
+                    if "top burner" in obj and "top burner" in obj_name:
+                        return False 
+                    if "top right burner" in obj and "top right burner" in obj_name:
+                        return False 
+                    if "bottom right burner" in obj and "bottom right burner" in obj_name:
+                        return False 
+                    if "bottom left burner" in obj and "bottom left burner" in obj_name:
+                        return False 
+                    if "light" in obj and "light" in obj_name:
+                        return False 
+                    if "slide" in obj and "slide" in obj_name and "close" not in obj and "close" not in obj_name:
+                        return False 
+                    if "close slide" in obj and "close slide" in obj_name:
+                        return False
+                    if "kettle" in obj and "kettle" in obj_name:
+                        return False
+                    if "close hinge cabinet" in obj and "close hinge cabinet" in obj_name:
+                        return False 
+                    if "hinge cabinet" in obj and "hinge cabinet" in obj_name \
+                        and "close" not in obj and "close" not in obj_name:
+                        return False 
+            return True
+        return check_object_grasp 
+        
     def get_image(self):
         im = self.sim.render(
             width=960,
             height=540,
         )
         return im
-
-    def set_robot_colors(self, colors):
-        if type(colors) is np.ndarray:
-            colors = [colors] * len(self.robot_geom_ids)
-        for idx, geom_id in enumerate(self.robot_geom_ids):
-            self.sim.model.geom_rgba[geom_id] = colors[idx]
-        self.sim.forward()
-
-    def reset_robot_colors(self):
-        self.set_robot_colors(self.original_colors)
-        self.sim.forward()
 
     def compute_ik(self, target_pos, target_quat, qpos, qvel, og_qpos, og_qvel):
         target_angles = qpos_from_site_pose_kitchen(
@@ -605,67 +724,5 @@ class KitchenPSLEnv(PSLEnv):
             new_state,
             self.reset_qpos,
             self.reset_qvel,
-            is_grasped=is_grasped,
-            obj_idx=self.obj_idx,
-            open_gripper_on_tp=not is_grasped,
+            obj_name=self.text_plan[self.curr_plan_stage][0],
         )
-
-    def step(self, action, get_intermediate_frames=False, **kwargs):
-        o, r, d, i = self._wrapped_env.step(action)
-        take_planner_step = r > 0  # if succeeded at subtask, jump to next subtask
-        if take_planner_step:
-            target_pos, target_quat = self.get_target_pos()
-            if self.teleport_instead_of_mp:
-                error = self.set_robot_based_on_ee_pos(
-                    target_pos,
-                    target_quat,
-                    self.reset_qpos,
-                    self.reset_qvel,
-                    is_grasped=False,
-                    obj_idx=0,
-                    open_gripper_on_tp=True,
-                )
-                o = self.get_observation()
-            else:
-                error = self.mp_to_point(
-                    target_pos,
-                    target_quat,
-                    self.reset_qpos,
-                    self.reset_qvel,
-                    is_grasped=False,
-                    obj_idx=0,
-                    open_gripper_on_tp=True,
-                    get_intermediate_frames=get_intermediate_frames,
-                )
-                o = self.get_observation()
-            self.num_high_level_steps += 1
-        info = {}
-        if "microwave" in self.env_name:
-            info["microwave_success"] = i["microwave success"]
-            info["microwave_distance_to_goal"] = i["microwave distance to goal"]
-        if "hinge" in self.env_name:
-            info["hinge_success"] = i["hinge cabinet success"]
-            info["distance_to_goal"] = i["hinge cabinet distance to goal"]
-        if "tlb" in self.env_name:
-            info["tlb_success"] = i["top burner success"]
-            info["tlb_distance_to_goal"] = i["top burner distance to goal"]
-        if "trb" in self.env_name:
-            info["trb_success"] = i["top right burner success"]
-            info["trb_distance_to_goal"] = i["top right burner distance to goal"]
-        if "blb" in self.env_name:
-            info["blb_success"] = i["bottom left burner success"]
-            info["blb_distance_to_goal"] = i["bottom left burner distance to goal"]
-        if "brb" in self.env_name:
-            info["brb_success"] = i["bottom right burner success"]
-            info["brb_distance_to_goal"] = i["bottom right burner distance to goal"]
-        if "kettle" in self.env_name:
-            info["kettle_success"] = i["kettle success"]
-            info["kettle_distance_to_goal"] = i["kettle distance to goal"]
-        if "light" in self.env_name:
-            info["light_success"] = i["light switch success"]
-            info["light_distance_to_goal"] = i["light switch distance to goal"]
-        if "slider" in self.env_name:
-            info["slider_success"] = i["slide cabinet success"]
-            info["slider_distance_to_goal"] = i["slide cabinet distance to goal"]
-        info["score"] = i["score"]
-        return o, r, d, info

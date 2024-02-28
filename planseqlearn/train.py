@@ -63,38 +63,43 @@ def main(cfg):
     def make_env(cfg, is_eval):
         if cfg.task_name.split("_", 1)[0] == "metaworld":
             env = make_metaworld(
-                cfg.task_name.split("_", 1)[1],
-                cfg.frame_stack,
-                cfg.action_repeat,
-                cfg.discount,
-                cfg.seed,
-                cfg.camera_name,
-                cfg.psl,
+                name=cfg.task_name.split("_", 1)[1],
+                frame_stack=cfg.frame_stack,
+                action_repeat=cfg.action_repeat,
+                discount=cfg.discount,
+                seed=cfg.seed,
+                camera_name=cfg.camera_name,
+                psl=cfg.psl,
+                text_plan=cfg.text_plan,
+                use_vision_pose_estimation=cfg.use_vision_pose_estimation,
             )
         elif cfg.task_name.split("_", 1)[0] == "robosuite":
             env = make_robosuite(
-                cfg.task_name.split("_", 1)[1],
-                cfg.frame_stack,
-                cfg.action_repeat,
-                cfg.discount,
-                cfg.camera_name,
-                cfg.psl,
-                cfg.path_length,
-                cfg.vertical_displacement,
-                cfg.estimate_orientation,
-                cfg.valid_obj_names,
-                cfg.use_proprio,
+                name=cfg.task_name.split("_", 1)[1],
+                frame_stack=cfg.frame_stack,
+                action_repeat=cfg.action_repeat,
+                discount=cfg.discount,
+                camera_name=cfg.camera_name,
+                psl=cfg.psl,
+                path_length=cfg.path_length,
+                vertical_displacement=cfg.vertical_displacement,
+                estimate_orientation=cfg.estimate_orientation,
+                valid_obj_names=cfg.valid_obj_names,
+                use_proprio=cfg.use_proprio,
+                text_plan=cfg.text_plan,
+                use_vision_pose_estimation=cfg.use_vision_pose_estimation,
             )
         elif cfg.task_name.split("_", 1)[0] == "kitchen":
             env = make_kitchen(
-                cfg.task_name.split("_", 1)[1],
-                cfg.frame_stack,
-                cfg.action_repeat,
-                cfg.discount,
-                cfg.seed,
-                cfg.camera_name,
-                cfg.path_length,
-                cfg.psl,
+                name=cfg.task_name.split("_", 1)[1],
+                frame_stack=cfg.frame_stack,
+                action_repeat=cfg.action_repeat,
+                discount=cfg.discount,
+                seed=cfg.seed,
+                camera_name=cfg.camera_name,
+                path_length=cfg.path_length,
+                psl=cfg.psl,
+                text_plan=cfg.text_plan,
             )
         elif cfg.task_name.split("_", 1)[0] == "mopa":
             env = make_mopa(
@@ -104,7 +109,8 @@ def main(cfg):
                 seed=cfg.seed,
                 horizon=cfg.path_length,
                 psl=cfg.psl,
-                is_eval=is_eval,
+                text_plan=cfg.text_plan,
+                use_vision_pose_estimation=cfg.use_vision_pose_estimation,
             )
         return env
 
@@ -575,12 +581,12 @@ if __name__ == "__main__":
         "export D4RL_SUPPRESS_IMPORT_ERROR='1'",
     ]
     slurm_config = SlurmConfigMatrix(
-        partition="russ_reserved",
+        partition=os.environ["SLURM_PARTITION"],
         time="72:00:00",
         n_gpus=1,
         n_cpus_per_gpu=20,
         mem="62g",
-        extra_flags="--exclude=matrix-1-[4,8,12,16],matrix-0-[24,38]",  # throw out non-RTX
+        extra_flags=os.environ["SLURM_FLAGS"],  # throw out non-RTX
     )
     exp_id = "Default_Experiment_ID"
     experiment_subdir = None
@@ -617,11 +623,10 @@ if __name__ == "__main__":
     command = " ".join((python_cmd, script_name, "", *command_line_args))
     logdir = log_dir
     singularity_pre_cmds = " && ".join(SINGULARITY_PRE_CMDS)
-    # check if bash or zsh, and
     slurm_cmd = wrap_command_with_sbatch_matrix(
-        '/opt/singularity/bin/singularity exec --nv /projects/rsalakhugroup/containers/psl.sif /bin/zsh -c "'
+        f'{os.environ["LAUNCH_SINGULARITY"]} "'
         + singularity_pre_cmds
-        + " && source ~/.zshrc && conda activate drqv2 && "
+        + " && source ~/.bashrc && mamba activate planseqlearn && "
         + command
         + '"',
         slurm_config,
