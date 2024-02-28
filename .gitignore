@@ -2,3 +2,4 @@ containers/planseqlearn.sif
 exp_local
 __pycache__/
 *.pyc
+containers/ompl-1.5.2/
