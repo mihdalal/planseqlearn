@@ -78,7 +78,7 @@ If you run into an error not documented above, please search through the [GitHub
 
 ## Citation
 
-Please cite [the PSL paper](TODO) if you use this code in your work:
+Please cite [the PSL paper](https://mihdalal.github.io/planseqlearn/resources/paper.pdf) if you use this code in your work:
 
 ```bibtex
 @inproceedings{dalal2023psl,
