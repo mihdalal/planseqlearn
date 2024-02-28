@@ -164,3 +164,6 @@ exp_local
 __pycache__/
 *.pyc
 containers/ompl-1.5.2/
+psl_policies/
+sam_outputs/
+videos/
