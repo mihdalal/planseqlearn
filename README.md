@@ -54,6 +54,9 @@ Please add the following to your bashrc/zshrc:
 ```
 export MUJOCO_GL='egl'
 WANDB_API_KEY=...
+export AM_I_DOCKER=False
+export BUILD_WITH_CUDA=True
+export CUDA_HOME=/path/to/cuda-11.3/
 ```
 
 If you would like to use a container instead to avoid dependency installation:

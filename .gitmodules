@@ -25,3 +25,6 @@
 	path = rlkit
 	url = git@github.com:mihdalal/rlkit.git
 	branch = mprl
+[submodule "Grounded-Segment-Anything"]
+	path = Grounded-Segment-Anything
+	url = https://github.com/IDEA-Research/Grounded-Segment-Anything.git
