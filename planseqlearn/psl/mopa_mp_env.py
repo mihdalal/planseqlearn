@@ -106,7 +106,7 @@ def cart2joint_ac(
     ].copy()
     pre_converted_ac = (
         target_qpos[env.ref_joint_pos_indexes] - curr_qpos[env.ref_joint_pos_indexes]
-    ) / env._ac_scale
+    ) / env.env._ac_scale #
     if "gripper" in ac.keys():
         pre_converted_ac = np.concatenate((pre_converted_ac, ac["gripper"]))
     converted_ac = collections.OrderedDict([("default", pre_converted_ac)])
@@ -265,7 +265,7 @@ class MoPAWrapper(ProxyEnv):
             reward_lift = 0.0
             object_z_locs = self._wrapped_env.sim.data.body_xpos[cube_body_id][2]
             if reward_grasp > 0.0:
-                z_target = self._wrapped_env._get_pos("bin1")[2] + 0.45
+                z_target = self._wrapped_env.env._get_pos("bin1")[2] + 0.45
                 z_dist = np.maximum(z_target - object_z_locs, 0.0)
                 reward_lift = grasp_mult + (1 - np.tanh(15 * z_dist)) * (
                     lift_mult - grasp_mult
@@ -586,7 +586,7 @@ class MoPAPSLEnv(PSLEnv):
         pass
 
     def get_observation(self):
-        obs = self._wrapped_env._get_obs()
+        obs = self._wrapped_env.env._get_obs()
         observation = np.array([])
         for k in obs.keys():
             observation = np.concatenate((observation, obs[k]))
