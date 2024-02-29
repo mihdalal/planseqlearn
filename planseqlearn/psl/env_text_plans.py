@@ -141,6 +141,30 @@ KITCHEN_PLANS = {
         ("close hinge cabinet", "grasp"),
         ("bottom right burner", "grasp"),
     ],
+    "kitchen-ms10-v2": [
+        ('kettle', 'grasp'), 
+        ('light switch', 'grasp'), 
+        ('slide cabinet', 'grasp'), 
+        ('top burner', 'grasp'), 
+        ('bottom right burner', 'grasp'), 
+        ('top right burner', 'grasp'), 
+        ('bottom left burner', 'grasp'), 
+        ('microwave', 'grasp'), 
+        ('hinge cabinet', 'grasp'), 
+        ('close microwave', 'grasp')
+    ],
+    "kitchen-ms10-v1": [
+        ('kettle', 'grasp'), 
+        ('light switch', 'grasp'), 
+        ('slide cabinet', 'grasp'), 
+        ('top burner', 'grasp'), 
+        ('microwave', 'grasp'), 
+        ('bottom right burner', 'grasp'), 
+        ('hinge cabinet', 'grasp'), 
+        ('top right burner', 'grasp'), 
+        ('bottom left burner', 'grasp'), 
+        ('close microwave', 'grasp')
+    ],
     "kitchen-kettle-burner-v0": [
         ("kettle", "grasp"),
         ("top burner", "grasp"),
