@@ -1,6 +1,7 @@
 import traceback
 import xml.etree.ElementTree as ET
 from collections import namedtuple
+from metaworld.envs.mujoco.mujoco_env import MujocoEnv
 
 import numpy as np
 import nvisii
@@ -24,6 +25,7 @@ class Parser(BaseParser):
 
         super().__init__(renderer, env)
         self.components = {}
+        self.env = env
 
     def parse_textures(self):
         """
@@ -98,23 +100,19 @@ class Parser(BaseParser):
             if ("collision" in geom_name) or ("worldbody" in geom_name) or 'col' in geom_class:
                 continue
             
-            # if ('right_l' in geom_name and not geom_name.startswith('robot')):
-            #     # removing weird cylinders in metaworld envs
-            #     continue
+            if issubclass(type(self.env), MujocoEnv):
+                if ('right_l' in geom_name and not geom_name.startswith('robot')):
+                    # removing weird cylinders in metaworld envs
+                    continue
         
             if 'indicator' in geom_name or geom_name.endswith('target') or geom_name.endswith('target0') or geom_name.endswith('target1'):
                 continue
-            # if "floor" in geom_name or "wall" in geom_name or geom_name in block_rendering_objects:
-            #     continue
-
+            
             geom_quat = string_to_array(geom.get("quat", "1 0 0 0"))
             geom_quat = [geom_quat[0], geom_quat[1], geom_quat[2], geom_quat[3]]
 
             # handling special case of bins arena
-            if "bin" in parent_body_name:
-                geom_pos = string_to_array(geom.get("pos", "0 0 0")) + string_to_array(parent_body.get("pos", "0 0 0"))
-            else:
-                geom_pos = string_to_array(geom.get("pos", "0 0 0"))
+            geom_pos = string_to_array(geom.get("pos", "0 0 0"))
 
             if geom_type == "mesh":
                 try:
@@ -127,10 +125,7 @@ class Parser(BaseParser):
 
             geom_mat = geom.get("material")
 
-            tags = ["bin"]
             dynamic = True
-            if self.tag_in_name(geom_name, tags):
-                dynamic = False
 
             geom_tex_name = None
             geom_tex_file = None
@@ -159,26 +154,9 @@ class Parser(BaseParser):
                     class_id=class_id,  # change
                     meshes=self.meshes,
                 )
-                print(f"Loaded {geom_name} {geom_type} {geom_size} {geom_scale}")
+                print(f"Loaded {geom_name} {geom_type} {geom_size} {geom_scale} {geom_pos} {geom_quat}")
             except:
                 print(traceback.format_exc())
-                # print(f"Error loading {geom_name} {geom_type}")
-                # print()
-                # import ipdb; ipdb.set_trace()
-                # obj, entity_ids = load_object(
-                #     geom=geom,
-                #     geom_name=geom_name,
-                #     geom_type=geom_type,
-                #     geom_quat=geom_quat,
-                #     geom_pos=geom_pos,
-                #     geom_size=geom_size,
-                #     geom_scale=geom_scale,
-                #     geom_rgba=geom_rgba,
-                #     geom_tex_name=geom_tex_name,
-                #     geom_tex_file=geom_tex_file,
-                #     class_id=class_id,  # change
-                #     meshes=self.meshes,
-                # )
                 print(geom_name, geom_type)
                 continue
 

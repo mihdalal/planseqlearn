@@ -3,6 +3,8 @@ import os
 
 import cv2
 import matplotlib.cm as cm
+from metaworld.envs.mujoco.mujoco_env import MujocoEnv
+from mopa_rl.env.base import BaseEnv
 import numpy as np
 import nvisii
 import open3d as o3d
@@ -98,16 +100,20 @@ class NVISIIRenderer(Renderer):
         self.vision_modalities = vision_modalities
 
         self.img_cntr = 0
-
-        # env._setup_references()
+        
+        if issubclass(type(self.env), MujocoEnv):
+            self.env_type = 'metaworld'
+        elif hasattr(self.env, 'env'):
+            if issubclass(type(env.env), BaseEnv):
+                self.env_type = 'mopa'
+        else:
+            self.env_type = 'kitchen'
 
         # enable interactive mode when debugging
         if debug_mode:
             nvisii.initialize_interactive()
         else:
             nvisii.initialize(headless=True)
-
-        # self.segmentation_type = self.env.camera_segmentations
 
         # add denoiser to nvisii if not using noise
         if not use_noise:
@@ -232,27 +238,27 @@ class NVISIIRenderer(Renderer):
         nvisii.set_camera_entity(self.camera)
         
         # for kitchen:
-        # self._camera_configuration(
-        #     at_vec=nvisii.vec3(-.2, 1.5, 1.5),
-        #     up_vec=nvisii.vec3(0, 0, 1),
-        #     eye_vec=nvisii.vec3(-0.5, -1.5, 3.5),
-        #     quat=nvisii.quat(-1, 0, 0, 0),
-        # )
-        
-        # metaworld
-        # self.camera.get_transform().look_at(
-        #     at = (0,0,-.25),
-        #     up = (0,0,1),
-        #     eye = (0,1.5,1),
-        # )
-        
-        # mopa
-        self.camera.get_transform().look_at(
-            at = (0,0,1),
-            up = (0,0,1),
-            eye = (1.75,0,2.5),
-        )
-
+        if self.env_type == 'kitchen':
+            self._camera_configuration(
+                at_vec=nvisii.vec3(-.2, 1.5, 1.5),
+                up_vec=nvisii.vec3(0, 0, 1),
+                eye_vec=nvisii.vec3(-0.5, -1.5, 3.5),
+                quat=nvisii.quat(-1, 0, 0, 0),
+            )
+        elif self.env_type == 'metaworld':
+            # metaworld
+            self.camera.get_transform().look_at(
+                at = (0,0,-.25),
+                up = (0,0,1),
+                eye = (0,1.5,1),
+            )
+        else:
+            # mopa
+            self.camera.get_transform().look_at(
+                at = (0,0,1),
+                up = (0,0,1),
+                eye = (1.75,0,2.5),
+            )
 
         # Environment configuration
         self._dome_light_intensity = 1
@@ -303,8 +309,6 @@ class NVISIIRenderer(Renderer):
         self.parser.parse_geometries()
         self.components = self.parser.components
         self.max_elements = self.parser.max_elements
-        # self.max_instances = self.parser.max_instances
-        # self.max_classes = self.parser.max_classes
 
     def update(self):
         """
@@ -335,94 +339,92 @@ class NVISIIRenderer(Renderer):
         if not dynamic:
             return
 
-        # robosuite body tags
-        # self.body_tags = ["robot", "pedestal", "gripper", "peg"]
-        
-        # kitchen body tags
-        # self.body_tags = [
-        #                     "panda0_link0",
-        #                     "panda0_link1",
-        #                     "panda0_link2",
-        #                     "panda0_link3",
-        #                     "panda0_link4",
-        #                     "panda0_link5",
-        #                     "panda0_link6",
-        #                     "panda0_link7",
-        #                     "panda0_leftfinger",
-        #                     "panda0_rightfinger",
-        #                     "counters",
-        #                     "ovenroot",
-        #                     "knob 1",
-        #                     "knob 2",
-        #                     "knob 3",
-        #                     "knob 4",
-        #                     "Burner 1",
-        #                     "Burner 2",
-        #                     "Burner 3",
-        #                     "Burner 4",
-        #                     "hoodroot",
-        #                     "lightswitchbaseroot",
-        #                     "lightswitchroot",
-        #                     "lightblock_hinge",
-        #                     "slide",
-        #                     "slidelink",
-        #                     "hingecab",
-        #                     "hingeleftdoor",
-        #                     "hingerightdoor",
-        #                     "microroot",
-        #                     "microdoorroot",
-        #                     "kettleroot",
-        #                     "wallroot",
-        #                     "wall"
-        #                   ]
-
-        # metaworld
-        # self.body_tags = [
-        #     'tablelink',
-        #     'RetainingWall',
-        #     'controller_box',
-        #     'pedestal_feet',
-        #     'right_arm_base_link',
-        #     'robot_right_l0',
-        #     'head',
-        #     'robot_right_l1',
-        #     'robot_right_l2',
-        #     'robot_right_l3',
-        #     'robot_right_l4',
-        #     'robot_right_l5',
-        #     'robot_right_l6',
-        #     'right_hand',
-        #     'right_l1',
-        #     'right_l2',
-        #     'right_l4',
-        #     'right_l6',
-        #     'asmbly_peg',
-        #     'peg',
-        #     'torso',
-        #     'pedestal',
-        #     'screen',
-        # ]
-        
-        self.body_tags = [
-            "controller_box",
-            "pedestal_feet",
-            "torso",
-            "pedestal",
-            "right_arm_base_link",
-            "head",
-            "screen",
-            "clawGripper",
-            # "ClawGripper_indicator",
-            "clawGripper_target",
-            "table",
-            "bin",
-            'right_l1',
-            'right_l2',
-            'right_l3',            
-            'right_l4',
-            'right_l5',
-            'right_l6',
-        ]
+        if self.env_type == 'kitchen':
+            # kitchen body tags
+            self.body_tags = [
+                                "panda0_link0",
+                                "panda0_link1",
+                                "panda0_link2",
+                                "panda0_link3",
+                                "panda0_link4",
+                                "panda0_link5",
+                                "panda0_link6",
+                                "panda0_link7",
+                                "panda0_leftfinger",
+                                "panda0_rightfinger",
+                                "counters",
+                                "ovenroot",
+                                "panda0_pedestal",
+                                "knob 1",
+                                "knob 2",
+                                "knob 3",
+                                "knob 4",
+                                "Burner 1",
+                                "Burner 2",
+                                "Burner 3",
+                                "Burner 4",
+                                "hoodroot",
+                                "lightswitchbaseroot",
+                                "lightswitchroot",
+                                "lightblock_hinge",
+                                "slide",
+                                "slidelink",
+                                "hingecab",
+                                "hingeleftdoor",
+                                "hingerightdoor",
+                                "microroot",
+                                "microdoorroot",
+                                "kettleroot",
+                                "wallroot",
+                                "wall"
+                            ]
+        elif self.env_type == 'metaworld':
+            # metaworld
+            self.body_tags = [
+                'tablelink',
+                'RetainingWall',
+                'controller_box',
+                'pedestal_feet',
+                'right_arm_base_link',
+                'robot_right_l0',
+                'head',
+                'robot_right_l1',
+                'robot_right_l2',
+                'robot_right_l3',
+                'robot_right_l4',
+                'robot_right_l5',
+                'robot_right_l6',
+                'right_hand',
+                'right_l1',
+                'right_l2',
+                'right_l4',
+                'right_l6',
+                'asmbly_peg',
+                'peg',
+                'torso',
+                'pedestal',
+                'screen',
+            ]
+        elif self.env_type == 'mopa':
+            self.body_tags = [
+                "controller_box",
+                "pedestal_feet",
+                "torso",
+                "pedestal",
+                "head",
+                "screen",
+                "clawGripper",
+                "clawGripper_target",
+                "table",
+                "bin1",
+                'right_l0',
+                'right_l1',
+                'right_l2',
+                'right_l3',            
+                'right_l4',
+                'right_l5',
+                'right_l6',
+            ]
 
         if parent_body_name != "worldbody":
             if self.tag_in_name(name):
@@ -446,7 +448,7 @@ class NVISIIRenderer(Renderer):
         else:
             pos = [0, 0, 0]
             nvisii_quat = nvisii.quat(1, 0, 0, 0)  # wxyz
-
+        print(name, parent_body_name, pos, nvisii_quat)
         if isinstance(obj, nvisii.scene):
 
             # temp fix -- look into XML file for correct quat
