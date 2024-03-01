@@ -1,6 +1,8 @@
 import os
 import mujoco_py
 import argparse
+
+from tqdm import tqdm
 from planseqlearn.environments.robosuite_dm_env import make_robosuite
 from planseqlearn.environments.metaworld_dm_env import make_metaworld
 from planseqlearn.environments.mopa_dm_env import make_mopa
@@ -31,7 +33,7 @@ def robosuite_gen_video(env_name, camera_name):
     )
     env.reset()
     states = np.load(f"states/{env_name}_{camera_name}_states.npz")
-    for step in range(states["qpos"].shape[0]):
+    for step in tqdm(range(states["qpos"].shape[0])):
         qpos = states["qpos"][step]
         qvel = states["qvel"][step]
         env.sim.data.qpos[:] = qpos

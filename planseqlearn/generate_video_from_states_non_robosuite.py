@@ -13,7 +13,6 @@ from planseqlearn.environments.mopa_dm_env import make_mopa
 from planseqlearn.environments.kitchen_dm_env import make_kitchen
 import torch
 import numpy as np
-from rlkit.torch.model_based.dreamer.visualization import make_video
 from planseqlearn.psl.env_text_plans import *
 import pickle
 import robosuite as suite
@@ -28,6 +27,8 @@ from mopa_rl.config.default_configs import (
     ASSEMBLY_OBSTACLE_CONFIG,
     PUSHER_OBSTACLE_CONFIG,
 )
+
+from planseqlearn.utils import make_video
 
 def gen_video(env_name, camera_name, suite):
     if suite == 'metaworld':
@@ -137,8 +138,8 @@ def gen_video(env_name, camera_name, suite):
     frames = []
     cfg = {
         "img_path": "images/",
-        "width": 512,
-        "height": 512,
+        "width": 1980,
+        "height": 1080,
         "spp": 512,
         "use_noise": False,
         "debug_mode": False,
@@ -151,9 +152,9 @@ def gen_video(env_name, camera_name, suite):
     }
     renderer = NVISIIRenderer(env,
                               **cfg)
-    states = np.load(f"videos/{env_name}_{camera_name}_states.npz")
-    print(renderer.components.keys())
+    states = np.load(f"states/{env_name}_{camera_name}_states.npz")
     renderer.reset()
+    print(renderer.components.keys())
     for step in tqdm(range(states["qpos"].shape[0])):
         qpos = states["qpos"][step]
         qvel = states["qvel"][step]
@@ -169,7 +170,8 @@ def gen_video(env_name, camera_name, suite):
     for _ in range(1, len(os.listdir("images"))):
         im_path = os.path.join("images", "image_{}.png".format(_))
         frames.append(cv2.imread(im_path))
-    make_video(frames, "videos", 0, use_wandb=False)
+    video_filename = f"{env_name}_{camera_name}.mp4"
+    make_video(frames, "rendered_videos", video_filename)
 
 
 if __name__ == "__main__":

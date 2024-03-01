@@ -24,13 +24,15 @@ def robosuite_gen_video(env_name, camera_name, suite):
             discount=1.0,
             camera_name=camera_name,
             psl=True,
-            use_mp=False,
+            use_mp=True,
             use_sam_segmentation=False,
             use_vision_pose_estimation=False,
             text_plan=ROBOSUITE_PLANS[env_name],
             vertical_displacement=0.08,
             estimate_orientation=False,
         )
+        inner_env = env._env._env._env._env._env
+        mp_env = inner_env._env
     elif suite == "metaworld":
         env = make_metaworld(
                 name=env_name,
@@ -40,11 +42,13 @@ def robosuite_gen_video(env_name, camera_name, suite):
                 camera_name=camera_name,
                 psl=True,
                 text_plan=METAWORLD_PLANS[env_name],
-                use_mp=False,
+                use_mp=True,
                 use_sam_segmentation=False,
                 use_vision_pose_estimation=False,
                 seed=0
             )
+        inner_env = env._env._env._env._env._env._env
+        mp_env = inner_env._env
     elif suite == "mopa":
         env = make_mopa(
             name=env_name,
@@ -52,11 +56,13 @@ def robosuite_gen_video(env_name, camera_name, suite):
             action_repeat=2,
             psl=True,
             text_plan=MOPA_PLANS[env_name],
-            use_mp=False,
+            use_mp=True,
             use_sam_segmentation=False,
             use_vision_pose_estimation=False,
             seed=0
         )
+        inner_env = env._env._env._env._env._env
+        mp_env = inner_env._env
     elif suite == "kitchen":
         env = make_kitchen(
             name=env_name,
@@ -66,24 +72,34 @@ def robosuite_gen_video(env_name, camera_name, suite):
             camera_name=camera_name,
             psl=True,
             text_plan=KITCHEN_PLANS[env_name],
-            use_mp=False,
+            use_mp=True,
             use_sam_segmentation=False,
             seed=0
         )
+        inner_env = env._env._env._env._env._env._env
+        mp_env = inner_env._env
     frames = []
     clean_frames = []
     np.random.seed(0)
     o = env.reset()
-    inner_env = env._env._env._env._env._env._env
-    mp_env = inner_env._env
     states = dict(
-        qpos=[inner_env.sim.data.qpos.copy()],
-        qvel=[inner_env.sim.data.qvel.copy()],
+        qpos=mp_env.intermediate_qposes,
+        qvel=mp_env.intermediate_qvels,
     )
+    mp_env.intermediate_qposes = []
+    mp_env.intermediate_qvels = []
+    frames.extend(mp_env.intermediate_frames)
     with torch.no_grad():
         for _ in range(100):
             act = agent.act(o.observation, step=_, eval_mode=True)
             o = env.step(act)
+            if len(mp_env.intermediate_qposes) > 0:
+                states['qpos'].extend(mp_env.intermediate_qposes)
+                states['qvel'].extend(mp_env.intermediate_qvels)
+                mp_env.intermediate_qposes = []
+                mp_env.intermediate_qvels = []
+                frames.extend(mp_env.intermediate_frames)
+                mp_env.intermediate_frames = []
             if suite == 'mopa':
                 frames.append(env.get_vid_image())
             else:
