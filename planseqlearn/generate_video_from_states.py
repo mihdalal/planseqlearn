@@ -7,12 +7,14 @@ from planseqlearn.environments.mopa_dm_env import make_mopa
 from planseqlearn.environments.kitchen_dm_env import make_kitchen
 import torch
 import numpy as np
-from rlkit.torch.model_based.dreamer.visualization import make_video
 from planseqlearn.psl.env_text_plans import *
 import pickle
 import robosuite as suite
 import imageio
 import cv2
+
+from planseqlearn.utils import make_video
+
 
 def robosuite_gen_video(env_name, camera_name):
     # create environment
@@ -27,23 +29,23 @@ def robosuite_gen_video(env_name, camera_name):
         use_camera_obs=False,  # no camera observations
         renderer="nvisii",
     )
-    # env.reset()
-    # states = np.load(f"videos/{env_name}_{camera_name}_states.npz")
-    # for step in range(states["qpos"].shape[0]):
-    #     qpos = states["qpos"][step]
-    #     qvel = states["qvel"][step]
-    #     env.sim.data.qpos[:] = qpos
-    #     env.sim.data.qvel[:] = qvel
-    #     env.sim.forward()
-    #     # env.sim.
-    #     env.step(np.zeros(8))
-    #     env.render()
+    env.reset()
+    states = np.load(f"states/{env_name}_{camera_name}_states.npz")
+    for step in range(states["qpos"].shape[0]):
+        qpos = states["qpos"][step]
+        qvel = states["qvel"][step]
+        env.sim.data.qpos[:] = qpos
+        env.sim.data.qvel[:] = qvel
+        env.sim.forward()
+        env.step(np.zeros(8))
+        env.render()
     # load png files from images folder
     frames = []
     for _ in range(1, len(os.listdir("images"))):
         im_path = os.path.join("images", "image_{}.png".format(_))
         frames.append(cv2.imread(im_path))
-    make_video(frames, "videos", 0, use_wandb=False)
+    video_filename = f"rendered_videos/{env_name}_{camera_name}.mp4"
+    make_video(frames, "rendered_videos", video_filename, use_wandb=False)
 
 
 if __name__ == "__main__":

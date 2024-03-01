@@ -5,6 +5,7 @@
 import random
 import re
 import time
+import imageio
 
 import numpy as np
 import torch
@@ -142,3 +143,11 @@ def schedule(schdl, step):
                 mix = np.clip((step - duration1) / duration2, 0.0, 1.0)
                 return (1.0 - mix) * final1 + mix * final2
     raise NotImplementedError(schdl)
+
+
+def make_video(frames, logdir, filename):
+    frames = np.asarray(frames)[:, :, :, ::-1]
+    filename= f"{logdir}/{filename}"
+    with imageio.get_writer(filename, fps=20) as writer:
+        for frame in frames:
+            writer.append_data(frame)

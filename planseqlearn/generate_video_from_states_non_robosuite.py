@@ -137,17 +137,17 @@ def gen_video(env_name, camera_name, suite):
     frames = []
     cfg = {
         "img_path": "images/",
-    "width": 512,
-    "height": 512,
-    "spp": 512,
-    "use_noise": False,
-    "debug_mode": False,
-    "video_mode": False,
-    "video_path": "videos/",
-    "video_name": "robosuite_video_0.mp4",
-    "video_fps": 30,
-    "verbose": 1,
-    "vision_modalities": None
+        "width": 512,
+        "height": 512,
+        "spp": 512,
+        "use_noise": False,
+        "debug_mode": False,
+        "video_mode": False,
+        "video_path": "videos/",
+        "video_name": "robosuite_video_0.mp4",
+        "video_fps": 30,
+        "verbose": 1,
+        "vision_modalities": None
     }
     renderer = NVISIIRenderer(env,
                               **cfg)
