@@ -493,6 +493,7 @@ class PSLEnv(ProxyEnv):
             self.update_mp_controllers()
             self.break_mp = False
             self.set_robot_colors(np.array([0.1, 0.3, 0.7, 1.0]))
+            self.intermediate_qposes, self.intermediate_qvels = [], []
             for state_idx, state in enumerate(converted_path):
                 state_frames = []
                 try:
@@ -500,12 +501,17 @@ class PSLEnv(ProxyEnv):
                 except:
                     pass
                 start_qpos = self.sim.data.qpos[:].copy()
+                if state_idx == 0:
+                    self.intermediate_qposes = [start_qpos.copy()]
+                    self.intermediate_qvels = [self.sim.data.qvel[:].copy()]
                 print(f"First state: {state}")
                 for step in range(20):
                     self.take_mp_step(
                         state,
                         is_grasped,
                     )
+                    self.intermediate_qposes.append(self.sim.data.qpos[:].copy())
+                    self.intermediate_qvels.append(self.sim.data.qvel[:].copy())
                     if get_intermediate_frames:
                         if hasattr(self, "get_vid_image"):
                             im = self.get_vid_image()
