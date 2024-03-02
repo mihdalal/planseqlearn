@@ -11,9 +11,9 @@ import pickle
 
 from planseqlearn.utils import make_video 
 
-def robosuite_gen_video(env_name, camera_name, suite):
+def robosuite_gen_video(env_name, camera_name, suite, use_mp):
     # create environment 
-    agent = torch.load(f"psl_policies/{suite}/{env_name}.pt")["agent"]
+    agent = torch.load(f"planseqlearn/psl_policies/{suite}/{env_name}.pt")["agent"]
     if env_name == "PickPlaceCanBread" or env_name == "PickPlaceCerealMilk":
         env_name = "PickPlace"
     if suite == "robosuite":
@@ -24,7 +24,7 @@ def robosuite_gen_video(env_name, camera_name, suite):
             discount=1.0,
             camera_name=camera_name,
             psl=True,
-            use_mp=True,
+            use_mp=use_mp,
             use_sam_segmentation=False,
             use_vision_pose_estimation=False,
             text_plan=ROBOSUITE_PLANS[env_name],
@@ -42,12 +42,12 @@ def robosuite_gen_video(env_name, camera_name, suite):
                 camera_name=camera_name,
                 psl=True,
                 text_plan=METAWORLD_PLANS[env_name],
-                use_mp=True,
+                use_mp=use_mp,
                 use_sam_segmentation=False,
                 use_vision_pose_estimation=False,
                 seed=0
             )
-        inner_env = env._env._env._env._env._env._env
+        inner_env = env._env._env._env._env._env
         mp_env = inner_env._env
     elif suite == "mopa":
         env = make_mopa(
@@ -56,7 +56,7 @@ def robosuite_gen_video(env_name, camera_name, suite):
             action_repeat=2,
             psl=True,
             text_plan=MOPA_PLANS[env_name],
-            use_mp=True,
+            use_mp=use_mp,
             use_sam_segmentation=False,
             use_vision_pose_estimation=False,
             seed=0
@@ -72,7 +72,7 @@ def robosuite_gen_video(env_name, camera_name, suite):
             camera_name=camera_name,
             psl=True,
             text_plan=KITCHEN_PLANS[env_name],
-            use_mp=True,
+            use_mp=use_mp,
             use_sam_segmentation=False,
             seed=0
         )
@@ -82,24 +82,31 @@ def robosuite_gen_video(env_name, camera_name, suite):
     clean_frames = []
     np.random.seed(0)
     o = env.reset()
-    states = dict(
-        qpos=mp_env.intermediate_qposes,
-        qvel=mp_env.intermediate_qvels,
-    )
-    mp_env.intermediate_qposes = []
-    mp_env.intermediate_qvels = []
-    frames.extend(mp_env.intermediate_frames)
+    if use_mp:
+        states = dict(
+            qpos=mp_env.intermediate_qposes,
+            qvel=mp_env.intermediate_qvels,
+        )
+        mp_env.intermediate_qposes = []
+        mp_env.intermediate_qvels = []
+        frames.extend(mp_env.intermediate_frames)
+    else:
+        states = dict(
+            qpos=[inner_env.sim.data.qpos.copy()],
+            qvel=[inner_env.sim.data.qvel.copy()],
+        )
     with torch.no_grad():
         for _ in range(100):
             act = agent.act(o.observation, step=_, eval_mode=True)
             o = env.step(act)
-            if len(mp_env.intermediate_qposes) > 0:
-                states['qpos'].extend(mp_env.intermediate_qposes)
-                states['qvel'].extend(mp_env.intermediate_qvels)
-                mp_env.intermediate_qposes = []
-                mp_env.intermediate_qvels = []
-                frames.extend(mp_env.intermediate_frames)
-                mp_env.intermediate_frames = []
+            if use_mp:
+                if len(mp_env.intermediate_qposes) > 0:
+                    states['qpos'].extend(mp_env.intermediate_qposes)
+                    states['qvel'].extend(mp_env.intermediate_qvels)
+                    mp_env.intermediate_qposes = []
+                    mp_env.intermediate_qvels = []
+                    frames.extend(mp_env.intermediate_frames)
+                    mp_env.intermediate_frames = []
             if suite == 'mopa':
                 frames.append(env.get_vid_image())
             else:
@@ -120,5 +127,6 @@ if __name__ == "__main__":
     parser.add_argument('--env_name', type=str, help='Name of the environment')
     parser.add_argument('--camera_name', type=str, help='Name of the environment')   
     parser.add_argument('--suite', type=str, default='robosuite', help='Type of environment')
+    parser.add_argument('--use-mp', action='store_true', help='Use motion planner')
     args = parser.parse_args()
-    robosuite_gen_video(args.env_name, args.camera_name, args.suite)  
+    robosuite_gen_video(args.env_name, args.camera_name, args.suite, args.use_mp)  

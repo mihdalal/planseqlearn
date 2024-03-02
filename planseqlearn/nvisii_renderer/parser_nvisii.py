@@ -105,7 +105,7 @@ class Parser(BaseParser):
                     # removing weird cylinders in metaworld envs
                     continue
         
-            if 'indicator' in geom_name or geom_name.endswith('target') or geom_name.endswith('target0') or geom_name.endswith('target1'):
+            if 'indicator' in geom_name or geom_name.endswith('target') or geom_name.endswith('target0') or geom_name.endswith('target1') or 'collison' in geom_name:
                 continue
             
             geom_quat = string_to_array(geom.get("quat", "1 0 0 0"))
@@ -154,7 +154,7 @@ class Parser(BaseParser):
                     class_id=class_id,  # change
                     meshes=self.meshes,
                 )
-                print(f"Loaded {geom_name} {geom_type} {geom_size} {geom_scale} {geom_pos} {geom_quat}")
+                print(f"Loaded {geom_name} {geom_type} {geom_size} {geom_scale} {geom_pos} {geom_quat} {geom_mat} {geom_tex_name} {geom_tex_file} {geom_rgba}")
             except:
                 print(traceback.format_exc())
                 print(geom_name, geom_type)

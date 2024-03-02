@@ -178,7 +178,11 @@ class NVISIIRenderer(Renderer):
             transform=nvisii.transform.create("plane"),
         )
         floor_entity.get_transform().set_scale(nvisii.vec3(1))
-        floor_entity.get_transform().set_position(nvisii.vec3(0, 0, 0))
+        if self.env_type == 'metaworld':
+            height = -1
+        else:
+            height = 0
+        floor_entity.get_transform().set_position(nvisii.vec3(0, 0, height))
 
         texture_image = xml_path_completion("textures/" + image)
         texture = nvisii.texture.create_from_file(name="floor_texture", path=texture_image)
@@ -404,6 +408,13 @@ class NVISIIRenderer(Renderer):
                 'torso',
                 'pedestal',
                 'screen',
+                'objA',
+                'binA',
+                'binB',
+                'hammer',
+                'HammerHandle',
+                'hammerblock',
+                'nail_link'
             ]
         elif self.env_type == 'mopa':
             self.body_tags = [
@@ -424,6 +435,17 @@ class NVISIIRenderer(Renderer):
                 'right_l4',
                 'right_l5',
                 'right_l6',
+                '4_part4',
+                '2_part2',
+                '1_part1',
+                '0_part0',
+                'right_arm_base_link',
+                'rightclaw',
+                'leftclaw',
+                'peg',
+                'right_gripper_base',
+                'r_gripper_l_finger_tip',
+                'r_gripper_r_finger_tip'
             ]
 
         if parent_body_name != "worldbody":

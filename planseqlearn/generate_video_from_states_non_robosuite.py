@@ -153,8 +153,8 @@ def gen_video(env_name, camera_name, suite):
     renderer = NVISIIRenderer(env,
                               **cfg)
     states = np.load(f"states/{env_name}_{camera_name}_states.npz")
-    renderer.reset()
     print(renderer.components.keys())
+    renderer.reset()
     for step in tqdm(range(states["qpos"].shape[0])):
         qpos = states["qpos"][step]
         qvel = states["qvel"][step]
@@ -165,6 +165,7 @@ def gen_video(env_name, camera_name, suite):
         frames.append(im)
         renderer.update()
         renderer.render()
+        
     # load png files from images folder
     frames = []
     for _ in range(1, len(os.listdir("images"))):
