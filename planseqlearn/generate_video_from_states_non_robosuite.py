@@ -61,8 +61,10 @@ def gen_video(env_name, camera_name, suite):
                             abs_path = os.path.join(base_path, elem.attrib[attr])
                         elif first_part == 'scene':
                             abs_path = os.path.join(base_path, elem.attrib[attr])
-                        elif first_part == 'textures':
+                        elif first_part == 'scene_textures':
                             abs_path = os.path.join(base_path, 'scene', elem.attrib[attr])
+                        elif first_part == 'textures':
+                            abs_path = os.path.join(base_path, elem.attrib[attr])
                         else:
                             print(first_part, orig)
                         elem.attrib[attr] = abs_path
@@ -165,7 +167,6 @@ def gen_video(env_name, camera_name, suite):
         frames.append(im)
         renderer.update()
         renderer.render()
-        
     # load png files from images folder
     frames = []
     for _ in range(1, len(os.listdir("images"))):
