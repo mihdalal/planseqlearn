@@ -128,5 +128,21 @@ def load_object(
             elif "hand_visual" in geom_name:
                 for entity in component.entities:
                     entity.get_material().set_base_color(nvisii.vec3(0.05, 0.05, 0.05))
+        else:
+            if geom_tex_file is not None and geom_tex_name is not None:
+                texture = nvisii.texture.get(geom_tex_name)
+
+                if texture is None:
+                    texture = nvisii.texture.create_from_file(name=geom_tex_name, path=geom_tex_file)
+
+                if isinstance(component, nvisii.scene):
+                    for entity in component.entities:
+                        entity.get_material().set_base_color_texture(texture)
+            if geom_rgba is not None:
+                if isinstance(component, nvisii.scene):
+                    for entity in component.entities:
+                        entity.get_material().set_base_color(nvisii.vec3(geom_rgba[0], geom_rgba[1], geom_rgba[2]))
+                else:
+                    component.get_material().set_base_color(nvisii.vec3(geom_rgba[0], geom_rgba[1], geom_rgba[2]))
 
     return component, entity_ids

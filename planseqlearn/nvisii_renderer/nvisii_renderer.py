@@ -470,7 +470,6 @@ class NVISIIRenderer(Renderer):
         else:
             pos = [0, 0, 0]
             nvisii_quat = nvisii.quat(1, 0, 0, 0)  # wxyz
-        print(name, parent_body_name, pos, nvisii_quat)
         if isinstance(obj, nvisii.scene):
 
             # temp fix -- look into XML file for correct quat

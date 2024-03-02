@@ -53,10 +53,14 @@ class Parser(BaseParser):
         """
 
         self.material_texture_mapping = {}
+        self.material_non_texture_mapping = {}
         for material in self.xml_root.iter("material"):
             material_name = material.get("name")
             texture_name = material.get("texture")
             self.material_texture_mapping[material_name] = texture_name
+            if texture_name is None:
+                rgba = material.get("rgba")
+                self.material_non_texture_mapping[material_name] = string_to_array(rgba)
 
     def parse_meshes(self):
         """
@@ -86,8 +90,10 @@ class Parser(BaseParser):
                 # check if it is a mesh
                 if geom.get("mesh") is not None:
                     geom_type = "mesh"
-
             rgba_str = geom.get("rgba")
+            geom_class = geom.get("class", '')            
+            if geom_class == 'sawyer_viz':
+                rgba_str = "0.5 0.1 0.1 1"
             geom_rgba = string_to_array(rgba_str) if rgba_str is not None else None
             if geom_name is None:
                 if parent_body_name in repeated_names:
@@ -96,7 +102,6 @@ class Parser(BaseParser):
                 else:
                     geom_name = parent_body_name + "0"
                     repeated_names[parent_body_name] = 1
-            geom_class = geom.get("class", '')
             if ("collision" in geom_name) or ("worldbody" in geom_name) or 'col' in geom_class:
                 continue
             
@@ -127,15 +132,37 @@ class Parser(BaseParser):
 
             dynamic = True
 
-            geom_tex_name = None
-            geom_tex_file = None
+            geom_tex_name, geom_tex_file, geom_rgba = self.parse_material(geom_mat, geom_rgba)
 
-            if geom_mat is not None:
-                geom_tex_name = self.material_texture_mapping[geom_mat]
-
-                if geom_tex_name in self.texture_attributes:
-                    geom_tex_file = self.texture_attributes[geom_tex_name]["file"]
-
+            # manually specify colors/textures for certain objects
+            if 'slide' in geom_name and geom_rgba is None and geom_mat is None:
+                geom_mat = 'M_slide_blue'
+                geom_tex_name, geom_tex_file, geom_rgba = self.parse_material(geom_mat, geom_rgba)
+            if ('counters' in geom_name) and geom_rgba is None and geom_mat is None:
+                geom_mat = 'counter_metal'
+                geom_tex_name, geom_tex_file, geom_rgba = self.parse_material(geom_mat, geom_rgba)
+            if 'micro' in geom_name and geom_rgba is None and geom_mat is None:
+                geom_mat = 'micro_black'
+                geom_tex_name, geom_tex_file, geom_rgba = self.parse_material(geom_mat, geom_rgba)
+            if 'oven' in geom_name and geom_rgba is None and geom_mat is None:
+                geom_mat = 'oven_metal'
+                geom_tex_name, geom_tex_file, geom_rgba = self.parse_material(geom_mat, geom_rgba)
+            if 'knob' in geom_name and geom_rgba is None and geom_mat is None:
+                geom_mat = 'oven_metal'
+                geom_tex_name, geom_tex_file, geom_rgba = self.parse_material(geom_mat, geom_rgba)
+            if 'lshandle' in geom_name and geom_rgba is None and geom_mat is None:
+                geom_mat = 'oven_metal'
+                geom_tex_name, geom_tex_file, geom_rgba = self.parse_material(geom_mat, geom_rgba)
+            if 'lightswitchbase' in geom_name and geom_rgba is None and geom_mat is None:
+                geom_mat = 'oven_metal'
+                geom_tex_name, geom_tex_file, geom_rgba = self.parse_material(geom_mat, geom_rgba)
+            if any([x in geom_name for x in ['brb_handle', 'blb_handle', 'tlb_handle', 'trb_handle']]) and geom_rgba is None and geom_mat is None:
+                geom_mat = 'oven_metal'
+                geom_tex_name, geom_tex_file, geom_rgba = self.parse_material(geom_mat, geom_rgba)
+            if 'kettleroot' in geom_name and geom_rgba is None and geom_mat is None:
+                geom_mat = 'kettle_white'
+                geom_tex_name, geom_tex_file, geom_rgba = self.parse_material(geom_mat, geom_rgba) 
+            
             class_id = element_id
 
             # load obj into nvisii
@@ -190,3 +217,16 @@ class Parser(BaseParser):
             if tag in name:
                 return True
         return False
+
+    def parse_material(self, geom_mat, geom_rgba):
+        geom_tex_name = None
+        geom_tex_file = None
+
+        if geom_mat is not None:
+            geom_tex_name = self.material_texture_mapping[geom_mat]
+
+            if geom_tex_name in self.texture_attributes:
+                geom_tex_file = self.texture_attributes[geom_tex_name]["file"]
+            if geom_tex_name is None:
+                geom_rgba = self.material_non_texture_mapping[geom_mat]
+        return geom_tex_name, geom_tex_file, geom_rgba
