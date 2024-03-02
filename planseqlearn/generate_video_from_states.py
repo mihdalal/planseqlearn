@@ -47,7 +47,7 @@ def robosuite_gen_video(env_name, camera_name):
         im_path = os.path.join("images", "image_{}.png".format(_))
         frames.append(cv2.imread(im_path))
     video_filename = f"rendered_videos/{env_name}_{camera_name}.mp4"
-    make_video(frames, "rendered_videos", video_filename, use_wandb=False)
+    make_video(frames, "rendered_videos", video_filename)
 
 
 if __name__ == "__main__":
