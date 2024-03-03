@@ -149,7 +149,7 @@ class RobosuitePSLEnv(PSLEnv):
                     self.pick_place_bin_names[obj_name] = idx
                     idx += 1
         self.robot = URDF.load(
-            "/home/tarunc/Desktop/research/planseqlearn/robosuite/robosuite/models/assets/bullet_data/panda_description/urdf/panda_arm_hand.urdf"
+            "robosuite/robosuite/models/assets/bullet_data/panda_description/urdf/panda_arm_hand.urdf"
         )
         if (
             self.env_name.startswith("PickPlace")
