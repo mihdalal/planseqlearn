@@ -70,6 +70,7 @@ class PSLEnv(ProxyEnv):
         # trajectory information
         self.num_high_level_steps = 0
         self.object_idx = 0
+        self.curr_ll_step = 0
     
     def set_robot_colors(self, colors):
         if type(colors) is np.ndarray:
@@ -123,6 +124,7 @@ class PSLEnv(ProxyEnv):
         # reset wrapped env
         obs = self._wrapped_env.reset(**kwargs)
         self.curr_plan_stage = 0
+        self.curr_ll_step = 0
         self.curr_postcondition = self.get_curr_postcondition_function()
 
         self.post_reset_burn_in()
@@ -187,6 +189,9 @@ class PSLEnv(ProxyEnv):
                     get_intermediate_frames=get_intermediate_frames,
                 )
             self.curr_postcondition = self.get_curr_postcondition_function()
+        self.curr_ll_step += 1
+        if self.env_name.startswith("kitchen"):
+            d |= (self.curr_ll_step >= (self.curr_plan_stage + 1) * 25)
         return o, r, d, i
 
     def construct_mp_problem(

@@ -181,7 +181,7 @@ class MetaworldPSLEnv(PSLEnv):
 
     def get_image(self):
         im = self.sim.render(
-            camera_name="corner",
+            camera_name="corner2",
             width=960,
             height=540,
         )
@@ -227,7 +227,7 @@ class MetaworldPSLEnv(PSLEnv):
                 "box_threshold": 0.35,
                 "camera_name": "corner3",
                 "idx": -1,
-                "offset": np.array([0.07, -0.03, 0.03]),
+                "offset": np.array([0.00, -0.03, 0.03]),
                 "flip_dm": True,
                 "flip_channel": True,
                 "flip_image": False,
@@ -311,7 +311,8 @@ class MetaworldPSLEnv(PSLEnv):
                     right_gripper_contact = True
             body_grasp = left_gripper_contact and right_gripper_contact 
             if obj_str == "hammer":
-                return body_grasp 
+                height_diff = abs(self.get_sim_object_pose(obj_name)[0][2] - self.initial_object_pos_dict[obj_name][2])
+                return body_grasp and height_diff > 0.005
             else:
                 height_diff = abs(self.get_sim_object_pose(obj_name)[0][2] - self.initial_object_pos_dict[obj_name][2])
                 return body_grasp and height_diff > 0.03
@@ -574,22 +575,27 @@ class MetaworldPSLEnv(PSLEnv):
         is_grasped,
         movement_fraction=0.001,
         open_gripper_on_tp=True,
-        obj_idx=0,
+        obj_name="",
     ):
         curr_pos = target_pos.copy()
-        self.set_robot_based_on_ee_pos(curr_pos, target_quat, qpos, qvel, is_grasped)
+        self.set_robot_based_on_ee_pos(
+            target_pos=curr_pos, 
+            target_quat=target_quat, 
+            qpos=qpos, 
+            qvel=qvel, 
+            obj_name=obj_name,
+        )
         collision = self.check_robot_collision(ignore_object_collision=is_grasped)
         iters = 0
         max_iters = int(1 / movement_fraction)
         while collision and iters < max_iters:
             curr_pos = curr_pos - movement_fraction * (target_pos - start_pos)
             self.set_robot_based_on_ee_pos(
-                curr_pos,
-                target_quat,
-                qpos,
-                qvel,
-                is_grasped,
-                open_gripper_on_tp=open_gripper_on_tp,
+                target_pos=curr_pos, 
+                target_quat=target_quat, 
+                qpos=qpos, 
+                qvel=qvel, 
+                obj_name=obj_name,
             )
             collision = self.check_robot_collision(ignore_object_collision=is_grasped)
             iters += 1
@@ -628,14 +634,14 @@ class MetaworldPSLEnv(PSLEnv):
         else:
             self.reset_robot_colors()
             im = self.sim.render(
-                camera_name="corner",
+                camera_name="corner2",
                 width=960,
                 height=540,
             )
             self.reset_robot_colors()
             segmentation_map = np.flipud(
                 CU.get_camera_segmentation(
-                    camera_name="corner",
+                    camera_name="corner2",
                     camera_width=960,
                     camera_height=540,
                     sim=self.sim,
@@ -673,7 +679,6 @@ class MetaworldPSLEnv(PSLEnv):
                     + 0.5 * (waypoint_img)
                     + frames[i] * (1.0 - robot_mask)
                 )
-                frames[i] = frames[i][:, :, ::-1]
             self.set_robot_colors(np.array([0.1, 0.3, 0.7, 1.0]))
             return frames
 
@@ -688,7 +693,7 @@ class MetaworldPSLEnv(PSLEnv):
     ):
         desired_rot = quat2mat(state[3:])
         for s in range(50):
-            if np.linalg.norm(state[:3] - self._eef_xpos) < 1e-5:
+            if np.linalg.norm(state[:3] - self._eef_xpos) < 1e-3:
                 self.break_mp = True
                 return
             self.set_xyz_action((state[:3] - self._eef_xpos))

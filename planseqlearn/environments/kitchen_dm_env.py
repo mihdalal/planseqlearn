@@ -49,7 +49,7 @@ class Kitchen_Wrapper(dm_env.Environment):
                 env_name,
                 use_vision_pose_estimation=False,
                 teleport_instead_of_mp=not use_mp,
-                use_joint_space_mp=False,
+                use_joint_space_mp=True,
                 use_sam_segmentation=use_sam_segmentation,
                 text_plan=text_plan,
             )
