@@ -551,9 +551,6 @@ class RobosuitePSLEnv(PSLEnv):
                 object_pos = self.sim.data.body_xpos[
                     self.sim.model.body_name2id("Door_main")
                 ] + np.array([0.05, 0.18, 0.05])
-                # object_pos = np.array(
-                #     [self.sim.data.qpos[self.hinge_qpos_addr]]
-                # )  # this is not what they are, but they will be decoded properly
                 object_quat = np.array(
                     [self.sim.data.qpos[self.handle_qpos_addr]]
                 )  # this is not what they are, but they will be decoded properly
