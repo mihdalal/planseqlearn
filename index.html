@@ -1,23 +1,57 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Plan-Seq-Learn</title>
+  <meta charset="utf-8">
+  <meta name="description"
+        content="Plan-Seq-Learn: Language Model Guided RL for Solving Long Horizon Robotics Tasks">
+  <meta name="keywords" content="Long-horizon robot learning, reinforcement learning, LLMs">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PerAct</title>
 
-  <!-- <link href="https://fonts.googleapis.com/css?family=Google+Sans|Noto+Sans|Castoro"
-        rel="stylesheet"> -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-FV4ZJ9PVSV"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
 
-  <!-- <link rel="stylesheet" href="./static/css/bulma.min.css">
-  <link rel="stylesheet" href="./static/css/bulma-carousel.min.css">
-  <link rel="stylesheet" href="./static/css/bulma-slider.min.css">
-  <link rel="stylesheet" href="./static/css/fontawesome.all.min.css">
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/jpswalsh/academicons@1/css/academicons.min.css">
-  <link rel="stylesheet" href="./static/css/index.css">
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" integrity="sha384-1BmE4kWBq78iYhFldvKuhfTAU6auU8tT94WrHftjDbrCEXSU1oBoqyl2QvZ6jIW3" crossorigin="anonymous">
-  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
-  <script defer src="./static/js/fontawesome.all.min.js"></script>
-  <script src="./static/js/bulma-carousel.min.js"></script>
-  <script src="./static/js/bulma-slider.min.js"></script>
-  <script src="./static/js/index.js"></script> -->
+    gtag('config', 'G-FV4ZJ9PVSV');
+  </script>
+
+  <script>
+    function updateSingleVideo() {
+      var demo = document.getElementById("single-menu-demos").value;
+      var task = document.getElementById("single-menu-tasks").value;
+      var inst = document.getElementById("single-menu-instances").value;
+
+      console.log("single", demo, task, inst)
+
+      var video = document.getElementById("multi-task-result-video");
+      video.src = "media/results/sim_rollouts/" + 
+                  "n" +
+                  demo +
+                  "-" +
+                  task +
+                  "-" +
+                  inst +
+                  ".mp4"
+      video.playbackRate = 1.75;
+      video.play();
+    }
+
+    function updateQpredVideo() {
+      var task = document.getElementById("single-menu-qpred").value;
+
+      console.log("qpred", task)
+
+      var video = document.getElementById("q-pred-video");
+      video.src = "media/results/qpred/" + 
+                  task + 
+                  ".mp4"
+      video.playbackRate = 1.75;
+      video.play();
+    }
+
+  </script>
 
   <link href="https://fonts.googleapis.com/css?family=Google+Sans|Noto+Sans|Castoro"
         rel="stylesheet">
@@ -26,52 +60,43 @@
   <link rel="stylesheet" href="./static/css/bulma-carousel.min.css">
   <link rel="stylesheet" href="./static/css/bulma-slider.min.css">
   <link rel="stylesheet" href="./static/css/fontawesome.all.min.css">
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/jpswalsh/academicons@1/css/academicons.min.css">
+  <link rel="stylesheet"
+        href="https://cdn.jsdelivr.net/gh/jpswalsh/academicons@1/css/academicons.min.css">
   <link rel="stylesheet" href="./static/css/index.css">
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.3.1/dist/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
 
   <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
   <script defer src="./static/js/fontawesome.all.min.js"></script>
   <script src="./static/js/bulma-carousel.min.js"></script>
   <script src="./static/js/bulma-slider.min.js"></script>
   <script src="./static/js/index.js"></script>
-
-  <link rel="icon" href="./favicon.ico?">
-
-
-
-  <script type="text/javascript" async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.9/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
-  <meta property="og:image:width" content="1600" />
-  <meta property="og:image:height" content="900" />
-
 </head>
-<body>
-  <section class="hero">
-    <div class="hero-body no-bottom-padding">
-      <div class="container">
-        <div class="columns is-centered">
-          <div class="column has-text-centered">
-            <h1 class="title is-1 publication-title">Plan-Seq-Learn: Language Model Guided RL for Solving Long Horizon Robotics Tasks</h1>
-            <div class="is-size-3">
-              <span class="brmod" style="color:rgb(100, 0, 0)"><b>Published at International Conference on Learning Representations (ICLR) 2024</b></span>
-            </div>
-            <div class="is-size-5 publication-authors">
-              <span class="author-block">
-                <a target="_blank" href="https://mihdalal.github.io/">Murtaza Dalal</a><sup></sup><sup>1</sup>&nbsp;&nbsp;&nbsp;
+<body onload="updateSingleVideo(); updateQpredVideo();">
+
+<section class="hero">
+  <div class="hero-body">
+    <div class="container is-max-desktop">
+      <div class="columns is-centered">
+        <div class="column has-text-centered">
+          <h1 class="title is-1 publication-title">Plan-Seq-Learn: Language Model Guided RL <br> for Solving Long Horizon Robotics Tasks</h1>
+          <h3 class="title is-4 conference-authors"><a target="_blank" href="https://iclr.cc/">Published at International Conference on Learning Representations (ICLR) 2024</a></h3>
+          <div class="is-size-5 publication-authors">
+            <a target="_blank" href="https://mihdalal.github.io/">Murtaza Dalal</a><sup></sup><sup>1</sup>&nbsp;&nbsp;&nbsp;
                 <a target="_blank" href="https://www.linkedin.com/in/tarun-chiruvolu/">Tarun Chiruvolu</a><sup></sup><sup>1</sup>&nbsp;&nbsp;&nbsp;
                 <a target="_blank" href="https://devendrachaplot.github.io/">Devendra Chaplot</a><sup></sup><sup>2</sup>&nbsp;&nbsp;&nbsp;
                 <a target="_blank" href="https://www.cs.cmu.edu/~rsalakhu/">Ruslan Salakhutdinov</a><sup>1</sup>&nbsp;&nbsp;&nbsp;
+            </span>
+          </div>
 
-                <br /><sup>1</sup>Carnegie Mellon University&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<sup>2</sup>Mistral AI
-              </span>
-            </div>
+          <div class="is-size-5 publication-authors">
+            <span class="author-block"><sup>1</sup>Carnegie Mellon University</span>
+            <span class="author-block"><sup>2</sup>Mistral AI</span>
           </div>
-          </div>
+
           <div class="column has-text-centered">
             <div class="publication-links">
               <!-- PDF Link. -->
               <span class="link-block">
-                <a href="resources/paper.pdf"
+                <a target="_blank" href="resources/paper.pdf"
                    class="external-link button is-normal is-rounded is-dark">
                   <span class="icon">
                       <i class="fas fa-file-pdf"></i>
@@ -80,71 +105,130 @@
                 </a>
               </span>
 
-              <!-- arXiv Link. -->
-              <!-- <span class="link-block">
-                <a target="_blank" href=""
-                   class="external-link button is-normal is-rounded is-dark">
-                  <span class="icon">
-                      <i class="ai ai-arxiv"></i>
-                  </span>
-                  <span>arXiv</span>
-                </a>
-              </span> -->
-              <!-- Code Link. -->
-              <span class="link-block">
-                <a href="https://github.com/mihdalal/planseqlearn" class="external-link button is-normal is-rounded is-dark">
-                  <span class="icon">
-                      <svg class="svg-inline--fa fa-github fa-w-16" aria-hidden="true" focusable="false" data-prefix="fab" data-icon="github" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 496 512" data-fa-i2svg=""><path fill="currentColor" d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6zm-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3zm44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9zM244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8zM97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1zm-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7zm32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1zm-11.4-14.7c-1.6 1-1.6 3.6 0 5.9 1.6 2.3 4.3 3.3 5.6 2.3 1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2z"></path></svg><!-- <i class="fab fa-github"></i> Font Awesome fontawesome.com -->
-                  </span>
-                  <span>Code (Coming Soon)</span>
-                </a>
-              </span>
+            <!-- Arxiv Link. -->
+            <span class="link-block">
+              <a target="_blank" href=""
+                 class="external-link button is-normal is-rounded is-dark">
+                <span class="icon">
+                    <i class="fas fa-file"></i>
+                </span>
+                <span>ArXiv</span>
+              </a>
+            </span>
 
-              
-          </div>
-        </div>
-      </div>
-    </div>
-  </section>
+            <!-- Code Link. -->
+            <span class="link-block">
+              <a target="_blank" href="https://github.com/mihdalal/planseqlearn"
+                 class="external-link button is-normal is-rounded is-dark">
+                <span class="icon">
+                    <i class="fab fa-github"></i>
+                </span>
+                <span>Code</span>
+                </a>
+            </span>
 
-  <section class="section">
-    <div class="container">
-      <div class="columns is-centered">
-        <div class="column is-three-quarters">
-            <div class="column is-centered">
-              <video class="center" playsinline autoplay loop muted src="./resources/gallery.mp4" width="100%" style="border-radius:20px;"></video>
             </div>
+          </div>
+<!--           <br>
+          <br> -->
+
+
         </div>
       </div>
     </div>
-  </section>
+  </div>
+</section>
 
-
-  <section class="hero is-light is-small">
+<section class="hero teaser">
+  <div class="container is-fullhd">
     <div class="hero-body">
-      <div class="container is-two-thirds">
-        <div class="columns is-centered has-text-centered">
-          <div class="column is-two-thirds">
-            <h2 class="title is-3">Abstract</h2>
-          </div>
-      </div>
-    
-      <div class="columns is-centered has-text-centered">
-        <div class="column is-two-thirds ">
-          <div class="content has-text-justified">
-            Large Language Models (LLMs) are highly capable of performing planning for long-horizon robotics tasks, yet existing methods require access to a pre-defined skill library (<em>e.g.</em> picking, placing, pulling, pushing, navigating).
-            However, LLM planning does not address how to design or learn those behaviors, which remains challenging particularly in long-horizon settings.
-            Furthermore, for many tasks of interest, the robot needs to be able to adjust its behavior in a fine-grained manner, requiring the agent to be capable of modifying <em>low-level</em> control actions. Can we instead use the internet-scale knowledge from LLMs for high-level policies, guiding reinforcement learning (RL) policies to efficiently solve robotic control tasks online without requiring a pre-determined set of skills? In this paper, we propose <strong>Plan-Seq-Learn</strong> (PSL): a modular approach that uses motion planning to bridge the gap between abstract language and learned low-level control for solving long-horizon robotics tasks from scratch. We demonstrate that PSL is capable of solving 20+ challenging single and multi-stage robotics tasks on four benchmarks at success rates of over 80% from raw visual input, out-performing language-based, classical, and end-to-end approaches. 
-          </div>
+      <div class="container">
+        <div class="columns is-vcentered  is-centered">
+            <div class="item item-steve"></div>
+          <video poster="" id="teaser" autoplay muted loop width="100%" style="border-radius:20px;">
+            <source src="resources/rendered_videos/main.mp4"
+                    type="video/mp4">
+          </video>
         </div>
+          </br>
         </div>
-      </div>
+        <br>
+        <h2 class="subtitle has-text-centered">
+        <span class="dperact">
       </div>
     </div>
-  </section>
+  </div>
+</section>
 
 
-  <section class="section">
+<section class="hero is-light is-small">
+  <div class="hero-body">
+    <div class="container">
+      <div id="results-carousel" class="carousel results-carousel">
+        <div class="item item-steve">
+          <video poster="" id="steve" autoplay muted loop height="100%">
+            <source src="resources/rendered_videos/kitchen-ms10-v1_wrist_0.mp4"
+                    type="video/mp4">
+          </video>
+        </div>
+        <div class="item item-fullbody">
+          <video poster="" id="fullbody" autoplay muted loop height="100%">
+            <source src="resources/rendered_videos/NutAssembly_robot0_eye_in_hand.mp4"
+                    type="video/mp4">
+          </video>
+        </div>
+        <div class="item item-shiba">
+          <video poster="" id="shiba" autoplay muted loop height="100%">
+            <source src="resources/rendered_videos/SawyerAssemblyObstacle-v0_wrist.mp4"
+                    type="video/mp4">
+          </video>
+        </div>
+        <div class="item item-blueshirt">
+          <video poster="" id="blueshirt" autoplay muted loop height="100%">
+            <source src="resources/rendered_videos/hammer-v2_gripperPOVpos.mp4"
+                    type="video/mp4">
+          </video>
+        </div>
+        <div class="item item-shiba">
+          <video poster="" id="shiba" autoplay muted loop height="100%">
+            <source src="resources/rendered_videos/PickPlaceCerealMilk_robot0_eye_in_hand.mp4"
+                    type="video/mp4">
+          </video>
+        </div>
+        <div class="item item-shiba">
+          <video poster="" id="shiba" autoplay muted loop height="100%">
+            <source src="resources/rendered_videos/PickPlaceCanBread_robot0_eye_in_hand.mp4"
+                    type="video/mp4">
+          </video>
+        </div>
+       <div class="item item-chair-tp">
+          <video poster="" id="chair-tp" autoplay muted loop height="100%">
+            <source src="resources/rendered_videos/assembly-v2_gripperPOVneg.mp4"
+                    type="video/mp4">
+          </video>
+        </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section">
+    <div class="container is-max-desktop">
+      <!-- Abstract. -->
+      <div class="columns is-centered has-text-centered">
+        <div class="column is-four-fifths">
+          <h2 class="title is-3">Abstract</h2>
+          <div class="content has-text-justified">
+              <p>Large Language Models (LLMs) have been shown to be capable of performing high-level planning for long-horizon robotics tasks, yet existing methods require access to a pre-defined skill library (<em>e.g.</em> picking, placing, pulling, pushing, navigating).
+                  However, LLM planning does not address how to design or learn those behaviors, which remains challenging particularly in long-horizon settings.
+                  Furthermore, for many tasks of interest, the robot needs to be able to adjust its behavior in a fine-grained manner, requiring the agent to be capable of modifying <em>low-level</em> control actions. Can we instead use the internet-scale knowledge from LLMs for high-level policies, guiding reinforcement learning (RL) policies to efficiently solve robotic control tasks online without requiring a pre-determined set of skills? In this paper, we propose <strong>Plan-Seq-Learn</strong> (<strong>PSL</strong>): a modular approach that uses motion planning to bridge the gap between abstract language and learned low-level control for solving long-horizon robotics tasks from scratch. We demonstrate that <strong>PSL</strong> achieves state-of-the-art results on over <strong>25</strong> challenging robotics tasks with up to <strong>10</strong> stages. <strong>PSL</strong> solves long-horizon tasks from raw visual input spanning four benchmarks at success rates of <strong>over 85%</strong>, out-performing language-based, classical, and end-to-end approaches.</p>
+          </div>
+        </div>
+      </div>
+      <br>
+      <br>
+    </div>
     <div class="container">
       <div class="columns is-centered">
         <div class="column is-full-width">
@@ -177,284 +261,130 @@
 
   <section class="section">
     <div class="container">
-      <div class="columns is-centered">
-        <div class="column is-three-quarters">
-          <h3 class="title is-3" style="text-align: center; padding-bottom: 10px;"><strong>PSL solves contact-rich, long-horizon manipulation tasks</strong></h3>
-          <div class="columns is-centered">
-            <div class="row">
-              <div class="col">
-                  <video class="center" playsinline autoplay loop muted src="./resources/full/robosuite_nut_assembly_round_3.mov" width="100%"
-                         style="border-radius:10px; "></video>
-                         <div class="content has-text-justified">
-                          <p style="text-align: center;font-size: 18px">RS-NutRound: 98% </p>
-                      </div>
-              </div>
-              <div class="col">
-                <video class="center" playsinline autoplay loop muted src="./resources/full/robosuite_nut_assembly_square_3.mp4" width="100%"
-                       style="border-radius:10px; "></video>
-                       <div class="content has-text-justified">
-                        <p style="text-align: center;font-size: 18px">RS-NutSquare: 97% </p>
+        <div class="columns is-centered">
+            <div class="column is-three-quarters">
+                <h3 class="title is-3" style="text-align: center; padding-bottom: 10px;"><strong>PSL solves contact-rich, long-horizon manipulation tasks</strong></h3>
+                <div class="columns">
+                    <div class="column">
+                        <video class="center" playsinline autoplay loop muted src="./resources/rendered_videos/NutAssemblyRound_robot0_eye_in_hand.mp4" width="100%" style="border-radius:10px;"></video>
+                        <p style="text-align: center; font-size: 18px">RS-NutRound: 98%</p>
                     </div>
+                    <div class="column">
+                        <video class="center" playsinline autoplay loop muted src="./resources/rendered_videos/NutAssemblySquare_robot0_eye_in_hand.mp4" width="100%" style="border-radius:10px;"></video>
+                        <p style="text-align: center; font-size: 18px">RS-NutSquare: 97%</p>
+                    </div>
+                    <div class="column">
+                        <video class="center" playsinline autoplay loop muted src="./resources/rendered_videos/NutAssembly_robot0_eye_in_hand.mp4" width="100%" style="border-radius:10px;"></video>
+                        <p style="text-align: center; font-size: 18px">RS-NutAssembly: 96%</p>
+                    </div>
+                </div>
             </div>
-            <div class="col">
-              <video class="center" playsinline autoplay loop muted src="./resources/full/robosuite_nut_assembly_3.mov" width="100%"
-                     style="border-radius:10px; "></video>
-                     <div class="content has-text-justified">
-                      <p style="text-align: center;font-size: 18px">RS-NutAssembly: 96% </p>
+        </div>
+    </div>
+</section>
+
+<section class="section">
+    <div class="container">
+        <div class="columns is-centered">
+            <div class="column is-three-quarters">
+                <h3 class="title is-3" style="text-align: center; padding-bottom: 10px;"><strong>PSL solves long-horizon kitchen manipulation tasks with up to 10 stages.</strong></h3>
+                <div class="columns">
+                  <div class="column">
+                      <video class="center" playsinline autoplay loop muted src="./resources/rendered_videos/kitchen-ms3-v0_wrist_0.mp4" width="100%" style="border-radius:10px;"></video>
+                      <p style="text-align: center; font-size: 18px">K-Multistage-3: 100%</p>
                   </div>
-          </div>
-          </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <section class="section">
-    <div class="container">
-      <div class="columns is-centered">
-        <div class="column is-three-quarters">
-          <h3 class="title is-3" style="text-align: center; padding-bottom: 10px;"><strong>PSL enables visuomotor policies to learn pick-and-place behaviors with 4 stages</strong></h3>
-          <div class="columns is-centered">
-            <div class="row">
-              <div class="col">
-                  <video class="center" playsinline autoplay loop muted src="./resources/full/robosuite_can_bread_3.mov" width="100%"
-                         style="border-radius:10px; "></video>
-                         <div class="content has-text-justified">
-                          <p style="text-align: center;font-size: 18px">RS-CanBread: 90% </p>
-                      </div>
-              </div>
-              <div class="col">
-                <video class="center" playsinline autoplay loop muted src="./resources/full/robosuite_cereal_milk_3_new.mov" width="100%"
-                       style="border-radius:10px; "></video>
-                       <div class="content has-text-justified">
-                        <p style="text-align: center;font-size: 18px">RS-CerealMilk: 85% </p>
-                    </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <section class="section">
-    <div class="container">
-      <div class="columns is-centered">
-        <div class="column is-three-quarters">
-          <h3 class="title is-3" style="text-align: center; padding-bottom: 10px;"><bold>PSL efficiently solves tasks with obstructions by leveraging motion planning</bold></h3>
-          <tr>
-            <td>
-
-              <div class="row">
-                <div class="col">
-                    <video class="center" playsinline autoplay loop muted src="./resources/full/mopa_push_3.mp4" width="100%"
-                           style="border-radius:10px; "></video>
-                           <div class="content has-text-justified">
-                            <p style="text-align: center;font-size: 18px">OS-Push: 100% </p>
-                        </div>
-                </div>
-                <div class="col">
-                  <video class="center" playsinline autoplay loop muted src="./resources/full/mopa_lift_3.mp4" width="100%"
-                         style="border-radius:10px; "></video>
-                         <div class="content has-text-justified">
-                          <p style="text-align: center;font-size: 18px">OS-Lift: 100% </p>
-                      </div>
-              </div>
-              <div class="col">
-                <video class="center" playsinline autoplay loop muted src="./resources/full/mopa_assembly_3.mp4" width="100%"
-                       style="border-radius:10px; "></video>
-                       <div class="content has-text-justified">
-                        <p style="text-align: center;font-size: 18px">OS-Assembly: 100% </p>
-                    </div>
-            </div>
-              <br>
-              <br>
-            </td>
-          </tr>
-        </div> 
-      </div>
-    </div>
-  </section>
-
-  <section class="section">
-    <div class="container">
-      <div class="columns is-centered">
-        <div class="column is-three-quarters">
-          <h3 class="title is-3" style="text-align: center; padding-bottom: 10px;"><strong>PSL solves long-horizon kitchen manipulation tasks with up to 5 stages.</strong></h3>
-          <div class="columns is-centered">
-            <div class="row">
-              <div class="col">
-                  <video class="center" playsinline autoplay loop muted src="./resources/full/kitchen_ms_3.mp4" width="100%"
-                         style="border-radius:10px; "></video>
-                         <div class="content has-text-justified">
-                          <p style="text-align: center;font-size: 18px">K-Multistage-3: 100% </p>
-                      </div>
-              </div>
-              <div class="col">
-                <video class="center" playsinline autoplay loop muted src="./resources/full/kitchen_ms_4.mp4" width="100%"
-                       style="border-radius:10px; "></video>
-                       <div class="content has-text-justified">
-                        <p style="text-align: center;font-size: 18px">K-Multistage-4: 67% </p>
-                    </div>
-            </div>
-            <div class="col">
-              <video class="center" playsinline autoplay loop muted src="./resources/full/kitchen_ms_5.mp4" width="100%"
-                     style="border-radius:10px; "></video>
-                     <div class="content has-text-justified">
-                      <p style="text-align: center;font-size: 18px">K-Multistage-5: 67% </p>
+                  <div class="column">
+                      <video class="center" playsinline autoplay loop muted src="./resources/rendered_videos/kitchen-ms5-v0_wrist_0.mp4" width="100%" style="border-radius:10px;"></video>
+                      <p style="text-align: center; font-size: 18px">K-Multistage-5: 100%</p>
                   </div>
-          </div>
-          </div>
-          </div>
+              </div>
+                <div class="columns">
+                    <div class="column">
+                        <video class="center" playsinline autoplay loop muted src="./resources/rendered_videos/kitchen-ms7-v0_wrist_0.mp4" width="100%" style="border-radius:10px;"></video>
+                        <p style="text-align: center; font-size: 18px">K-Multistage-7: 100%</p>
+                    </div>
+                    <div class="column">
+                        <video class="center" playsinline autoplay loop muted src="./resources/rendered_videos/kitchen-ms10-v1_wrist_0.mp4" width="100%" style="border-radius:10px;"></video>
+                        <p style="text-align: center; font-size: 18px">K-Multistage-10: 100%</p>
+                    </div>
+                </div>
+            </div>
         </div>
-      </div>
     </div>
-  </section>
-  
+</section>
 
 
-  <section class="section" style="width: 85%; margin: 0 auto;">
+<section class="section">
+    <div class="container">
+        <div class="columns is-centered">
+            <div class="column is-three-quarters">
+                <h3 class="title is-3" style="text-align: center; padding-bottom: 10px;"><strong>PSL enables visuomotor policies to learn pick-and-place behaviors with 4 stages</strong></h3>
+                <div class="columns">
+                    <div class="column">
+                        <video class="center" playsinline autoplay loop muted src="./resources/rendered_videos/PickPlaceCanBread_robot0_eye_in_hand.mp4" width="100%" style="border-radius:10px;"></video>
+                        <p style="text-align: center; font-size: 18px">RS-CanBread: 90%</p>
+                    </div>
+                    <div class="column">
+                        <video class="center" playsinline autoplay loop muted src="./resources/rendered_videos/PickPlaceCerealMilk_robot0_eye_in_hand.mp4" width="100%" style="border-radius:10px;"></video>
+                        <p style="text-align: center; font-size: 18px">RS-CerealMilk: 85%</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="section">
+    <div class="container">
+        <div class="columns is-centered">
+            <div class="column is-three-quarters">
+                <h3 class="title is-3" style="text-align: center; padding-bottom: 10px;"><strong>PSL efficiently solves tasks with obstructions by leveraging motion planning</strong></h3>
+                <div class="columns">
+                    <div class="column">
+                        <video class="center" playsinline autoplay loop muted src="./resources/rendered_videos/SawyerPushObstacle-v0_wrist_True.mp4" width="100%" style="border-radius:10px;"></video>
+                        <p style="text-align: center; font-size: 18px">OS-Push: 100%</p>
+                    </div>
+                    <div class="column">
+                        <video class="center" playsinline autoplay loop muted src="./resources/rendered_videos/SawyerLiftObstacle-v0_wrist.mp4" width="100%" style="border-radius:10px;"></video>
+                        <p style="text-align: center; font-size: 18px">OS-Lift: 100%</p>
+                    </div>
+                    <div class="column">
+                        <video class="center" playsinline autoplay loop muted src="./resources/rendered_videos/SawyerAssemblyObstacle-v0_wrist.mp4" width="100%" style="border-radius:10px;"></video>
+                        <p style="text-align: center; font-size: 18px">OS-Assembly: 100%</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="section" id="BibTeX">
+  <div class="container is-max-widescreen content">
+    <h2 class="title">BibTeX</h2>
+    <pre><code>@inproceedings{dalal2024psl,
+  title     = {Plan-Seq-Learn: Language Model Guided RL for Solving Long Horizon Robotics Tasks}, 
+  author    = {Dalal, Murtaza and Chiruvolu, Tarun and Chaplot, Devendra and Salakhutdinov, Ruslan},
+  booktitle = {International Conference on Learning Representations (ICLR)},
+  year      = {2024},
+}</code></pre>
+  </div>
+</section>
+
+
+<footer class="footer">
     <div class="container">
       <div class="columns is-centered">
-        <div class="column is-full-width">
-          <h3 class="title is-1" style="text-align: center; padding-bottom: 10px;"><bold>Extensive Emprical Evaluation</bold></h3>
-          <div class="columns is-centered has-text-centered">
-            <div class="column is-two-thirds ">
-            <div class="content has-text-justified">
-          <p style="text-align: center; font-size: 22px"> PSL solves <strong>20+</strong> long-horizon robotics tasks across <strong>four</strong> benchmark environment suites with <strong>greater than 80%</strong> success rates</p>
-        </div>
-        </div>
-        </div>
-          <tr>
-            <td>
-
-              <div class="row">
-                <div class="col">
-                    <video class="center" playsinline autoplay loop muted src="./resources/clean/robosuite_bread_3_clean.mp4" width="100%"
-                           style="border-radius:10px; "></video>
-                </div>
-                <div class="col">
-                  <video class="center" playsinline autoplay loop muted src="./resources/clean/robosuite_can_3_clean.mp4" width="100%"
-                         style="border-radius:10px; "></video>
-              </div>
-              <div class="col">
-                <video class="center" playsinline autoplay loop muted src="./resources/clean/robosuite_cereal_3_clean.mp4" width="100%"
-                       style="border-radius:10px; "></video>
-             </div> 
-                <div class="col">
-                    <video class="center" playsinline autoplay loop muted src="./resources/clean/robosuite_milk_3_clean.mp4" width="100%"
-                        style="border-radius:10px; "></video>
-                </div>          
-            </div>
-            <div class="row">
-                <div class="col">
-                    <video class="center" playsinline autoplay loop muted src="./resources/clean/robosuite_can_bread_3_clean.mp4" width="100%"
-                           style="border-radius:10px; "></video>
-                </div>
-                <div class="col">
-                  <video class="center" playsinline autoplay loop muted src="./resources/clean/robosuite_cereal_milk_3_clean.mp4" width="100%"
-                         style="border-radius:10px; "></video>
-              </div>
-              <div class="col">
-                <video class="center" playsinline autoplay loop muted src="./resources/clean/robosuite_lift_3_clean.mp4" width="100%"
-                       style="border-radius:10px; "></video>
-             </div>  
-             <div class="col">
-                <video class="center" playsinline autoplay loop muted src="./resources/clean/robosuite_door_3_clean.mp4" width="100%"
-                       style="border-radius:10px; "></video>
-             </div>         
-            </div>
-
-            <div class="row">
-                <div class="col">
-                    <video class="center" playsinline autoplay loop muted src="./resources/clean/robosuite_round_3_clean.mp4" width="100%"
-                           style="border-radius:10px; "></video>
-                </div>
-                <div class="col">
-                  <video class="center" playsinline autoplay loop muted src="./resources/clean/robosuite_square_3_clean.mp4" width="100%"
-                         style="border-radius:10px; "></video>
-              </div>
-              <div class="col">
-                <video class="center" playsinline autoplay loop muted src="./resources/clean/robosuite_nut_assembly_3_clean.mp4" width="100%"
-                       style="border-radius:10px; "></video>
-             </div>  
-             <div class="col">
-                <video class="center" playsinline autoplay loop muted src="./resources/clean/kitchen_slider_3_clean.mp4" width="100%"
-                       style="border-radius:10px; "></video>
-             </div>         
-            </div>
-
-            <div class="row">
-              <div class="col">
-                  <video class="center" playsinline autoplay loop muted src="./resources/clean/kitchen_tlb_3_clean.mp4" width="100%"
-                         style="border-radius:10px; "></video>
-              </div>
-              <div class="col">
-                <video class="center" playsinline autoplay loop muted src="./resources/clean/kitchen_kettle_3_clean.mp4" width="100%"
-                       style="border-radius:10px; "></video>
-            </div>
-            <div class="col">
-              <video class="center" playsinline autoplay loop muted src="./resources/clean/kitchen_microwave_3_clean.mp4" width="100%"
-                     style="border-radius:10px; "></video>
-           </div>  
-           <div class="col">
-              <video class="center" playsinline autoplay loop muted src="./resources/clean/kitchen_light_3_clean.mp4" width="100%"
-                     style="border-radius:10px; "></video>
-           </div>         
+        <div class="column">
+          <div class="content has-text-centered">
+            <p>
+              Website template borrowed from <a href="https://github.com/nerfies/nerfies.github.io">NeRFies</a> and <a href="https://peract.github.io/">PerAct</a>. 
+            </p>
           </div>
-
-          <div class="row">
-            <div class="col">
-              <video class="center" playsinline autoplay loop muted src="./resources/clean/kitchen_ms_5_clean.mp4" width="100%"
-                     style="border-radius:10px; "></video>
-          </div>
-          <div class="col">
-            <video class="center" playsinline autoplay loop muted src="./resources/clean/mopa_assembly_3_clean.mp4" width="100%"
-                   style="border-radius:10px; "></video>
-         </div>
-         <div class="col">
-          <video class="center" playsinline autoplay loop muted src="./resources/clean/mopa_lift_3_clean.mp4" width="100%"
-                 style="border-radius:10px; "></video>
-       </div>
-        <div class="col">
-            <video class="center" playsinline autoplay loop muted src="./resources/clean/mopa_push_3_clean.mp4 " width="100%"
-                   style="border-radius:10px; "></video>
         </div>
-         
-      </div>
-
-         <div class="row">
-          <div class="col">
-            <video class="center" playsinline autoplay loop muted src="./resources/clean/metaworld_disassemble_3_clean.mp4" width="100%"
-                   style="border-radius:10px; "></video>
-         </div>
-          <div class="col">
-              <video class="center" playsinline autoplay loop muted src="./resources/clean/metaworld_assembly_3_clean.mp4" width="100%"
-                     style="border-radius:10px; "></video>
-          </div>
-          <div class="col">
-            <video class="center" playsinline autoplay loop muted src="./resources/clean/metaworld_bin_picking_3_clean.mp4" width="100%"
-                   style="border-radius:10px; "></video>
-        </div>
-        <div class="col">
-          <video class="center" playsinline autoplay loop muted src="./resources/clean/metaworld_hammer_3_clean.mp4" width="100%"
-                 style="border-radius:10px; "></video>
-       </div>
-
-     </div>
-
-         
-         <!-- <div class="col">
-            <video class="center" playsinline autoplay loop muted src="./resources/" width="100%"
-                   style="border-radius:10px; "></video>
-         </div>          -->
-        </div>
-            </td>
-          </tr>
-        </div> 
       </div>
     </div>
-  </section>
+  </footer>
 
 
-
+</body>
+</html>
