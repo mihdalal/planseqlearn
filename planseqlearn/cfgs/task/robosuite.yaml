@@ -1,0 +1,11 @@
+num_train_frames: 2500000
+stddev_schedule: 'linear(1.0,0.1,500000)'
+
+camera_name: "agentview"
+has_success_metric: true
+estimate_orientation: true
+vertical_displacement: 0.08
+valid_obj_names: null
+action_repeat: 1  
+use_proprio: true
+pose_sigma: 0.0

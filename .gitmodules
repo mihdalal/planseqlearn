@@ -1,0 +1,30 @@
+[submodule "d4rl"]
+	path = d4rl
+	url = git@github.com:mihdalal/d4rl.git
+	branch = psl_release
+[submodule "metaworld"]
+	path = metaworld
+	url = git@github.com:mihdalal/metaworld.git
+	branch = psl_release
+[submodule "robosuite"]
+	path = robosuite
+	url = git@github.com:mihdalal/robosuite.git
+	branch = psl_release
+[submodule "doodad"]
+	path = doodad
+	url = git@github.com:mihdalal/doodad.git
+	branch = master
+[submodule "mjrl"]
+	path = mjrl
+	url = https://github.com/aravindr93/mjrl.git
+[submodule "mopa-rl"]
+	path = mopa-rl
+	url = git@github.com:mihdalal/mopa-rl.git
+	branch = psl_release
+[submodule "rlkit"]
+	path = rlkit
+	url = git@github.com:mihdalal/rlkit.git
+	branch = mprl
+[submodule "Grounded-Segment-Anything"]
+	path = Grounded-Segment-Anything
+	url = https://github.com/IDEA-Research/Grounded-Segment-Anything.git
