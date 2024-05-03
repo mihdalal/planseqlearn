@@ -13,7 +13,6 @@ $^1$ CMU, $^2$ Mistral AI
 Plan-Seq-Learn (PSL) is a method for enabling RL agents to learn to solve long-horizon robotics by leveraging LLM guidance via motion planning. We release all training code, environments and configuration files for replicating our results.
 
 
-https://github.com/mihdalal/planseqlearn/assets/21963649/cf4f4465-c0bb-46ca-972d-201df1ff7fa1
 
 
 If you find this codebase useful in your research, please cite:
@@ -25,6 +24,10 @@ If you find this codebase useful in your research, please cite:
     year={2024}
 }
 ```
+
+https://github.com/mihdalal/planseqlearn/assets/21963649/c93ea01a-cef7-430e-a745-437cb7961c7f
+
+
 
 # Table of Contents
 
