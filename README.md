@@ -14,6 +14,10 @@ Plan-Seq-Learn (PSL) is a method for enabling RL agents to learn to solve long-h
 
 
 
+https://github.com/mihdalal/planseqlearn/assets/21963649/0c78bf27-afdd-4c8e-ab0a-dcfb0a23d15c
+
+
+
 
 If you find this codebase useful in your research, please cite:
 ```bibtex
@@ -25,7 +29,6 @@ If you find this codebase useful in your research, please cite:
 }
 ```
 
-https://github.com/mihdalal/planseqlearn/assets/21963649/c93ea01a-cef7-430e-a745-437cb7961c7f
 
 
 
