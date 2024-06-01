@@ -21,7 +21,7 @@ pip install -e rlkit/
 pip install -r requirements.txt
 pip install dm-env
 pip install distracting-control
-pip install --upgrade dm-control
+pip install dm-control==1.0.12
 pip install mujoco==2.3.5
 pip install numpy==1.23.5
 pip install mujoco-py==2.0.2.5
