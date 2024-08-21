@@ -38,7 +38,7 @@ If you find this codebase useful in your research, please cite:
 # Installation
 To install dependencies, please run the following commands:
 ```
-git clone --recurse-submodules git@github.com:mihdalal/planseqlearn.git
+git clone --recurse-submodules https://github.com/mihdalal/planseqlearn.git
 cd planseqlearn
 git lfs install
 git lfs track "*.plugin"
